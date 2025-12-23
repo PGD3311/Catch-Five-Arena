@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { DeckColor, DECK_COLORS } from '@shared/gameTypes';
 import { cn } from '@/lib/utils';
 import { RefreshCw, HelpCircle, Sun, Moon, User, Bot } from 'lucide-react';
@@ -41,9 +40,8 @@ export function SettingsPanel({
   onTogglePlayerType,
   onPlayerNameChange,
 }: SettingsPanelProps) {
-  const positions = ['Bottom', 'Left', 'Top', 'Right'];
-  const teams = ['Your Team', 'Opponents', 'Your Team', 'Opponents'];
-  const defaultNames = ['You', 'CPU 1', 'Partner', 'CPU 2'];
+  const teamLabels = ['Your Team', 'Opponents', 'Your Team', 'Opponents'];
+  const seatLabels = ['Seat 1', 'Seat 2', 'Seat 3', 'Seat 4'];
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -55,52 +53,56 @@ export function SettingsPanel({
         <div className="space-y-6 py-6">
           <div className="space-y-3">
             <Label className="text-sm font-medium">Players</Label>
-            <p className="text-xs text-muted-foreground">
-              Toggle to Human and enter a name for each human player
-            </p>
             <div className="space-y-2">
               {playerConfigs.map((player, index) => (
                 <div
                   key={player.id}
-                  className="p-3 rounded-lg bg-muted/50 space-y-2"
+                  className="flex items-center gap-2 p-2 rounded-lg bg-muted/40"
                   data-testid={`player-config-${player.id}`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {player.isHuman ? (
-                        <User className="w-4 h-4 text-primary" />
-                      ) : (
-                        <Bot className="w-4 h-4 text-muted-foreground" />
-                      )}
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{positions[index]}</span>
-                        <span className="text-xs text-muted-foreground">{teams[index]}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        {player.isHuman ? 'Human' : 'CPU'}
-                      </span>
-                      <Switch
-                        checked={player.isHuman}
-                        onCheckedChange={() => onTogglePlayerType(player.id)}
-                        data-testid={`toggle-player-${player.id}`}
+                  <button
+                    onClick={() => onTogglePlayerType(player.id)}
+                    className={cn(
+                      'flex items-center justify-center w-8 h-8 rounded-md transition-colors',
+                      player.isHuman 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-muted text-muted-foreground'
+                    )}
+                    data-testid={`toggle-player-${player.id}`}
+                  >
+                    {player.isHuman ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                  </button>
+                  
+                  <div className="flex-1 min-w-0">
+                    {player.isHuman ? (
+                      <Input
+                        placeholder="Name"
+                        value={player.name}
+                        onChange={(e) => onPlayerNameChange(player.id, e.target.value)}
+                        className="h-8 text-sm"
+                        data-testid={`input-player-name-${player.id}`}
                       />
-                    </div>
+                    ) : (
+                      <div className="h-8 flex items-center px-3 text-sm text-muted-foreground">
+                        CPU
+                      </div>
+                    )}
                   </div>
                   
-                  {player.isHuman && (
-                    <Input
-                      placeholder={`Enter name (${defaultNames[index]})`}
-                      value={player.name}
-                      onChange={(e) => onPlayerNameChange(player.id, e.target.value)}
-                      className="h-8 text-sm"
-                      data-testid={`input-player-name-${player.id}`}
-                    />
-                  )}
+                  <div className="text-xs text-muted-foreground text-right shrink-0 w-16">
+                    <div>{seatLabels[index]}</div>
+                    <div className={cn(
+                      index === 0 || index === 2 ? 'text-primary' : 'text-orange-500'
+                    )}>
+                      {teamLabels[index]}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Tap the icon to toggle Human/CPU
+            </p>
           </div>
 
           <Separator />
