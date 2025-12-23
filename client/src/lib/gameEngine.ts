@@ -70,14 +70,22 @@ export function startDealerDraw(state: GameState): GameState {
   };
 }
 
+const SUIT_ORDER: Record<string, number> = {
+  'Clubs': 0,
+  'Diamonds': 1,
+  'Hearts': 2,
+  'Spades': 3,
+};
+
 export function finalizeDealerDraw(state: GameState): GameState {
   if (!state.dealerDrawCards || state.dealerDrawCards.length === 0) {
     return { ...state, phase: 'setup', dealerIndex: 0 };
   }
 
   const getDealerDrawValue = (card: Card): number => {
-    if (card.rank === 'A' && card.suit === 'Spades') return -1;
-    return RANK_ORDER_ACE_LOW[card.rank];
+    const rankValue = RANK_ORDER_ACE_LOW[card.rank];
+    const suitValue = SUIT_ORDER[card.suit];
+    return rankValue * 10 + suitValue;
   };
 
   let lowestIndex = 0;

@@ -6,9 +6,17 @@ import { cn } from '@/lib/utils';
 import { Crown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+const SUIT_ORDER: Record<string, number> = {
+  'Clubs': 0,
+  'Diamonds': 1,
+  'Hearts': 2,
+  'Spades': 3,
+};
+
 const getDealerDrawValue = (card: Card): number => {
-  if (card.rank === 'A' && card.suit === 'Spades') return -1;
-  return RANK_ORDER_ACE_LOW[card.rank];
+  const rankValue = RANK_ORDER_ACE_LOW[card.rank];
+  const suitValue = SUIT_ORDER[card.suit];
+  return rankValue * 10 + suitValue;
 };
 
 interface DealerDrawModalProps {
