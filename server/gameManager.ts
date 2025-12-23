@@ -394,6 +394,9 @@ async function handlePlayerAction(ws: WebSocket, message: any) {
         newState = gameEngine.startNewRound(newState);
       }
       break;
+    case 'purge_draw_complete':
+      newState = gameEngine.performPurgeAndDraw(newState);
+      break;
     case 'sort_hand': {
       const SUIT_ORDER: Record<string, number> = { 'Clubs': 0, 'Diamonds': 1, 'Hearts': 2, 'Spades': 3 };
       const RANK_ORDER: Record<string, number> = {

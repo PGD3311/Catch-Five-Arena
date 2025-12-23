@@ -121,11 +121,13 @@ export function GameBoard() {
   }, [isMultiplayerMode, multiplayer]);
 
   const handlePurgeDrawComplete = useCallback(() => {
-    if (!isMultiplayerMode) {
-      setShowPurgeDraw(false);
+    setShowPurgeDraw(false);
+    if (isMultiplayerMode) {
+      multiplayer.sendAction('purge_draw_complete', {});
+    } else {
       setGameState(prev => performPurgeAndDraw(prev));
     }
-  }, [isMultiplayerMode]);
+  }, [isMultiplayerMode, multiplayer]);
 
   const handleCardPlay = useCallback((card: CardType) => {
     if (isMultiplayerMode) {
@@ -211,6 +213,17 @@ export function GameBoard() {
       }
     };
   }, []);
+
+  // Multiplayer: Sync modal states with game phase
+  useEffect(() => {
+    if (!isMultiplayerMode) return;
+    
+    if (gameState.phase === 'purge-draw' && gameState.trumpSuit) {
+      setShowPurgeDraw(true);
+    } else if (gameState.phase !== 'purge-draw') {
+      setShowPurgeDraw(false);
+    }
+  }, [isMultiplayerMode, gameState.phase, gameState.trumpSuit]);
 
   // Multiplayer: Capture completed tricks to display before transitioning
   useEffect(() => {
@@ -477,7 +490,7 @@ export function GameBoard() {
               <div className="mt-1 flex items-center gap-2">
                 <ActionPrompt gameState={gameState} />
                 
-                {gameState.lastTrick && gameState.lastTrick.length > 0 && gameState.phase === 'playing' && (
+                {gameState.lastTrick && gameState.lastTrick.length > 0 && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -544,7 +557,7 @@ export function GameBoard() {
         onSelect={handleTrumpSelect}
       />
       <PurgeDrawModal
-        open={isMultiplayerMode ? false : showPurgeDraw}
+        open={showPurgeDraw}
         players={gameState.players}
         trumpSuit={gameState.trumpSuit || 'Hearts'}
         onComplete={handlePurgeDrawComplete}
