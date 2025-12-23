@@ -432,7 +432,7 @@ async function processCpuTurns(room: GameRoom) {
   
   let state = room.gameState;
   
-  while (state.phase !== 'scoring' && state.phase !== 'game-over') {
+  while (state.phase !== 'scoring' && state.phase !== 'game-over' && state.phase !== 'purge-draw') {
     const currentPlayer = state.players[state.currentPlayerIndex];
     if (currentPlayer.isHuman) break;
     

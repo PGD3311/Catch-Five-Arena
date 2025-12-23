@@ -291,10 +291,11 @@ export function processBid(state: GameState, bid: number): GameState {
 }
 
 export function selectTrump(state: GameState, suit: Suit): GameState {
-  return performPurgeAndDraw({
+  return {
     ...state,
     trumpSuit: suit,
-  });
+    phase: 'purge-draw' as const,
+  };
 }
 
 export function performPurgeAndDraw(state: GameState): GameState {
