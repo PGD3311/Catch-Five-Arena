@@ -195,7 +195,25 @@ async function handleJoinRoom(ws: WebSocket, message: any) {
   const normalizedCode = roomCode?.toUpperCase?.() || '';
   log(`Join room attempt: code=${normalizedCode}, available rooms: ${Array.from(rooms.keys()).join(', ')}`, 'ws');
   
-  const room = rooms.get(normalizedCode);
+  let room = rooms.get(normalizedCode);
+  
+  if (!room) {
+    const storedRoom = await storage.getRoomByCode(normalizedCode);
+    if (storedRoom) {
+      log(`Restoring room ${normalizedCode} from database`, 'ws');
+      room = {
+        id: storedRoom.id,
+        code: storedRoom.code,
+        players: new Map(),
+        cpuPlayers: [],
+        gameState: storedRoom.gameState as GameState | null,
+        deckColor: (storedRoom.deckColor || 'blue') as DeckColor,
+        targetScore: storedRoom.targetScore || 25,
+      };
+      rooms.set(normalizedCode, room);
+    }
+  }
+  
   if (!room) {
     ws.send(JSON.stringify({ type: 'error', message: 'Room not found' }));
     return;

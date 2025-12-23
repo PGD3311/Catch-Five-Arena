@@ -4,9 +4,13 @@ import {
   type GameRoom, 
   type InsertGameRoom,
   type RoomPlayer,
-  type InsertRoomPlayer 
+  type InsertRoomPlayer,
+  users,
+  gameRooms,
+  roomPlayers
 } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
+import { db } from "./db";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -26,109 +30,69 @@ export interface IStorage {
   removePlayerFromRoom(playerId: string): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private rooms: Map<string, GameRoom>;
-  private players: Map<string, RoomPlayer>;
-
-  constructor() {
-    this.users = new Map();
-    this.rooms = new Map();
-    this.players = new Map();
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await db.select().from(users).where(eq(users.id, id));
+    return result[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const result = await db.select().from(users).where(eq(users.username, username));
+    return result[0];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
   }
 
   async createRoom(insertRoom: InsertGameRoom): Promise<GameRoom> {
-    const id = randomUUID();
-    const room: GameRoom = {
-      id,
-      code: insertRoom.code,
-      hostPlayerId: insertRoom.hostPlayerId ?? null,
-      deckColor: insertRoom.deckColor ?? 'blue',
-      targetScore: insertRoom.targetScore ?? 31,
-      status: insertRoom.status ?? 'waiting',
-      gameState: insertRoom.gameState ?? null,
-      createdAt: new Date(),
-    };
-    this.rooms.set(id, room);
-    return room;
+    const result = await db.insert(gameRooms).values(insertRoom).returning();
+    return result[0];
   }
 
   async getRoomByCode(code: string): Promise<GameRoom | undefined> {
-    return Array.from(this.rooms.values()).find(room => room.code === code);
+    const result = await db.select().from(gameRooms).where(eq(gameRooms.code, code));
+    return result[0];
   }
 
   async getRoomById(id: string): Promise<GameRoom | undefined> {
-    return this.rooms.get(id);
+    const result = await db.select().from(gameRooms).where(eq(gameRooms.id, id));
+    return result[0];
   }
 
   async updateRoom(id: string, updates: Partial<GameRoom>): Promise<GameRoom | undefined> {
-    const room = this.rooms.get(id);
-    if (!room) return undefined;
-    const updated = { ...room, ...updates };
-    this.rooms.set(id, updated);
-    return updated;
+    const result = await db.update(gameRooms).set(updates).where(eq(gameRooms.id, id)).returning();
+    return result[0];
   }
 
   async deleteRoom(id: string): Promise<void> {
-    this.rooms.delete(id);
-    const playersToDelete = Array.from(this.players.entries())
-      .filter(([_, player]) => player.roomId === id)
-      .map(([playerId]) => playerId);
-    playersToDelete.forEach(playerId => this.players.delete(playerId));
+    await db.delete(roomPlayers).where(eq(roomPlayers.roomId, id));
+    await db.delete(gameRooms).where(eq(gameRooms.id, id));
   }
 
   async addPlayerToRoom(insertPlayer: InsertRoomPlayer): Promise<RoomPlayer> {
-    const id = randomUUID();
-    const player: RoomPlayer = {
-      id,
-      roomId: insertPlayer.roomId,
-      seatIndex: insertPlayer.seatIndex,
-      playerToken: insertPlayer.playerToken,
-      playerName: insertPlayer.playerName,
-      isHuman: insertPlayer.isHuman ?? true,
-      isConnected: insertPlayer.isConnected ?? false,
-      joinedAt: new Date(),
-    };
-    this.players.set(id, player);
-    return player;
+    const result = await db.insert(roomPlayers).values(insertPlayer).returning();
+    return result[0];
   }
 
   async getPlayersInRoom(roomId: string): Promise<RoomPlayer[]> {
-    return Array.from(this.players.values()).filter(p => p.roomId === roomId);
+    return await db.select().from(roomPlayers).where(eq(roomPlayers.roomId, roomId));
   }
 
   async getPlayerByToken(token: string): Promise<RoomPlayer | undefined> {
-    return Array.from(this.players.values()).find(p => p.playerToken === token);
+    const result = await db.select().from(roomPlayers).where(eq(roomPlayers.playerToken, token));
+    return result[0];
   }
 
   async updatePlayer(id: string, updates: Partial<RoomPlayer>): Promise<RoomPlayer | undefined> {
-    const player = this.players.get(id);
-    if (!player) return undefined;
-    const updated = { ...player, ...updates };
-    this.players.set(id, updated);
-    return updated;
+    const result = await db.update(roomPlayers).set(updates).where(eq(roomPlayers.id, id)).returning();
+    return result[0];
   }
 
   async removePlayerFromRoom(playerId: string): Promise<void> {
-    this.players.delete(playerId);
+    await db.delete(roomPlayers).where(eq(roomPlayers.id, playerId));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
