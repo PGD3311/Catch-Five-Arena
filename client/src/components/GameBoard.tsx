@@ -2,7 +2,7 @@ import { GameState, Card as CardType, Suit } from '@shared/gameTypes';
 import { PlayerArea } from './PlayerArea';
 import { TrickArea } from './TrickArea';
 import { GameHeader } from './GameHeader';
-import { BiddingModal } from './BiddingModal';
+import { BiddingPanel } from './BiddingPanel';
 import { TrumpSelector } from './TrumpSelector';
 import { ScoreModal } from './ScoreModal';
 import { SettingsPanel } from './SettingsPanel';
@@ -292,7 +292,7 @@ export function GameBoard() {
             />
           </div>
 
-          <div className="flex justify-center">
+          <div className={cn("flex justify-center transition-all duration-300", showBiddingModal && "pb-24")}>
             <PlayerArea
               player={humanPlayer}
               team={getTeamForPlayer(humanPlayer)}
@@ -310,7 +310,7 @@ export function GameBoard() {
         </div>
       )}
 
-      <BiddingModal
+      <BiddingPanel
         open={showBiddingModal}
         highBid={gameState.highBid}
         playerName={humanPlayer.name}
