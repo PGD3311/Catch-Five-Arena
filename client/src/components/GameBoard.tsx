@@ -237,6 +237,9 @@ export function GameBoard() {
     }
   }, [isMultiplayerMode, gameState.phase, gameState.trumpSuit]);
 
+  // Track the last shown lastTrick to avoid re-showing the same trick
+  const lastShownTrickRef = useRef<string | null>(null);
+  
   // Multiplayer: Capture completed tricks to display before transitioning
   useEffect(() => {
     if (!isMultiplayerMode) return;
@@ -245,10 +248,17 @@ export function GameBoard() {
     const prevTrick = prevTrickRef.current;
     const currentTrick = gameState.currentTrick;
     
+    // Generate a unique ID for the current lastTrick
+    const lastTrickId = gameState.lastTrick && gameState.lastTrick.length === 4
+      ? gameState.lastTrick.map(tc => tc.card.id).join(',')
+      : null;
+    
     // Case 1: Trick just completed (was building, now reset)
     // Use lastTrick if available (server populates this when trick completes)
     if (prevTrick.length > 0 && currentTrick.length === 0 && gameState.lastTrick && gameState.lastTrick.length === 4) {
+      console.log('[GameBoard] Case 1: Trick completed, showing lastTrick');
       setDisplayTrick(gameState.lastTrick);
+      lastShownTrickRef.current = lastTrickId;
       
       if (trickWinnerTimeoutRef.current) {
         clearTimeout(trickWinnerTimeoutRef.current);
@@ -259,7 +269,23 @@ export function GameBoard() {
     }
     // Case 2: We have exactly 4 cards in current trick (show it)
     else if (currentTrick.length === 4 && prevTrick.length < 4) {
+      console.log('[GameBoard] Case 2: currentTrick has 4 cards');
       setDisplayTrick(currentTrick);
+      
+      if (trickWinnerTimeoutRef.current) {
+        clearTimeout(trickWinnerTimeoutRef.current);
+      }
+      trickWinnerTimeoutRef.current = setTimeout(() => {
+        setDisplayTrick([]);
+      }, 2500);
+    }
+    // Case 3: Phase changed to scoring/game-over and we have a new lastTrick we haven't shown
+    else if ((gameState.phase === 'scoring' || gameState.phase === 'game-over') && 
+             gameState.lastTrick && gameState.lastTrick.length === 4 &&
+             lastTrickId !== lastShownTrickRef.current) {
+      console.log('[GameBoard] Case 3: Scoring phase with new lastTrick');
+      setDisplayTrick(gameState.lastTrick);
+      lastShownTrickRef.current = lastTrickId;
       
       if (trickWinnerTimeoutRef.current) {
         clearTimeout(trickWinnerTimeoutRef.current);
@@ -271,7 +297,7 @@ export function GameBoard() {
     
     // Update ref for next comparison
     prevTrickRef.current = currentTrick;
-  }, [isMultiplayerMode, gameState.currentTrick, gameState.lastTrick, displayTrick.length]);
+  }, [isMultiplayerMode, gameState.currentTrick, gameState.lastTrick, gameState.phase, displayTrick.length]);
 
   useEffect(() => {
     if (isMultiplayerMode) return;
@@ -387,7 +413,8 @@ export function GameBoard() {
   const amIBidder = gameState.bidderId === gameState.players[mySeatIndex]?.id;
   const showTrumpSelector = gameState.phase === 'trump-selection' && 
     (isMultiplayerMode ? amIBidder : gameState.players.find(p => p.id === gameState.bidderId)?.isHuman);
-  const showScoreModal = gameState.phase === 'scoring' || gameState.phase === 'game-over';
+  // Delay score modal if we're still showing the final trick
+  const showScoreModal = (gameState.phase === 'scoring' || gameState.phase === 'game-over') && displayTrick.length === 0;
   const showBidResults = gameState.phase === 'bidding' || gameState.phase === 'trump-selection' || gameState.phase === 'purge-draw';
 
   const getTeamForPlayer = (player: typeof humanPlayer) => 
