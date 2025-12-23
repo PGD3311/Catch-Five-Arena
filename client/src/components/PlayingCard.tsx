@@ -56,10 +56,10 @@ export function PlayingCard({
   const deckColorData = DECK_COLORS.find(d => d.value === deckColor);
   const cssGradient = deckColorData?.cssGradient || 'linear-gradient(135deg, #2563eb, #1e3a8a)';
 
-  const baseSize = small ? 'w-16 h-22' : 'w-24 h-34';
-  const fontSize = small ? 'text-sm' : 'text-lg';
-  const iconSize = small ? 'w-3.5 h-3.5' : 'w-5 h-5';
-  const centerIconSize = small ? 'w-8 h-8' : 'w-14 h-14';
+  const baseSize = small ? 'w-12 h-[4.25rem] sm:w-14 sm:h-20' : 'w-14 h-20 sm:w-20 sm:h-28 md:w-24 md:h-34';
+  const fontSize = small ? 'text-xs' : 'text-xs sm:text-sm md:text-lg';
+  const iconSize = small ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5';
+  const centerIconSize = small ? 'w-5 h-5 sm:w-6 sm:h-6' : 'w-6 h-6 sm:w-10 sm:h-10 md:w-14 md:h-14';
 
   if (faceDown) {
     return (

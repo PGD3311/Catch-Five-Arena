@@ -185,15 +185,16 @@ export function PlayerArea({
         )}
       </motion.div>
 
-      <div className={cn(getHandClasses(), isBottom && 'min-h-36 pt-2')}>
+      <div className={cn(getHandClasses(), isBottom && 'min-h-24 sm:min-h-32 md:min-h-36 pt-1 sm:pt-2')}>
         <AnimatePresence mode="popLayout">
           {showCards ? (
             player.hand.map((card, index) => {
               const canPlay = canPlayCard ? canPlayCard(card) : true;
               const cardCount = player.hand.length;
-              const spreadAngle = cardCount > 6 ? 2 : 3;
+              const spreadAngle = cardCount > 6 ? 1.5 : 2;
               const rotation = isBottom ? ((index - (cardCount - 1) / 2) * spreadAngle) : 0;
-              const overlap = cardCount > 6 ? -18 : -14;
+              const mobileOverlap = cardCount > 6 ? -32 : -28;
+              const desktopOverlap = cardCount > 6 ? -18 : -14;
 
               return (
                 <motion.div
@@ -203,9 +204,10 @@ export function PlayerArea({
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.5, y: -30 }}
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  className="[--overlap-mobile:-32px] [--overlap-desktop:-14px] sm:[--overlap-mobile:-18px]"
                   style={{
-                    marginLeft: isBottom && index > 0 ? `${overlap}px` : undefined,
-                    marginTop: isSide && index > 0 ? '-48px' : undefined,
+                    marginLeft: isBottom && index > 0 ? `clamp(${mobileOverlap}px, -4vw, ${desktopOverlap}px)` : undefined,
+                    marginTop: isSide && index > 0 ? '-36px' : undefined,
                     rotate: isBottom ? rotation : 0,
                     zIndex: index,
                   }}
@@ -228,8 +230,8 @@ export function PlayerArea({
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
                 style={{
-                  marginLeft: !isSide && index > 0 ? '-40px' : undefined,
-                  marginTop: isSide && index > 0 ? '-48px' : undefined,
+                  marginLeft: !isSide && index > 0 ? '-28px' : undefined,
+                  marginTop: isSide && index > 0 ? '-36px' : undefined,
                   zIndex: index,
                 }}
               >

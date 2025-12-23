@@ -10,17 +10,20 @@ interface TrickAreaProps {
 }
 
 export function TrickArea({ currentTrick, players, trumpSuit }: TrickAreaProps) {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  
   const getPositionForPlayer = (playerId: string): { x: number; y: number; rotate: number } => {
     const playerIndex = players.findIndex(p => p.id === playerId);
+    const scale = isMobile ? 0.65 : 1;
     switch (playerIndex) {
       case 0:
-        return { x: 0, y: 70, rotate: 0 };
+        return { x: 0, y: 70 * scale, rotate: 0 };
       case 1:
-        return { x: -85, y: 0, rotate: -3 };
+        return { x: -85 * scale, y: 0, rotate: -3 };
       case 2:
-        return { x: 0, y: -70, rotate: 0 };
+        return { x: 0, y: -70 * scale, rotate: 0 };
       case 3:
-        return { x: 85, y: 0, rotate: 3 };
+        return { x: 85 * scale, y: 0, rotate: 3 };
       default:
         return { x: 0, y: 0, rotate: 0 };
     }
@@ -47,9 +50,9 @@ export function TrickArea({ currentTrick, players, trumpSuit }: TrickAreaProps) 
   };
 
   return (
-    <div className="relative w-full h-56 md:h-72" data-testid="trick-area">
+    <div className="relative w-full h-40 sm:h-56 md:h-72" data-testid="trick-area">
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-64 h-44 md:w-80 md:h-56 rounded-2xl bg-gradient-to-br from-emerald-800/40 to-emerald-900/60 border border-emerald-500/30 shadow-[inset_0_2px_20px_rgba(0,0,0,0.3)] backdrop-blur-sm">
+        <div className="w-48 h-32 sm:w-64 sm:h-44 md:w-80 md:h-56 rounded-2xl bg-gradient-to-br from-emerald-800/40 to-emerald-900/60 border border-emerald-500/30 shadow-[inset_0_2px_20px_rgba(0,0,0,0.3)] backdrop-blur-sm">
           <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_at_center,_rgba(16,185,129,0.1)_0%,_transparent_70%)]" />
           <div className="absolute inset-[2px] rounded-2xl border border-emerald-400/10" />
         </div>

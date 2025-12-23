@@ -404,7 +404,7 @@ export function GameBoard() {
             <p className="text-muted-foreground">Connecting to game...</p>
           </div>
         ) : (
-        <div className="flex-1 flex flex-col p-4 md:p-6 gap-4">
+        <div className="flex-1 flex flex-col p-2 sm:p-4 md:p-6 gap-2 sm:gap-4 overflow-hidden">
           <div className="flex justify-center">
             <PlayerArea
               player={partnerPlayer}
@@ -419,7 +419,7 @@ export function GameBoard() {
             />
           </div>
 
-          <div className="flex-1 flex items-center justify-between gap-4">
+          <div className="flex-1 flex items-center justify-between gap-1 sm:gap-4">
             <PlayerArea
               player={opponent1}
               team={getTeamForPlayer(opponent1)}
@@ -472,7 +472,7 @@ export function GameBoard() {
             />
           </div>
 
-          <div className="flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-2 sm:gap-3">
             {showBiddingModal && (
               <BiddingPanel
                 open={showBiddingModal}
