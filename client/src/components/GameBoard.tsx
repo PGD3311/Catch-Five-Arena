@@ -463,8 +463,18 @@ export function GameBoard() {
             </div>
           </div>
 
-          {/* Bottom player area */}
-          <div className="flex flex-col items-center">
+          {/* Bottom player area with bidding panel above cards */}
+          <div className="flex flex-col items-center gap-2">
+            {showBiddingModal && (
+              <BiddingPanel
+                open={showBiddingModal}
+                highBid={gameState.highBid}
+                playerName={humanPlayer.name}
+                isDealer={isDealer}
+                allOthersPassed={passedCount === 3}
+                onBid={handleBid}
+              />
+            )}
             <PlayerArea
               player={humanPlayer}
               team={getTeamForPlayer(humanPlayer)}
@@ -526,17 +536,6 @@ export function GameBoard() {
         roomCode={multiplayer.roomCode}
       />
       <RulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
-      {/* Bidding bottom sheet */}
-      {showBiddingModal && (
-        <BiddingPanel
-          open={showBiddingModal}
-          highBid={gameState.highBid}
-          playerName={humanPlayer.name}
-          isDealer={isDealer}
-          allOthersPassed={passedCount === 3}
-          onBid={handleBid}
-        />
-      )}
       <DealerDrawModal
         open={isMultiplayerMode ? gameState.phase === 'dealer-draw' : showDealerDraw}
         players={gameState.players}
