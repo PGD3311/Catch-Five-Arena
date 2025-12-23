@@ -56,7 +56,18 @@ export function PurgeDrawModal({ open, players, trumpSuit, onComplete }: PurgeDr
     return icons[suit];
   };
 
-  const isRed = trumpSuit === 'Hearts' || trumpSuit === 'Diamonds';
+  const getSuitColor = (suit: Suit) => {
+    switch (suit) {
+      case 'Hearts': return 'text-red-500';
+      case 'Diamonds': return 'text-blue-500';
+      case 'Clubs': return 'text-emerald-500';
+      case 'Spades': return 'text-foreground';
+    }
+  };
+
+  const getTrumpCount = (player: Player) => {
+    return player.hand.filter(c => c.suit === trumpSuit).length;
+  };
 
   return (
     <Dialog open={open}>
@@ -82,7 +93,7 @@ export function PurgeDrawModal({ open, players, trumpSuit, onComplete }: PurgeDr
         <div className="py-6 space-y-4">
           <div className={cn(
             'flex items-center justify-center gap-2 text-2xl font-bold',
-            isRed ? 'text-red-500' : 'text-foreground'
+            getSuitColor(trumpSuit)
           )}>
             <span>Trump:</span>
             <span>{getSuitIcon(trumpSuit)} {trumpSuit}</span>
@@ -92,6 +103,7 @@ export function PurgeDrawModal({ open, players, trumpSuit, onComplete }: PurgeDr
             {players.map((player, index) => {
               const isActive = index === currentPlayerIndex;
               const isPast = index < currentPlayerIndex;
+              const trumpCount = getTrumpCount(player);
               const status = step === 'purge' 
                 ? (isPast ? 'Discarded non-trumps' : isActive ? 'Discarding...' : '')
                 : step === 'draw'
@@ -108,7 +120,16 @@ export function PurgeDrawModal({ open, players, trumpSuit, onComplete }: PurgeDr
                     !isActive && !isPast && 'opacity-50'
                   )}
                 >
-                  <span className="font-medium">{player.name}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium">{player.name}</span>
+                    <span className={cn(
+                      'text-sm font-bold px-2 py-0.5 rounded-full',
+                      getSuitColor(trumpSuit),
+                      'bg-muted'
+                    )} data-testid={`trump-count-${player.id}`}>
+                      {trumpCount} {getSuitIcon(trumpSuit)}
+                    </span>
+                  </div>
                   <span className={cn(
                     'text-sm',
                     isActive && 'text-primary animate-pulse',
