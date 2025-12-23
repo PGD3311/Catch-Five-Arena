@@ -122,6 +122,12 @@ async function handleMessage(ws: WebSocket, message: any) {
     case 'remove_cpu':
       await handleRemoveCpu(ws, message);
       break;
+    case 'swap_seats':
+      await handleSwapSeats(ws, message);
+      break;
+    case 'randomize_teams':
+      await handleRandomizeTeams(ws);
+      break;
     default:
       ws.send(JSON.stringify({ type: 'error', message: 'Unknown message type' }));
   }
@@ -557,6 +563,115 @@ async function handleRemoveCpu(ws: WebSocket, message: any) {
   });
 
   log(`CPU removed from seat ${seatIndex} in room ${room.code}`, 'ws');
+}
+
+async function handleSwapSeats(ws: WebSocket, message: any) {
+  const player = playerConnections.get(ws);
+  if (!player) return;
+
+  const room = Array.from(rooms.values()).find(r => r.id === player.roomId);
+  if (!room) return;
+
+  if (player.seatIndex !== 0) {
+    ws.send(JSON.stringify({ type: 'error', message: 'Only the host can swap seats' }));
+    return;
+  }
+
+  if (room.gameState) {
+    ws.send(JSON.stringify({ type: 'error', message: 'Cannot swap seats during game' }));
+    return;
+  }
+
+  const { seat1, seat2 } = message;
+  
+  if (typeof seat1 !== 'number' || typeof seat2 !== 'number' || 
+      seat1 < 0 || seat1 > 3 || seat2 < 0 || seat2 > 3 || seat1 === seat2) {
+    ws.send(JSON.stringify({ type: 'error', message: 'Invalid seat indices' }));
+    return;
+  }
+
+  const player1Human = Array.from(room.players.values()).find(p => p.seatIndex === seat1);
+  const player2Human = Array.from(room.players.values()).find(p => p.seatIndex === seat2);
+  const cpu1Index = room.cpuPlayers.findIndex(cpu => cpu.seatIndex === seat1);
+  const cpu2Index = room.cpuPlayers.findIndex(cpu => cpu.seatIndex === seat2);
+
+  if (player1Human) {
+    player1Human.seatIndex = seat2;
+  } else if (cpu1Index !== -1) {
+    room.cpuPlayers[cpu1Index].seatIndex = seat2;
+  }
+
+  if (player2Human) {
+    player2Human.seatIndex = seat1;
+  } else if (cpu2Index !== -1) {
+    room.cpuPlayers[cpu2Index].seatIndex = seat1;
+  }
+
+  const playerList = getPlayerList(room);
+  Array.from(room.players.values()).forEach(p => {
+    p.ws.send(JSON.stringify({
+      type: 'seats_updated',
+      seatIndex: p.seatIndex,
+      players: playerList,
+    }));
+  });
+
+  log(`Seats ${seat1} and ${seat2} swapped in room ${room.code}`, 'ws');
+}
+
+async function handleRandomizeTeams(ws: WebSocket) {
+  const player = playerConnections.get(ws);
+  if (!player) return;
+
+  const room = Array.from(rooms.values()).find(r => r.id === player.roomId);
+  if (!room) return;
+
+  if (player.seatIndex !== 0) {
+    ws.send(JSON.stringify({ type: 'error', message: 'Only the host can randomize teams' }));
+    return;
+  }
+
+  if (room.gameState) {
+    ws.send(JSON.stringify({ type: 'error', message: 'Cannot randomize during game' }));
+    return;
+  }
+
+  const allPlayers: { type: 'human' | 'cpu'; token?: string; cpuIndex?: number; name: string }[] = [];
+  
+  Array.from(room.players.entries()).forEach(([token, p]) => {
+    allPlayers.push({ type: 'human', token, name: p.playerName });
+  });
+  
+  room.cpuPlayers.forEach((cpu, index) => {
+    allPlayers.push({ type: 'cpu', cpuIndex: index, name: cpu.playerName });
+  });
+
+  for (let i = allPlayers.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [allPlayers[i], allPlayers[j]] = [allPlayers[j], allPlayers[i]];
+  }
+
+  allPlayers.forEach((p, newSeat) => {
+    if (p.type === 'human' && p.token) {
+      const humanPlayer = room.players.get(p.token);
+      if (humanPlayer) {
+        humanPlayer.seatIndex = newSeat;
+      }
+    } else if (p.type === 'cpu' && p.cpuIndex !== undefined) {
+      room.cpuPlayers[p.cpuIndex].seatIndex = newSeat;
+    }
+  });
+
+  const playerList = getPlayerList(room);
+  Array.from(room.players.values()).forEach(p => {
+    p.ws.send(JSON.stringify({
+      type: 'seats_updated',
+      seatIndex: p.seatIndex,
+      players: playerList,
+    }));
+  });
+
+  log(`Teams randomized in room ${room.code}`, 'ws');
 }
 
 function handlePlayerDisconnect(player: ConnectedPlayer) {

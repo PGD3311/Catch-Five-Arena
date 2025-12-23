@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, Copy, Check, Play, LogOut, Wifi, WifiOff, Bot, UserPlus } from 'lucide-react';
+import { Users, Copy, Check, Play, LogOut, Wifi, WifiOff, Bot, UserPlus, Shuffle, ArrowLeftRight } from 'lucide-react';
 import type { DeckColor } from '@shared/gameTypes';
 
 interface RoomPlayer {
@@ -26,6 +26,8 @@ interface MultiplayerLobbyProps {
   onClose: () => void;
   onAddCpu: (seatIndex: number) => void;
   onRemoveCpu: (seatIndex: number) => void;
+  onSwapSeats: (seat1: number, seat2: number) => void;
+  onRandomizeTeams: () => void;
   deckColor: DeckColor;
   targetScore: number;
 }
@@ -43,6 +45,8 @@ export function MultiplayerLobby({
   onClose,
   onAddCpu,
   onRemoveCpu,
+  onSwapSeats,
+  onRandomizeTeams,
   deckColor,
   targetScore,
 }: MultiplayerLobbyProps) {
@@ -50,6 +54,7 @@ export function MultiplayerLobby({
   const [joinCode, setJoinCode] = useState('');
   const [copied, setCopied] = useState(false);
   const [mode, setMode] = useState<'menu' | 'create' | 'join'>('menu');
+  const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
 
   const handleCreateRoom = () => {
     if (playerName.trim()) {
@@ -124,26 +129,68 @@ export function MultiplayerLobby({
           </Button>
 
           <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Players ({players.length}/4)</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-medium text-muted-foreground">Players ({players.length}/4)</p>
+              {isHost && players.length >= 2 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedSeat(null);
+                    onRandomizeTeams();
+                  }}
+                  className="h-7 text-xs"
+                  data-testid="button-randomize-teams"
+                >
+                  <Shuffle className="w-3 h-3 mr-1" />
+                  Randomize
+                </Button>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-2">
               {[0, 1, 2, 3].map((seat) => {
                 const player = players.find(p => p.seatIndex === seat);
                 const isCurrentPlayer = seat === seatIndex;
+                const isSelected = selectedSeat === seat;
+                const canSwap = isHost && player && selectedSeat !== null && selectedSeat !== seat;
+                
+                const handleSeatClick = () => {
+                  if (!isHost) return;
+                  if (!player) return;
+                  
+                  if (selectedSeat === null) {
+                    setSelectedSeat(seat);
+                  } else if (selectedSeat === seat) {
+                    setSelectedSeat(null);
+                  } else {
+                    onSwapSeats(selectedSeat, seat);
+                    setSelectedSeat(null);
+                  }
+                };
+                
                 return (
                   <div
                     key={seat}
-                    className={`p-3 rounded-md border ${
+                    onClick={handleSeatClick}
+                    className={`p-3 rounded-md border transition-all ${
                       player
                         ? 'bg-muted/50 border-border'
                         : 'border-dashed border-muted-foreground/30'
-                    } ${isCurrentPlayer ? 'ring-2 ring-primary' : ''}`}
+                    } ${isCurrentPlayer ? 'ring-2 ring-primary' : ''} ${
+                      isSelected ? 'ring-2 ring-amber-400 bg-amber-500/10' : ''
+                    } ${canSwap ? 'cursor-pointer hover:border-amber-400' : ''} ${
+                      isHost && player && !isSelected ? 'cursor-pointer hover:bg-muted' : ''
+                    }`}
                     data-testid={`seat-${seat}`}
                   >
                     <div className="flex items-center justify-between gap-1 mb-1">
                       <span className="text-xs text-muted-foreground">
                         {getSeatLabel(seat)}
                       </span>
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge 
+                        variant="secondary" 
+                        className={`text-xs ${seat % 2 === 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}`}
+                      >
                         {getTeamLabel(seat)}
                       </Badge>
                     </div>
@@ -160,13 +207,19 @@ export function MultiplayerLobby({
                           <span className="text-sm font-medium truncate">
                             {player.playerName}
                           </span>
+                          {isSelected && (
+                            <ArrowLeftRight className="w-3 h-3 text-amber-400 shrink-0" />
+                          )}
                         </div>
                         {player.isCpu && isHost && (
                           <Button
                             size="icon"
                             variant="ghost"
                             className="h-6 w-6 shrink-0"
-                            onClick={() => onRemoveCpu(seat)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRemoveCpu(seat);
+                            }}
                             data-testid={`button-remove-cpu-${seat}`}
                           >
                             <LogOut className="w-3 h-3" />
@@ -178,7 +231,10 @@ export function MultiplayerLobby({
                         size="sm"
                         variant="ghost"
                         className="w-full h-7 text-xs"
-                        onClick={() => onAddCpu(seat)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddCpu(seat);
+                        }}
                         data-testid={`button-add-cpu-${seat}`}
                       >
                         <UserPlus className="w-3 h-3 mr-1" />
@@ -193,6 +249,11 @@ export function MultiplayerLobby({
                 );
               })}
             </div>
+            {isHost && selectedSeat !== null && (
+              <p className="text-xs text-center text-amber-400">
+                Click another player to swap positions
+              </p>
+            )}
           </div>
 
           {error && (

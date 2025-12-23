@@ -435,6 +435,8 @@ export function GameBoard() {
               onClose={() => setShowMultiplayerLobby(false)}
               onAddCpu={multiplayer.addCpu}
               onRemoveCpu={multiplayer.removeCpu}
+              onSwapSeats={multiplayer.swapSeats}
+              onRandomizeTeams={multiplayer.randomizeTeams}
               deckColor={localGameState.deckColor}
               targetScore={localGameState.targetScore}
             />

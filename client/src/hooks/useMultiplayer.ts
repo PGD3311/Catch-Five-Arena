@@ -119,6 +119,14 @@ export function useMultiplayer() {
         }));
         break;
 
+      case 'seats_updated':
+        setState(prev => ({
+          ...prev,
+          seatIndex: message.seatIndex,
+          players: message.players || prev.players,
+        }));
+        break;
+
       case 'game_state':
         setState(prev => ({
           ...prev,
@@ -213,6 +221,18 @@ export function useMultiplayer() {
     }
   }, []);
 
+  const swapSeats = useCallback((seat1: number, seat2: number) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'swap_seats', seat1, seat2 }));
+    }
+  }, []);
+
+  const randomizeTeams = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'randomize_teams' }));
+    }
+  }, []);
+
   return {
     ...state,
     createRoom,
@@ -222,5 +242,7 @@ export function useMultiplayer() {
     leaveRoom,
     addCpu,
     removeCpu,
+    swapSeats,
+    randomizeTeams,
   };
 }
