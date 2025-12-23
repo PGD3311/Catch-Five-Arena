@@ -25,47 +25,27 @@ export { determineTrickWinner };
 export function checkAutoClaim(players: Player[], trumpSuit: Suit | null): { claimerId: string; remainingTricks: number } | null {
   if (!trumpSuit) return null;
   
-  const allRemainingTrumps: { playerId: string; rank: number }[] = [];
+  const playerTrumpCounts: Record<string, number> = {};
+  let totalTrumps = 0;
   
   for (const player of players) {
-    for (const card of player.hand) {
-      if (card.suit === trumpSuit) {
-        allRemainingTrumps.push({ playerId: player.id, rank: RANK_ORDER[card.rank] });
+    const trumpCount = player.hand.filter(c => c.suit === trumpSuit).length;
+    playerTrumpCounts[player.id] = trumpCount;
+    totalTrumps += trumpCount;
+  }
+  
+  if (totalTrumps === 0) return null;
+  
+  for (const player of players) {
+    if (playerTrumpCounts[player.id] === totalTrumps && totalTrumps > 0) {
+      const remainingTricks = player.hand.length;
+      if (remainingTricks > 0) {
+        return { claimerId: player.id, remainingTricks };
       }
     }
   }
   
-  if (allRemainingTrumps.length === 0) return null;
-  
-  allRemainingTrumps.sort((a, b) => b.rank - a.rank);
-  
-  const topPlayerId = allRemainingTrumps[0].playerId;
-  const playerHasAllTop = allRemainingTrumps.every(t => t.playerId === topPlayerId) ||
-    allRemainingTrumps.filter(t => t.playerId === topPlayerId)
-      .every((t, idx) => t.rank === allRemainingTrumps[idx].rank);
-  
-  if (!playerHasAllTop) {
-    const playerTrumps = allRemainingTrumps.filter(t => t.playerId === topPlayerId);
-    const otherTrumps = allRemainingTrumps.filter(t => t.playerId !== topPlayerId);
-    
-    if (otherTrumps.length === 0) {
-      const remainingTricks = players[0].hand.length;
-      return { claimerId: topPlayerId, remainingTricks };
-    }
-    
-    const highestOtherTrump = Math.max(...otherTrumps.map(t => t.rank));
-    const allPlayerTrumpsHigher = playerTrumps.every(t => t.rank > highestOtherTrump);
-    
-    if (allPlayerTrumpsHigher && playerTrumps.length >= otherTrumps.length) {
-      const remainingTricks = players[0].hand.length;
-      return { claimerId: topPlayerId, remainingTricks };
-    }
-    
-    return null;
-  }
-  
-  const remainingTricks = players[0].hand.length;
-  return { claimerId: topPlayerId, remainingTricks };
+  return null;
 }
 
 export function initializeGame(deckColor: DeckColor = 'blue', targetScore: number = DEFAULT_TARGET_SCORE): GameState {
