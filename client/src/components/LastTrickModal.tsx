@@ -29,7 +29,7 @@ export function LastTrickModal({ open, onClose, lastTrick, players, winnerId, tr
 
         <div className="py-4">
           {winner && (
-            <div className="flex items-center justify-center gap-2 mb-4 px-4 py-2 rounded-lg bg-amber-500/20 border border-amber-500/40">
+            <div className="flex items-center justify-center gap-2 mb-4 px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/40">
               <Trophy className="w-4 h-4 text-amber-400" />
               <span className="font-semibold text-amber-400">{winner.name} won</span>
             </div>

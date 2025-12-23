@@ -32,7 +32,7 @@ export function BiddingModal({ open, highBid, playerName, isDealer, allOthersPas
           )}
 
           {mustBid && (
-            <div className="p-3 rounded-lg bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 text-center">
+            <div className="px-4 py-2 rounded-full bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 text-center">
               <p className="text-sm font-medium">Everyone passed - you must bid {MIN_BID}!</p>
             </div>
           )}
