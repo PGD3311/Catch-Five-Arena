@@ -33,6 +33,15 @@ export function GameBoard() {
     return false;
   });
 
+  const handleTogglePlayerType = useCallback((playerId: string) => {
+    setGameState(prev => ({
+      ...prev,
+      players: prev.players.map(p => 
+        p.id === playerId ? { ...p, isHuman: !p.isHuman } : p
+      ),
+    }));
+  }, []);
+
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -250,6 +259,8 @@ export function GameBoard() {
         }}
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
+        playerConfigs={gameState.players.map(p => ({ id: p.id, name: p.name, isHuman: p.isHuman }))}
+        onTogglePlayerType={handleTogglePlayerType}
       />
 
       <RulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />

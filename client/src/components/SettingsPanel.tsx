@@ -2,9 +2,16 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { DeckColor, DECK_COLORS } from '@shared/gameTypes';
 import { cn } from '@/lib/utils';
-import { RefreshCw, HelpCircle, Sun, Moon } from 'lucide-react';
+import { RefreshCw, HelpCircle, Sun, Moon, User, Bot } from 'lucide-react';
+
+interface PlayerConfig {
+  id: string;
+  name: string;
+  isHuman: boolean;
+}
 
 interface SettingsPanelProps {
   open: boolean;
@@ -15,6 +22,8 @@ interface SettingsPanelProps {
   onShowRules: () => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
+  playerConfigs: PlayerConfig[];
+  onTogglePlayerType: (playerId: string) => void;
 }
 
 export function SettingsPanel({
@@ -26,7 +35,12 @@ export function SettingsPanel({
   onShowRules,
   darkMode,
   onToggleDarkMode,
+  playerConfigs,
+  onTogglePlayerType,
 }: SettingsPanelProps) {
+  const positions = ['Bottom (You)', 'Left', 'Top (Partner)', 'Right'];
+  const teams = ['Your Team', 'Opponents', 'Your Team', 'Opponents'];
+
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <SheetContent className="w-80">
@@ -35,6 +49,43 @@ export function SettingsPanel({
         </SheetHeader>
 
         <div className="space-y-6 py-6">
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Players</Label>
+            <div className="space-y-2">
+              {playerConfigs.map((player, index) => (
+                <div
+                  key={player.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                  data-testid={`player-config-${player.id}`}
+                >
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-2">
+                      {player.isHuman ? (
+                        <User className="w-4 h-4 text-primary" />
+                      ) : (
+                        <Bot className="w-4 h-4 text-muted-foreground" />
+                      )}
+                      <span className="text-sm font-medium">{positions[index]}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{teams[index]}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {player.isHuman ? 'Human' : 'CPU'}
+                    </span>
+                    <Switch
+                      checked={player.isHuman}
+                      onCheckedChange={() => onTogglePlayerType(player.id)}
+                      data-testid={`toggle-player-${player.id}`}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
           <div className="space-y-3">
             <Label className="text-sm font-medium">Deck Color</Label>
             <div className="grid grid-cols-3 gap-3">
