@@ -2,27 +2,25 @@ import { TrickCard, Player, Suit } from '@shared/gameTypes';
 import { PlayingCard } from './PlayingCard';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy } from 'lucide-react';
 
 interface TrickAreaProps {
   currentTrick: TrickCard[];
   players: Player[];
   trumpSuit?: Suit | null;
-  trickWinner?: Player | null;
 }
 
-export function TrickArea({ currentTrick, players, trumpSuit, trickWinner }: TrickAreaProps) {
+export function TrickArea({ currentTrick, players, trumpSuit }: TrickAreaProps) {
   const getPositionForPlayer = (playerId: string): { x: number; y: number; rotate: number } => {
     const playerIndex = players.findIndex(p => p.id === playerId);
     switch (playerIndex) {
       case 0:
-        return { x: 0, y: 30, rotate: 0 };
+        return { x: 0, y: 50, rotate: 0 };
       case 1:
-        return { x: -35, y: 0, rotate: -8 };
+        return { x: -60, y: 0, rotate: -5 };
       case 2:
-        return { x: 0, y: -30, rotate: 0 };
+        return { x: 0, y: -50, rotate: 0 };
       case 3:
-        return { x: 35, y: 0, rotate: 8 };
+        return { x: 60, y: 0, rotate: 5 };
       default:
         return { x: 0, y: 0, rotate: 0 };
     }
@@ -116,7 +114,7 @@ export function TrickArea({ currentTrick, players, trumpSuit, trickWinner }: Tri
         </AnimatePresence>
       </div>
 
-      {currentTrick.length === 0 && !trickWinner && (
+      {currentTrick.length === 0 && (
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -128,24 +126,6 @@ export function TrickArea({ currentTrick, players, trumpSuit, trickWinner }: Tri
         </motion.div>
       )}
 
-      <AnimatePresence>
-        {trickWinner && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8, y: -20 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="absolute inset-0 flex items-center justify-center z-20"
-          >
-            <div className="flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500/90 to-yellow-500/90 shadow-[0_0_30px_rgba(251,191,36,0.4)] border border-amber-400/50">
-              <Trophy className="w-5 h-5 text-amber-900" />
-              <span className="font-bold text-amber-900">
-                {trickWinner.name} wins!
-              </span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

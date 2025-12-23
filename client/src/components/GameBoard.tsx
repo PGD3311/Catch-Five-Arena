@@ -398,7 +398,6 @@ export function GameBoard() {
                 currentTrick={displayTrick.length > 0 ? displayTrick : gameState.currentTrick} 
                 players={gameState.players} 
                 trumpSuit={gameState.trumpSuit} 
-                trickWinner={trickWinner} 
               />
               
               <div className="flex items-center gap-3">
