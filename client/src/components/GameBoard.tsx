@@ -127,39 +127,33 @@ export function GameBoard() {
     if (isMultiplayerMode) {
       multiplayer.sendAction('play_card', { card });
     } else {
-      setGameState(prev => {
-        const currentPlayer = prev.players[prev.currentPlayerIndex];
-        if (!canPlayCard(card, currentPlayer.hand, prev.currentTrick, prev.trumpSuit)) {
-          toast({
-            title: "Invalid move",
-            description: "You must follow suit or play trump!",
-            variant: "destructive",
-          });
-          return prev;
+      const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+      if (!canPlayCard(card, currentPlayer.hand, gameState.currentTrick, gameState.trumpSuit)) {
+        toast({
+          title: "Invalid move",
+          description: "You must follow suit or play trump!",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const newTrick = [...gameState.currentTrick, { playerId: currentPlayer.id, card }];
+      
+      if (newTrick.length === 4 && gameState.trumpSuit) {
+        setDisplayTrick(newTrick);
+        
+        if (trickWinnerTimeoutRef.current) {
+          clearTimeout(trickWinnerTimeoutRef.current);
         }
-        
-        const newTrick = [...prev.currentTrick, { playerId: currentPlayer.id, card }];
-        
-        if (newTrick.length === 4 && prev.trumpSuit) {
-          const winnerId = determineTrickWinner(newTrick, prev.trumpSuit);
-          const winner = prev.players.find(p => p.id === winnerId);
-          if (winner) {
-            setDisplayTrick(newTrick);
-            setTrickWinner(winner);
-            if (trickWinnerTimeoutRef.current) {
-              clearTimeout(trickWinnerTimeoutRef.current);
-            }
-            trickWinnerTimeoutRef.current = setTimeout(() => {
-              setTrickWinner(null);
-              setDisplayTrick([]);
-            }, 2000);
-          }
-        }
-        
-        return playCard(prev, card);
-      });
+        trickWinnerTimeoutRef.current = setTimeout(() => {
+          setDisplayTrick([]);
+          setGameState(prev => playCard(prev, card));
+        }, 2500);
+      } else {
+        setGameState(prev => playCard(prev, card));
+      }
     }
-  }, [isMultiplayerMode, multiplayer, toast]);
+  }, [isMultiplayerMode, multiplayer, toast, gameState.players, gameState.currentPlayerIndex, gameState.currentTrick, gameState.trumpSuit]);
 
   const handleContinue = useCallback(() => {
     if (isMultiplayerMode) {
@@ -231,7 +225,7 @@ export function GameBoard() {
     if (gameState.phase === 'playing') {
       const currentPlayer = gameState.players[gameState.currentPlayerIndex];
       if (!currentPlayer.isHuman && currentPlayer.hand.length > 0) {
-        const baseDelay = trickWinner ? 2200 : 700 + Math.random() * 500;
+        const baseDelay = displayTrick.length > 0 ? 2800 : 700 + Math.random() * 500;
         const timer = setTimeout(() => {
           const cardToPlay = getCpuCardToPlay(
             currentPlayer.hand,
@@ -240,28 +234,25 @@ export function GameBoard() {
           );
           
           const newTrick = [...gameState.currentTrick, { playerId: currentPlayer.id, card: cardToPlay }];
-          if (newTrick.length === 4 && gameState.trumpSuit) {
-            const winnerId = determineTrickWinner(newTrick, gameState.trumpSuit);
-            const winner = gameState.players.find(p => p.id === winnerId);
-            if (winner) {
-              setDisplayTrick(newTrick);
-              setTrickWinner(winner);
-              if (trickWinnerTimeoutRef.current) {
-                clearTimeout(trickWinnerTimeoutRef.current);
-              }
-              trickWinnerTimeoutRef.current = setTimeout(() => {
-                setTrickWinner(null);
-                setDisplayTrick([]);
-              }, 2000);
-            }
-          }
           
-          setGameState(prev => playCard(prev, cardToPlay));
+          if (newTrick.length === 4 && gameState.trumpSuit) {
+            setDisplayTrick(newTrick);
+            
+            if (trickWinnerTimeoutRef.current) {
+              clearTimeout(trickWinnerTimeoutRef.current);
+            }
+            trickWinnerTimeoutRef.current = setTimeout(() => {
+              setDisplayTrick([]);
+              setGameState(prev => playCard(prev, cardToPlay));
+            }, 2500);
+          } else {
+            setGameState(prev => playCard(prev, cardToPlay));
+          }
         }, baseDelay);
         return () => clearTimeout(timer);
       }
     }
-  }, [gameState.phase, gameState.currentPlayerIndex, gameState.players, gameState.currentTrick, gameState.trumpSuit, isMultiplayerMode, trickWinner]);
+  }, [gameState.phase, gameState.currentPlayerIndex, gameState.players, gameState.currentTrick, gameState.trumpSuit, isMultiplayerMode, displayTrick.length]);
 
   const getRotatedIndex = (offset: number) => (mySeatIndex + offset) % 4;
   const humanPlayer = gameState.players[mySeatIndex];
