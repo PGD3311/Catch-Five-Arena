@@ -177,27 +177,31 @@ export function GameBoard() {
   }, []);
 
   const handleSortHand = useCallback(() => {
-    const SUIT_ORDER: Record<string, number> = { 'Clubs': 0, 'Diamonds': 1, 'Hearts': 2, 'Spades': 3 };
-    const RANK_ORDER: Record<string, number> = {
-      'A': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6,
-      '8': 7, '9': 8, '10': 9, 'J': 10, 'Q': 11, 'K': 12
-    };
-    
-    setGameState(prev => ({
-      ...prev,
-      players: prev.players.map((p, idx) => {
-        if (idx === mySeatIndex) {
-          const sortedHand = [...p.hand].sort((a, b) => {
-            const suitDiff = SUIT_ORDER[a.suit] - SUIT_ORDER[b.suit];
-            if (suitDiff !== 0) return suitDiff;
-            return RANK_ORDER[a.rank] - RANK_ORDER[b.rank];
-          });
-          return { ...p, hand: sortedHand };
-        }
-        return p;
-      }),
-    }));
-  }, [mySeatIndex]);
+    if (isMultiplayerMode) {
+      multiplayer.sendAction('sort_hand', {});
+    } else {
+      const SUIT_ORDER: Record<string, number> = { 'Clubs': 0, 'Diamonds': 1, 'Hearts': 2, 'Spades': 3 };
+      const RANK_ORDER: Record<string, number> = {
+        'A': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6,
+        '8': 7, '9': 8, '10': 9, 'J': 10, 'Q': 11, 'K': 12
+      };
+      
+      setGameState(prev => ({
+        ...prev,
+        players: prev.players.map((p, idx) => {
+          if (idx === mySeatIndex) {
+            const sortedHand = [...p.hand].sort((a, b) => {
+              const suitDiff = SUIT_ORDER[a.suit] - SUIT_ORDER[b.suit];
+              if (suitDiff !== 0) return suitDiff;
+              return RANK_ORDER[a.rank] - RANK_ORDER[b.rank];
+            });
+            return { ...p, hand: sortedHand };
+          }
+          return p;
+        }),
+      }));
+    }
+  }, [isMultiplayerMode, multiplayer, mySeatIndex]);
 
   useEffect(() => {
     return () => {

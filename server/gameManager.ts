@@ -339,8 +339,9 @@ async function handlePlayerAction(ws: WebSocket, message: any) {
 
   const phase = room.gameState.phase;
   const isAnyPlayerPhase = phase === 'dealer-draw' || phase === 'purge-draw' || phase === 'scoring' || phase === 'game-over';
+  const isPlayerAction = message.action === 'sort_hand'; // Actions that don't require turn
   
-  if (room.gameState.currentPlayerIndex !== player.seatIndex && !isAnyPlayerPhase) {
+  if (room.gameState.currentPlayerIndex !== player.seatIndex && !isAnyPlayerPhase && !isPlayerAction) {
     ws.send(JSON.stringify({ type: 'error', message: 'Not your turn' }));
     return;
   }
@@ -375,6 +376,28 @@ async function handlePlayerAction(ws: WebSocket, message: any) {
         newState = gameEngine.startNewRound(newState);
       }
       break;
+    case 'sort_hand': {
+      const SUIT_ORDER: Record<string, number> = { 'Clubs': 0, 'Diamonds': 1, 'Hearts': 2, 'Spades': 3 };
+      const RANK_ORDER: Record<string, number> = {
+        'A': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6,
+        '8': 7, '9': 8, '10': 9, 'J': 10, 'Q': 11, 'K': 12
+      };
+      newState = {
+        ...newState,
+        players: newState.players.map((p, idx) => {
+          if (idx === player.seatIndex) {
+            const sortedHand = [...p.hand].sort((a, b) => {
+              const suitDiff = SUIT_ORDER[a.suit] - SUIT_ORDER[b.suit];
+              if (suitDiff !== 0) return suitDiff;
+              return RANK_ORDER[a.rank] - RANK_ORDER[b.rank];
+            });
+            return { ...p, hand: sortedHand };
+          }
+          return p;
+        }),
+      };
+      break;
+    }
   }
 
   room.gameState = newState;
