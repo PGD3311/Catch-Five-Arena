@@ -84,7 +84,7 @@ export function PlayerArea({
             <Bot className="w-5 h-5 text-muted-foreground" />
           )}
           <span className="font-semibold text-sm">{player.name}</span>
-          {isBidder && <Crown className="w-4 h-4 text-amber-500" title="Bid Winner" />}
+          {isBidder && <Crown className="w-4 h-4 text-amber-500" />}
         </div>
         
         <div className="flex items-center gap-2 flex-wrap">
@@ -115,27 +115,31 @@ export function PlayerArea({
         )}
       </div>
 
-      <div className={getHandClasses()}>
+      <div className={cn(getHandClasses(), isBottom && 'min-h-36 pt-2')}>
         {showCards ? (
           player.hand.map((card, index) => {
             const canPlay = canPlayCard ? canPlayCard(card) : true;
-            const rotation = isBottom ? ((index - (player.hand.length - 1) / 2) * 3) : 0;
+            const cardCount = player.hand.length;
+            const spreadAngle = cardCount > 6 ? 2.5 : 3.5;
+            const rotation = isBottom ? ((index - (cardCount - 1) / 2) * spreadAngle) : 0;
+            const overlap = cardCount > 6 ? -20 : -16;
 
             return (
               <div
                 key={card.id}
                 style={{
-                  marginLeft: isBottom && index > 0 ? '-24px' : undefined,
+                  marginLeft: isBottom && index > 0 ? `${overlap}px` : undefined,
                   marginTop: isSide && index > 0 ? '-48px' : undefined,
                   transform: isBottom ? `rotate(${rotation}deg)` : undefined,
                   zIndex: index,
                 }}
+                className="transition-transform duration-150"
               >
                 <PlayingCard
                   card={card}
                   onClick={() => onCardClick?.(card)}
                   disabled={!canPlay || !isCurrentPlayer}
-                  small={!isBottom}
+                  small={false}
                 />
               </div>
             );
