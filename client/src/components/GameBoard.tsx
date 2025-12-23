@@ -52,6 +52,15 @@ export function GameBoard() {
     }));
   }, []);
 
+  const handlePlayerNameChange = useCallback((playerId: string, name: string) => {
+    setGameState(prev => ({
+      ...prev,
+      players: prev.players.map(p => 
+        p.id === playerId ? { ...p, name } : p
+      ),
+    }));
+  }, []);
+
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -335,6 +344,7 @@ export function GameBoard() {
         onToggleDarkMode={() => setDarkMode(!darkMode)}
         playerConfigs={gameState.players.map(p => ({ id: p.id, name: p.name, isHuman: p.isHuman }))}
         onTogglePlayerType={handleTogglePlayerType}
+        onPlayerNameChange={handlePlayerNameChange}
       />
 
       <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} />

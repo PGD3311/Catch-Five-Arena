@@ -1,6 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { DeckColor, DECK_COLORS } from '@shared/gameTypes';
@@ -24,6 +25,7 @@ interface SettingsPanelProps {
   onToggleDarkMode: () => void;
   playerConfigs: PlayerConfig[];
   onTogglePlayerType: (playerId: string) => void;
+  onPlayerNameChange: (playerId: string, name: string) => void;
 }
 
 export function SettingsPanel({
@@ -37,9 +39,11 @@ export function SettingsPanel({
   onToggleDarkMode,
   playerConfigs,
   onTogglePlayerType,
+  onPlayerNameChange,
 }: SettingsPanelProps) {
-  const positions = ['Bottom (You)', 'Left', 'Top (Partner)', 'Right'];
+  const positions = ['Bottom', 'Left', 'Top', 'Right'];
   const teams = ['Your Team', 'Opponents', 'Your Team', 'Opponents'];
+  const defaultNames = ['You', 'CPU 1', 'Partner', 'CPU 2'];
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -51,34 +55,49 @@ export function SettingsPanel({
         <div className="space-y-6 py-6">
           <div className="space-y-3">
             <Label className="text-sm font-medium">Players</Label>
+            <p className="text-xs text-muted-foreground">
+              Toggle to Human and enter a name for each human player
+            </p>
             <div className="space-y-2">
               {playerConfigs.map((player, index) => (
                 <div
                   key={player.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                  className="p-3 rounded-lg bg-muted/50 space-y-2"
                   data-testid={`player-config-${player.id}`}
                 >
-                  <div className="flex flex-col gap-0.5">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {player.isHuman ? (
                         <User className="w-4 h-4 text-primary" />
                       ) : (
                         <Bot className="w-4 h-4 text-muted-foreground" />
                       )}
-                      <span className="text-sm font-medium">{positions[index]}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{positions[index]}</span>
+                        <span className="text-xs text-muted-foreground">{teams[index]}</span>
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground">{teams[index]}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {player.isHuman ? 'Human' : 'CPU'}
+                      </span>
+                      <Switch
+                        checked={player.isHuman}
+                        onCheckedChange={() => onTogglePlayerType(player.id)}
+                        data-testid={`toggle-player-${player.id}`}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      {player.isHuman ? 'Human' : 'CPU'}
-                    </span>
-                    <Switch
-                      checked={player.isHuman}
-                      onCheckedChange={() => onTogglePlayerType(player.id)}
-                      data-testid={`toggle-player-${player.id}`}
+                  
+                  {player.isHuman && (
+                    <Input
+                      placeholder={`Enter name (${defaultNames[index]})`}
+                      value={player.name}
+                      onChange={(e) => onPlayerNameChange(player.id, e.target.value)}
+                      className="h-8 text-sm"
+                      data-testid={`input-player-name-${player.id}`}
                     />
-                  </div>
+                  )}
                 </div>
               ))}
             </div>
