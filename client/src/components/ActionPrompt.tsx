@@ -1,7 +1,8 @@
 import { GameState, Player } from '@shared/gameTypes';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Hand, Crown, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ActionPromptProps {
   gameState: GameState;
@@ -12,47 +13,76 @@ export function ActionPrompt({ gameState }: ActionPromptProps) {
   const dealer = gameState.players[gameState.dealerIndex];
   const bidder = gameState.players.find(p => p.id === gameState.bidderId);
   
-  const getMessage = (): { text: string; isWaiting: boolean } => {
+  const getMessage = (): { text: string; isWaiting: boolean; icon: 'hand' | 'crown' | 'zap' | 'loader' } => {
     switch (gameState.phase) {
       case 'bidding':
         if (currentPlayer.isHuman) {
-          return { text: `Your turn to bid! (${gameState.highBid > 0 ? `beat ${gameState.highBid}` : 'bid 5-9 or pass'})`, isWaiting: false };
+          return { 
+            text: gameState.highBid > 0 ? `Beat ${gameState.highBid} or pass` : 'Open the bidding (5-9)', 
+            isWaiting: false,
+            icon: 'crown'
+          };
         }
-        return { text: `Waiting for ${currentPlayer.name} to bid...`, isWaiting: true };
+        return { text: `${currentPlayer.name} is thinking...`, isWaiting: true, icon: 'loader' };
       
       case 'trump-selection':
-        return { text: 'You won the bid! Select the trump suit.', isWaiting: false };
+        return { text: 'Victory! Now choose your trump suit', isWaiting: false, icon: 'crown' };
       
       case 'playing':
         if (currentPlayer.isHuman) {
           if (gameState.currentTrick.length === 0) {
-            return { text: 'Your lead! Play any card.', isWaiting: false };
+            return { text: 'Your lead! Play any card', isWaiting: false, icon: 'zap' };
           }
-          return { text: 'Your turn to play a card.', isWaiting: false };
+          return { text: 'Your turn - select a card', isWaiting: false, icon: 'hand' };
         }
-        return { text: `Waiting for ${currentPlayer.name} to play...`, isWaiting: true };
+        return { text: `${currentPlayer.name} is playing...`, isWaiting: true, icon: 'loader' };
       
       default:
-        return { text: '', isWaiting: false };
+        return { text: '', isWaiting: false, icon: 'hand' };
     }
   };
 
-  const { text, isWaiting } = getMessage();
+  const { text, isWaiting, icon } = getMessage();
 
   if (!text) return null;
 
+  const IconComponent = {
+    hand: Hand,
+    crown: Crown,
+    zap: Zap,
+    loader: Loader2
+  }[icon];
+
   return (
-    <div 
-      className={cn(
-        'flex items-center justify-center gap-3 px-6 py-3 rounded-lg',
-        'bg-primary/10 border border-primary/20',
-        'animate-in fade-in-0 slide-in-from-bottom-2 duration-300'
-      )}
-      data-testid="action-prompt"
-    >
-      {isWaiting && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
-      <span className="text-sm font-medium">{text}</span>
-    </div>
+    <AnimatePresence mode="wait">
+      <motion.div 
+        key={text}
+        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+        className={cn(
+          'flex items-center justify-center gap-3 px-6 py-3 rounded-xl',
+          isWaiting 
+            ? 'bg-muted/60 border border-border/50' 
+            : 'bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30',
+          'backdrop-blur-sm shadow-lg'
+        )}
+        data-testid="action-prompt"
+      >
+        <IconComponent className={cn(
+          'w-5 h-5',
+          isWaiting ? 'text-muted-foreground' : 'text-primary',
+          icon === 'loader' && 'animate-spin'
+        )} />
+        <span className={cn(
+          'text-sm font-semibold',
+          !isWaiting && 'text-primary'
+        )}>
+          {text}
+        </span>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 

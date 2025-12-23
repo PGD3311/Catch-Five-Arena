@@ -3,8 +3,46 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Team, Player, RoundScoreDetails } from '@shared/gameTypes';
 import { cn } from '@/lib/utils';
-import { Trophy, TrendingDown, TrendingUp, Users, ChevronDown, ChevronUp } from 'lucide-react';
-import { useState } from 'react';
+import { Trophy, TrendingDown, TrendingUp, Users, ChevronDown, ChevronUp, Sparkles, Star } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const Confetti = ({ count = 50 }: { count?: number }) => {
+  const colors = ['#fbbf24', '#3b82f6', '#ef4444', '#22c55e', '#a855f7', '#f97316'];
+  
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {Array.from({ length: count }).map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{ 
+            x: Math.random() * 400 - 200,
+            y: -20,
+            rotate: 0,
+            opacity: 1
+          }}
+          animate={{ 
+            y: 500,
+            rotate: Math.random() * 720 - 360,
+            opacity: 0
+          }}
+          transition={{ 
+            duration: 2 + Math.random() * 2,
+            delay: Math.random() * 0.5,
+            ease: "easeOut"
+          }}
+          className="absolute top-0 left-1/2"
+          style={{
+            width: 8 + Math.random() * 8,
+            height: 8 + Math.random() * 8,
+            backgroundColor: colors[Math.floor(Math.random() * colors.length)],
+            borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+          }}
+        />
+      ))}
+    </div>
+  );
+};
 
 interface ScoreModalProps {
   open: boolean;
@@ -77,36 +115,62 @@ export function ScoreModal({
 
   return (
     <Dialog open={open}>
-      <DialogContent className="sm:max-w-xl" onPointerDownOutside={(e) => e.preventDefault()}>
-        <DialogHeader>
-          <DialogTitle className="text-center text-2xl flex items-center justify-center gap-2">
-            {isGameOver ? (
-              <>
-                <Trophy className="w-6 h-6 text-amber-500" />
-                {isYourTeamWinning ? 'You Won!' : 'Game Over'}
-              </>
-            ) : (
-              'Round Complete'
-            )}
-          </DialogTitle>
+      <DialogContent className="sm:max-w-xl overflow-hidden" onPointerDownOutside={(e) => e.preventDefault()}>
+        {isGameOver && isYourTeamWinning && <Confetti count={60} />}
+        
+        <DialogHeader className="relative">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <DialogTitle className="text-center text-2xl flex items-center justify-center gap-3">
+              {isGameOver ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: [0, -10, 10, 0] }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                  >
+                    <Trophy className="w-8 h-8 text-amber-500 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
+                  </motion.div>
+                  <span className={isYourTeamWinning ? 'text-amber-400' : ''}>
+                    {isYourTeamWinning ? 'Victory!' : 'Game Over'}
+                  </span>
+                  {isYourTeamWinning && (
+                    <motion.div
+                      animate={{ rotate: [0, 10, -10, 0] }}
+                      transition={{ duration: 0.5, delay: 0.3 }}
+                    >
+                      <Sparkles className="w-6 h-6 text-amber-400" />
+                    </motion.div>
+                  )}
+                </>
+              ) : (
+                'Round Complete'
+              )}
+            </DialogTitle>
+          </motion.div>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           {bidderTeam && (
-            <div
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.1 }}
               className={cn(
-                'p-4 rounded-lg text-center',
+                'p-4 rounded-xl text-center',
                 bidderMadeIt
-                  ? 'bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700'
-                  : 'bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700'
+                  ? 'bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40'
+                  : 'bg-gradient-to-br from-red-500/20 to-red-600/10 border border-red-500/40'
               )}
               data-testid="display-bidder-result"
             >
               <div className="flex items-center justify-center gap-2 mb-2">
                 {bidderMadeIt ? (
-                  <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  <TrendingUp className="w-5 h-5 text-emerald-400" />
                 ) : (
-                  <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  <TrendingDown className="w-5 h-5 text-red-400" />
                 )}
                 <span className="font-bold text-lg" data-testid="text-bidder-outcome">
                   {bidderTeam.name} {bidderMadeIt ? 'made it!' : 'went set!'}
@@ -116,7 +180,7 @@ export function ScoreModal({
                 {bidder?.name} bid {highBid} | Team scored: {bidderTeamScore}
                 {!bidderMadeIt && ` | Penalty: -${highBid}`}
               </p>
-            </div>
+            </motion.div>
           )}
 
           <div className="space-y-3">

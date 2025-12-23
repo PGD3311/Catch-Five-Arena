@@ -104,13 +104,12 @@ export function PlayingCard({
         'flex flex-col',
         'transform-gpu transition-all duration-200 ease-out',
         !disabled && 'cursor-pointer',
-        !disabled && 'hover:-translate-y-2 hover:shadow-[0_8px_24px_rgba(0,0,0,0.2),0_4px_8px_rgba(0,0,0,0.15)]',
-        !disabled && 'dark:hover:shadow-[0_8px_32px_rgba(0,0,0,0.5),0_4px_12px_rgba(0,0,0,0.3)]',
-        !disabled && 'hover:rotate-1',
-        !disabled && 'active:translate-y-0 active:shadow-[0_2px_8px_rgba(0,0,0,0.15)]',
-        disabled && 'opacity-50 cursor-not-allowed',
-        selected && '-translate-y-4 rotate-2 ring-2 ring-primary ring-offset-2 shadow-[0_12px_32px_rgba(0,0,0,0.25)]',
-        isTrump && !selected && 'ring-2 ring-amber-400 dark:ring-amber-500 ring-offset-1 ring-offset-background',
+        !disabled && 'hover:-translate-y-3 hover:scale-[1.02] hover:shadow-[0_12px_28px_rgba(0,0,0,0.25),0_6px_12px_rgba(0,0,0,0.15)]',
+        !disabled && 'dark:hover:shadow-[0_12px_36px_rgba(0,0,0,0.6),0_6px_16px_rgba(0,0,0,0.35)]',
+        !disabled && 'active:translate-y-0 active:scale-[0.98] active:shadow-[0_2px_8px_rgba(0,0,0,0.2)]',
+        disabled && 'opacity-40 cursor-not-allowed grayscale-[30%]',
+        selected && '-translate-y-5 scale-[1.05] ring-2 ring-primary ring-offset-2 ring-offset-background shadow-[0_16px_40px_rgba(0,0,0,0.3)]',
+        isTrump && !selected && 'ring-2 ring-amber-400 dark:ring-amber-500 ring-offset-2 ring-offset-background shadow-[0_0_20px_rgba(251,191,36,0.3)]',
         className
       )}
       data-testid={`card-${card.rank}-${card.suit}`}
