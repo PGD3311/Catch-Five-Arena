@@ -7,6 +7,8 @@ import { TrumpSelector } from './TrumpSelector';
 import { ScoreModal } from './ScoreModal';
 import { SettingsPanel } from './SettingsPanel';
 import { RulesModal } from './RulesModal';
+import { ShareModal } from './ShareModal';
+import { PurgeDrawModal } from './PurgeDrawModal';
 import { ActionPrompt } from './ActionPrompt';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback } from 'react';
@@ -21,12 +23,15 @@ import {
   getCpuCardToPlay,
   startNewRound,
   checkGameOver,
+  performPurgeAndDraw,
 } from '@/lib/gameEngine';
 
 export function GameBoard() {
   const [gameState, setGameState] = useState<GameState>(() => initializeGame());
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [showPurgeDraw, setShowPurgeDraw] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('darkMode') === 'true';
@@ -61,7 +66,17 @@ export function GameBoard() {
   }, []);
 
   const handleTrumpSelect = useCallback((suit: Suit) => {
-    setGameState(prev => selectTrump(prev, suit));
+    setGameState(prev => ({
+      ...prev,
+      trumpSuit: suit,
+      phase: 'purge-draw' as const,
+    }));
+    setShowPurgeDraw(true);
+  }, []);
+
+  const handlePurgeDrawComplete = useCallback(() => {
+    setShowPurgeDraw(false);
+    setGameState(prev => performPurgeAndDraw(prev));
   }, []);
 
   const handleCardPlay = useCallback((card: CardType) => {
@@ -93,9 +108,6 @@ export function GameBoard() {
       const currentPlayer = gameState.players[gameState.currentPlayerIndex];
       if (!currentPlayer.isHuman) {
         const timer = setTimeout(() => {
-          const allOthersPassed = gameState.players
-            .filter((_, i) => i !== gameState.currentPlayerIndex)
-            .every(p => p.bid === 0 || p.bid === null);
           const passedCount = gameState.players.filter(p => p.bid === 0).length;
           const isDealer = gameState.currentPlayerIndex === gameState.dealerIndex;
           const isLastAndAllPassed = isDealer && passedCount === 3;
@@ -106,6 +118,26 @@ export function GameBoard() {
       }
     }
   }, [gameState.phase, gameState.currentPlayerIndex, gameState.players, gameState.highBid, gameState.dealerIndex]);
+
+  useEffect(() => {
+    if (gameState.phase === 'trump-selection') {
+      const bidder = gameState.players.find(p => p.id === gameState.bidderId);
+      if (bidder && !bidder.isHuman) {
+        const timer = setTimeout(() => {
+          const suitScores: Record<Suit, number> = { Hearts: 0, Diamonds: 0, Clubs: 0, Spades: 0 };
+          for (const card of bidder.hand) {
+            suitScores[card.suit] += 1;
+            if (card.rank === '5') suitScores[card.suit] += 6;
+            if (card.rank === 'J') suitScores[card.suit] += 2;
+            if (card.rank === 'A') suitScores[card.suit] += 4;
+          }
+          const bestSuit = Object.entries(suitScores).reduce((a, b) => (b[1] > a[1] ? b : a))[0] as Suit;
+          handleTrumpSelect(bestSuit);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [gameState.phase, gameState.players, gameState.bidderId]);
 
   useEffect(() => {
     if (gameState.phase === 'playing') {
@@ -132,24 +164,26 @@ export function GameBoard() {
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const isHumanTurn = currentPlayer?.isHuman;
   
-  const allOthersPassed = gameState.players
-    .filter((_, i) => i !== gameState.currentPlayerIndex)
-    .filter(p => p.bid !== null)
-    .every(p => p.bid === 0);
-  const isDealer = gameState.currentPlayerIndex === gameState.dealerIndex;
   const passedCount = gameState.players.filter(p => p.bid === 0).length;
+  const isDealer = gameState.currentPlayerIndex === gameState.dealerIndex;
   
   const showBiddingModal = gameState.phase === 'bidding' && isHumanTurn;
-  const showTrumpSelector = gameState.phase === 'trump-selection';
+  const showTrumpSelector = gameState.phase === 'trump-selection' && 
+    gameState.players.find(p => p.id === gameState.bidderId)?.isHuman;
   const showScoreModal = gameState.phase === 'scoring' || gameState.phase === 'game-over';
-  const showBidResults = gameState.phase === 'bidding' || gameState.phase === 'trump-selection';
+  const showBidResults = gameState.phase === 'bidding' || gameState.phase === 'trump-selection' || gameState.phase === 'purge-draw';
 
   const getTeamForPlayer = (player: typeof humanPlayer) => 
     gameState.teams.find(t => t.id === player.teamId)!;
 
   return (
     <div className="flex flex-col min-h-screen bg-background" data-testid="game-board">
-      <GameHeader gameState={gameState} onSettingsClick={() => setSettingsOpen(true)} />
+      <GameHeader 
+        gameState={gameState} 
+        onSettingsClick={() => setSettingsOpen(true)}
+        onShareClick={() => setShareOpen(true)}
+        onRulesClick={() => setRulesOpen(true)}
+      />
 
       {gameState.phase === 'setup' && (
         <div className="flex-1 flex flex-col items-center justify-center gap-8 p-8">
@@ -251,8 +285,15 @@ export function GameBoard() {
       />
 
       <TrumpSelector
-        open={showTrumpSelector}
+        open={showTrumpSelector || false}
         onSelect={handleTrumpSelect}
+      />
+
+      <PurgeDrawModal
+        open={showPurgeDraw}
+        players={gameState.players}
+        trumpSuit={gameState.trumpSuit || 'Hearts'}
+        onComplete={handlePurgeDrawComplete}
       />
 
       <ScoreModal
@@ -282,6 +323,8 @@ export function GameBoard() {
         playerConfigs={gameState.players.map(p => ({ id: p.id, name: p.name, isHuman: p.isHuman }))}
         onTogglePlayerType={handleTogglePlayerType}
       />
+
+      <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} />
 
       <RulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
     </div>

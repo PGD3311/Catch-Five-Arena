@@ -189,19 +189,6 @@ export function processBid(state: GameState, bid: number): GameState {
     }
 
     const bidderIndex = newPlayers.findIndex(p => p.id === newBidderId);
-    const bidder = newPlayers[bidderIndex];
-
-    if (!bidder.isHuman) {
-      const trumpChoice = getCpuTrumpChoice(bidder.hand);
-      return performPurgeAndDraw({
-        ...state,
-        players: newPlayers,
-        highBid: newHighBid,
-        bidderId: newBidderId,
-        trumpSuit: trumpChoice,
-        currentPlayerIndex: bidderIndex,
-      });
-    }
 
     return {
       ...state,

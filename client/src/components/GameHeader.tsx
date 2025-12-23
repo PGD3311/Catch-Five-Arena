@@ -1,12 +1,14 @@
 import { GameState, Suit, Team } from '@shared/gameTypes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Settings, Heart, Diamond, Club, Spade, Users } from 'lucide-react';
+import { Settings, Heart, Diamond, Club, Spade, Users, Share2, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface GameHeaderProps {
   gameState: GameState;
   onSettingsClick: () => void;
+  onShareClick: () => void;
+  onRulesClick: () => void;
 }
 
 const SuitDisplay = ({ suit }: { suit: Suit }) => {
@@ -39,7 +41,7 @@ const getPhaseLabel = (phase: GameState['phase'], trickNumber: number): string =
     case 'trump-selection':
       return 'Select Trump';
     case 'purge-draw':
-      return 'Drawing Cards...';
+      return 'Purge & Draw';
     case 'playing':
       return `Trick ${Math.min(trickNumber, 6)} of 6`;
     case 'scoring':
@@ -66,7 +68,7 @@ const TeamScoreDisplay = ({ team, isYourTeam, targetScore }: { team: Team; isYou
   </div>
 );
 
-export function GameHeader({ gameState, onSettingsClick }: GameHeaderProps) {
+export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesClick }: GameHeaderProps) {
   const phaseLabel = getPhaseLabel(gameState.phase, gameState.trickNumber);
   const yourTeam = gameState.teams.find(t => t.id === 'team1');
   const opponentTeam = gameState.teams.find(t => t.id === 'team2');
@@ -92,7 +94,7 @@ export function GameHeader({ gameState, onSettingsClick }: GameHeaderProps) {
         )}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {yourTeam && gameState.phase !== 'setup' && (
           <TeamScoreDisplay team={yourTeam} isYourTeam targetScore={gameState.targetScore} />
         )}
@@ -100,14 +102,35 @@ export function GameHeader({ gameState, onSettingsClick }: GameHeaderProps) {
           <TeamScoreDisplay team={opponentTeam} isYourTeam={false} targetScore={gameState.targetScore} />
         )}
 
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={onSettingsClick}
-          data-testid="button-settings"
-        >
-          <Settings className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-1 ml-2">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onShareClick}
+            data-testid="button-share"
+            title="Share"
+          >
+            <Share2 className="w-4 h-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onRulesClick}
+            data-testid="button-rules"
+            title="Rules"
+          >
+            <HelpCircle className="w-4 h-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onSettingsClick}
+            data-testid="button-settings"
+            title="Settings"
+          >
+            <Settings className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
     </header>
   );

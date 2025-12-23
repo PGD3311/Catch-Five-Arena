@@ -1,0 +1,131 @@
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Player, Suit, Card } from '@shared/gameTypes';
+import { PlayingCard } from './PlayingCard';
+import { cn } from '@/lib/utils';
+import { ArrowDown, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+interface PurgeDrawModalProps {
+  open: boolean;
+  players: Player[];
+  trumpSuit: Suit;
+  onComplete: () => void;
+}
+
+export function PurgeDrawModal({ open, players, trumpSuit, onComplete }: PurgeDrawModalProps) {
+  const [step, setStep] = useState<'purge' | 'draw' | 'done'>('purge');
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
+
+  useEffect(() => {
+    if (!open) {
+      setStep('purge');
+      setCurrentPlayerIndex(0);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (step === 'purge') {
+        if (currentPlayerIndex < players.length - 1) {
+          setCurrentPlayerIndex(prev => prev + 1);
+        } else {
+          setStep('draw');
+          setCurrentPlayerIndex(0);
+        }
+      } else if (step === 'draw') {
+        if (currentPlayerIndex < players.length - 1) {
+          setCurrentPlayerIndex(prev => prev + 1);
+        } else {
+          setStep('done');
+          setTimeout(onComplete, 500);
+        }
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [open, step, currentPlayerIndex, players.length, onComplete]);
+
+  const currentPlayer = players[currentPlayerIndex];
+
+  const getSuitIcon = (suit: Suit) => {
+    const icons = {
+      Hearts: '♥',
+      Diamonds: '♦',
+      Clubs: '♣',
+      Spades: '♠',
+    };
+    return icons[suit];
+  };
+
+  const isRed = trumpSuit === 'Hearts' || trumpSuit === 'Diamonds';
+
+  return (
+    <Dialog open={open}>
+      <DialogContent className="sm:max-w-lg" onPointerDownOutside={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle className="text-center text-xl flex items-center justify-center gap-2">
+            {step === 'purge' ? (
+              <>
+                <Trash2 className="w-5 h-5 text-destructive" />
+                Discarding Non-Trumps
+              </>
+            ) : step === 'draw' ? (
+              <>
+                <ArrowDown className="w-5 h-5 text-primary" />
+                Drawing Cards
+              </>
+            ) : (
+              'Ready to Play!'
+            )}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="py-6 space-y-4">
+          <div className={cn(
+            'flex items-center justify-center gap-2 text-2xl font-bold',
+            isRed ? 'text-red-500' : 'text-foreground'
+          )}>
+            <span>Trump:</span>
+            <span>{getSuitIcon(trumpSuit)} {trumpSuit}</span>
+          </div>
+
+          <div className="space-y-3">
+            {players.map((player, index) => {
+              const isActive = index === currentPlayerIndex;
+              const isPast = index < currentPlayerIndex;
+              const status = step === 'purge' 
+                ? (isPast ? 'Discarded non-trumps' : isActive ? 'Discarding...' : '')
+                : step === 'draw'
+                ? (isPast ? 'Drew to 6 cards' : isActive ? 'Drawing...' : '')
+                : 'Ready!';
+
+              return (
+                <div
+                  key={player.id}
+                  className={cn(
+                    'flex items-center justify-between p-3 rounded-lg transition-all',
+                    isActive && 'bg-primary/10 ring-1 ring-primary',
+                    isPast && 'bg-muted/50',
+                    !isActive && !isPast && 'opacity-50'
+                  )}
+                >
+                  <span className="font-medium">{player.name}</span>
+                  <span className={cn(
+                    'text-sm',
+                    isActive && 'text-primary animate-pulse',
+                    isPast && 'text-muted-foreground'
+                  )}>
+                    {status}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground">
+            All non-trump cards are discarded, then each player draws back to 6 cards
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
