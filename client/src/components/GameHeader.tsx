@@ -126,7 +126,7 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
           </div>
         )}
 
-        {gameState.lastTrick && gameState.lastTrick.length > 0 && gameState.phase === 'playing' && onLastTrickClick && (
+        {gameState.lastTrick && gameState.lastTrick.length > 0 && onLastTrickClick && (
           <Button
             size="icon"
             variant="ghost"
