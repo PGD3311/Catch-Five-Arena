@@ -375,6 +375,7 @@ export function GameBoard() {
         onSettingsClick={() => setSettingsOpen(true)}
         onShareClick={() => setShareOpen(true)}
         onRulesClick={() => setRulesOpen(true)}
+        onLastTrickClick={() => setShowLastTrick(true)}
       />
       {gameState.phase === 'setup' && (
         <div className="flex-1 flex flex-col items-center justify-center gap-10 p-8">
