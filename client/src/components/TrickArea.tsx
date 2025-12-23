@@ -15,22 +15,26 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0 }:
   
   const getVisualIndex = (playerId: string): number => {
     const seatIndex = players.findIndex(p => p.id === playerId);
+    console.log('[TrickArea] getVisualIndex:', { playerId, seatIndex, mySeatIndex, visualIndex: (seatIndex - mySeatIndex + 4) % 4, playerIds: players.map(p => p.id) });
     return (seatIndex - mySeatIndex + 4) % 4;
   };
   
   const getPositionForPlayer = (playerId: string): { x: number; y: number; rotate: number } => {
     const visualIndex = getVisualIndex(playerId);
-    const scale = isMobile ? 0.65 : 1;
+    // Use larger offsets for clearer card positioning
+    const xOffset = isMobile ? 45 : 75;
+    const yOffset = isMobile ? 35 : 55;
     switch (visualIndex) {
-      case 0:
-        return { x: 0, y: 70 * scale, rotate: 0 };
-      case 1:
-        return { x: -85 * scale, y: 0, rotate: -3 };
-      case 2:
-        return { x: 0, y: -70 * scale, rotate: 0 };
-      case 3:
-        return { x: 85 * scale, y: 0, rotate: 3 };
+      case 0: // Bottom (current player)
+        return { x: 0, y: yOffset, rotate: 0 };
+      case 1: // Left
+        return { x: -xOffset, y: 0, rotate: -5 };
+      case 2: // Top (partner)
+        return { x: 0, y: -yOffset, rotate: 0 };
+      case 3: // Right
+        return { x: xOffset, y: 0, rotate: 5 };
       default:
+        console.warn('[TrickArea] Unexpected visualIndex:', visualIndex, 'for player:', playerId);
         return { x: 0, y: 0, rotate: 0 };
     }
   };

@@ -128,10 +128,19 @@ export function useMultiplayer() {
         break;
 
       case 'game_state':
-        setState(prev => ({
-          ...prev,
-          gameState: message.gameState,
-        }));
+        console.log('[useMultiplayer] game_state received:', {
+          currentPlayerIndex: message.gameState?.currentPlayerIndex,
+          phase: message.gameState?.phase,
+          currentTrick: message.gameState?.currentTrick?.map((tc: any) => ({ playerId: tc.playerId, card: tc.card?.rank + tc.card?.suit })),
+          playerIds: message.gameState?.players?.map((p: any) => p.id),
+        });
+        setState(prev => {
+          console.log('[useMultiplayer] Current seatIndex:', prev.seatIndex);
+          return {
+            ...prev,
+            gameState: message.gameState,
+          };
+        });
         break;
 
       case 'left':

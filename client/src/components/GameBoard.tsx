@@ -58,6 +58,18 @@ export function GameBoard() {
   const isMultiplayerMode = !!multiplayer.roomCode;
   const gameState = isMultiplayerMode && multiplayer.gameState ? multiplayer.gameState : localGameState;
   const mySeatIndex = isMultiplayerMode ? (multiplayer.seatIndex ?? 0) : 0;
+  
+  // Debug logging for trick card positioning
+  useEffect(() => {
+    if (isMultiplayerMode && gameState.currentTrick.length > 0) {
+      console.log('[GameBoard] Rendering tricks:', {
+        mySeatIndex,
+        multiplayerSeatIndex: multiplayer.seatIndex,
+        currentTrick: gameState.currentTrick.map(tc => ({ playerId: tc.playerId, card: tc.card.rank + tc.card.suit })),
+        playerIds: gameState.players.map(p => ({ id: p.id, name: p.name })),
+      });
+    }
+  }, [isMultiplayerMode, gameState.currentTrick, mySeatIndex, multiplayer.seatIndex, gameState.players]);
 
   const handleTogglePlayerType = useCallback((playerId: string) => {
     setGameState(prev => ({
