@@ -129,10 +129,10 @@ export function GameBoard() {
     } else {
       setGameState(prev => {
         const currentPlayer = prev.players[prev.currentPlayerIndex];
-        if (!canPlayCard(card, currentPlayer.hand, prev.currentTrick)) {
+        if (!canPlayCard(card, currentPlayer.hand, prev.currentTrick, prev.trumpSuit)) {
           toast({
             title: "Invalid move",
-            description: "You must follow suit if you can!",
+            description: "You must follow suit or play trump!",
             variant: "destructive",
           });
           return prev;
@@ -454,7 +454,7 @@ export function GameBoard() {
               isDealer={gameState.dealerIndex === mySeatIndex}
               deckColor={gameState.deckColor}
               onCardClick={isMyTurn && gameState.phase === 'playing' ? handleCardPlay : undefined}
-              canPlayCard={(card) => isMyTurn && canPlayCard(card, humanPlayer.hand, gameState.currentTrick)}
+              canPlayCard={(card) => isMyTurn && canPlayCard(card, humanPlayer.hand, gameState.currentTrick, gameState.trumpSuit)}
               position="bottom"
               showCards
               showBidResult={showBidResults}

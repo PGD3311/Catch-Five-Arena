@@ -393,10 +393,16 @@ export function playCard(state: GameState, card: Card): GameState {
   };
 }
 
-export function canPlayCard(card: Card, hand: Card[], currentTrick: { playerId: string; card: Card }[]): boolean {
+export function canPlayCard(card: Card, hand: Card[], currentTrick: { playerId: string; card: Card }[], trumpSuit?: Suit | null): boolean {
   if (currentTrick.length === 0) return true;
 
   const leadSuit = currentTrick[0].card.suit;
+  
+  // In Catch 5, you can always play trump regardless of what you have
+  if (trumpSuit && card.suit === trumpSuit) {
+    return true;
+  }
+  
   const hasLeadSuit = hand.some(c => c.suit === leadSuit);
 
   if (hasLeadSuit) {
