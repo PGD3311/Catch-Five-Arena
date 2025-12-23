@@ -1,4 +1,4 @@
-import { GameState, Card as CardType, Suit } from '@shared/gameTypes';
+import { GameState, Card as CardType, Suit, Player } from '@shared/gameTypes';
 import { PlayerArea } from './PlayerArea';
 import { TrickArea } from './TrickArea';
 import { GameHeader } from './GameHeader';
@@ -14,8 +14,9 @@ import { ActionPrompt } from './ActionPrompt';
 import { MultiplayerLobby } from './MultiplayerLobby';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMultiplayer } from '@/hooks/useMultiplayer';
+import { useToast } from '@/hooks/use-toast';
 import {
   initializeGame,
   dealCards,
@@ -30,6 +31,7 @@ import {
   performPurgeAndDraw,
   startDealerDraw,
   finalizeDealerDraw,
+  determineTrickWinner,
 } from '@/lib/gameEngine';
 
 export function GameBoard() {
@@ -40,6 +42,9 @@ export function GameBoard() {
   const [showPurgeDraw, setShowPurgeDraw] = useState(false);
   const [showDealerDraw, setShowDealerDraw] = useState(false);
   const [showMultiplayerLobby, setShowMultiplayerLobby] = useState(false);
+  const [trickWinner, setTrickWinner] = useState<Player | null>(null);
+  const trickWinnerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { toast } = useToast();
 
   const multiplayer = useMultiplayer();
   const isMultiplayerMode = !!multiplayer.roomCode;
@@ -121,12 +126,34 @@ export function GameBoard() {
       setGameState(prev => {
         const currentPlayer = prev.players[prev.currentPlayerIndex];
         if (!canPlayCard(card, currentPlayer.hand, prev.currentTrick)) {
+          toast({
+            title: "Invalid move",
+            description: "You must follow suit if you can!",
+            variant: "destructive",
+          });
           return prev;
         }
+        
+        const newTrick = [...prev.currentTrick, { playerId: currentPlayer.id, card }];
+        
+        if (newTrick.length === 4 && prev.trumpSuit) {
+          const winnerId = determineTrickWinner(newTrick, prev.trumpSuit);
+          const winner = prev.players.find(p => p.id === winnerId);
+          if (winner) {
+            setTrickWinner(winner);
+            if (trickWinnerTimeoutRef.current) {
+              clearTimeout(trickWinnerTimeoutRef.current);
+            }
+            trickWinnerTimeoutRef.current = setTimeout(() => {
+              setTrickWinner(null);
+            }, 1200);
+          }
+        }
+        
         return playCard(prev, card);
       });
     }
-  }, [isMultiplayerMode, multiplayer]);
+  }, [isMultiplayerMode, multiplayer, toast]);
 
   const handleContinue = useCallback(() => {
     if (isMultiplayerMode) {
@@ -147,17 +174,26 @@ export function GameBoard() {
   }, []);
 
   useEffect(() => {
+    return () => {
+      if (trickWinnerTimeoutRef.current) {
+        clearTimeout(trickWinnerTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (isMultiplayerMode) return;
     if (gameState.phase === 'bidding') {
       const currentPlayer = gameState.players[gameState.currentPlayerIndex];
       if (!currentPlayer.isHuman) {
+        const baseDelay = 800 + Math.random() * 600;
         const timer = setTimeout(() => {
           const passedCount = gameState.players.filter(p => p.bid === 0).length;
           const isDealer = gameState.currentPlayerIndex === gameState.dealerIndex;
           const isLastAndAllPassed = isDealer && passedCount === 3;
           const cpuBid = getCpuBid(currentPlayer.hand, gameState.highBid, isDealer, isLastAndAllPassed);
           setGameState(prev => processBid(prev, cpuBid));
-        }, 1200);
+        }, baseDelay);
         return () => clearTimeout(timer);
       }
     }
@@ -178,7 +214,7 @@ export function GameBoard() {
           }
           const bestSuit = Object.entries(suitScores).reduce((a, b) => (b[1] > a[1] ? b : a))[0] as Suit;
           handleTrumpSelect(bestSuit);
-        }, 1000);
+        }, 900 + Math.random() * 400);
         return () => clearTimeout(timer);
       }
     }
@@ -189,18 +225,35 @@ export function GameBoard() {
     if (gameState.phase === 'playing') {
       const currentPlayer = gameState.players[gameState.currentPlayerIndex];
       if (!currentPlayer.isHuman && currentPlayer.hand.length > 0) {
+        const baseDelay = trickWinner ? 1400 : 700 + Math.random() * 500;
         const timer = setTimeout(() => {
           const cardToPlay = getCpuCardToPlay(
             currentPlayer.hand,
             gameState.currentTrick,
             gameState.trumpSuit
           );
+          
+          const newTrick = [...gameState.currentTrick, { playerId: currentPlayer.id, card: cardToPlay }];
+          if (newTrick.length === 4 && gameState.trumpSuit) {
+            const winnerId = determineTrickWinner(newTrick, gameState.trumpSuit);
+            const winner = gameState.players.find(p => p.id === winnerId);
+            if (winner) {
+              setTrickWinner(winner);
+              if (trickWinnerTimeoutRef.current) {
+                clearTimeout(trickWinnerTimeoutRef.current);
+              }
+              trickWinnerTimeoutRef.current = setTimeout(() => {
+                setTrickWinner(null);
+              }, 1200);
+            }
+          }
+          
           setGameState(prev => playCard(prev, cardToPlay));
-        }, 1000);
+        }, baseDelay);
         return () => clearTimeout(timer);
       }
     }
-  }, [gameState.phase, gameState.currentPlayerIndex, gameState.players, gameState.currentTrick, gameState.trumpSuit, isMultiplayerMode]);
+  }, [gameState.phase, gameState.currentPlayerIndex, gameState.players, gameState.currentTrick, gameState.trumpSuit, isMultiplayerMode, trickWinner]);
 
   const getRotatedIndex = (offset: number) => (mySeatIndex + offset) % 4;
   const humanPlayer = gameState.players[mySeatIndex];
@@ -333,7 +386,7 @@ export function GameBoard() {
             />
 
             <div className="flex-1 flex flex-col items-center justify-center gap-4">
-              <TrickArea currentTrick={gameState.currentTrick} players={gameState.players} trumpSuit={gameState.trumpSuit} />
+              <TrickArea currentTrick={gameState.currentTrick} players={gameState.players} trumpSuit={gameState.trumpSuit} trickWinner={trickWinner} />
               
               {(gameState.phase === 'bidding' || gameState.phase === 'trump-selection' || gameState.phase === 'playing') && (
                 <ActionPrompt gameState={gameState} />

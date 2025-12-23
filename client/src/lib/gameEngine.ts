@@ -20,6 +20,8 @@ import {
   DEFAULT_TARGET_SCORE,
 } from '@shared/gameTypes';
 
+export { determineTrickWinner };
+
 export function initializeGame(deckColor: DeckColor = 'blue', targetScore: number = DEFAULT_TARGET_SCORE): GameState {
   const players: Player[] = [
     { id: 'player1', name: 'You', isHuman: true, hand: [], teamId: 'team1', bid: null, tricksWon: [] },
