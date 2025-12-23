@@ -344,9 +344,6 @@ export function GameBoard() {
               <p className="text-sm uppercase tracking-widest text-muted-foreground">Grab a pahtnah </p>
             </div>
             <div className="max-w-sm mx-auto space-y-3">
-              <p className="text-lg text-foreground/80">
-                Team up with your partner to capture tricks and reach {gameState.targetScore} points first!
-              </p>
               <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
                 <span>2v2 Teams</span>
                 <span className="w-1 h-1 rounded-full bg-muted-foreground"></span>
