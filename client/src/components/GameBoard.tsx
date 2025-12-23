@@ -404,8 +404,9 @@ export function GameBoard() {
             />
           </div>
 
-          <div className="flex-1 flex items-center justify-center gap-1 sm:gap-4">
-            <div className="w-24 sm:w-auto shrink-0">
+          <div className="flex-1 flex items-center justify-center gap-2 sm:gap-4">
+            {/* Left player chip */}
+            <div className="shrink-0">
               <PlayerArea
                 player={opponent1}
                 team={getTeamForPlayer(opponent1)}
@@ -419,34 +420,35 @@ export function GameBoard() {
               />
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center gap-2 sm:gap-4 max-w-md">
+            {/* Center area - minimal and clean */}
+            <div className="flex-1 flex flex-col items-center justify-center max-w-xs sm:max-w-md">
               <TrickArea 
                 currentTrick={displayTrick.length > 0 ? displayTrick : gameState.currentTrick} 
                 players={gameState.players} 
                 trumpSuit={gameState.trumpSuit} 
               />
               
-              <div className="flex items-center gap-3">
-                {(gameState.phase === 'bidding' || gameState.phase === 'trump-selection' || gameState.phase === 'playing') && (
-                  <ActionPrompt gameState={gameState} />
-                )}
+              {/* Minimal context line */}
+              <div className="mt-1 flex items-center gap-2">
+                <ActionPrompt gameState={gameState} />
                 
                 {gameState.lastTrick && gameState.lastTrick.length > 0 && gameState.phase === 'playing' && (
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     onClick={() => setShowLastTrick(true)}
-                    className="gap-1.5"
+                    className="h-6 px-2 text-[10px] text-muted-foreground"
                     data-testid="button-last-trick"
                   >
-                    <History className="w-4 h-4" />
-                    Last Trick
+                    <History className="w-3 h-3 mr-1" />
+                    Last
                   </Button>
                 )}
               </div>
             </div>
 
-            <div className="w-24 sm:w-auto shrink-0">
+            {/* Right player chip */}
+            <div className="shrink-0">
               <PlayerArea
                 player={opponent2}
                 team={getTeamForPlayer(opponent2)}
@@ -461,18 +463,8 @@ export function GameBoard() {
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-2 sm:gap-3">
-            {showBiddingModal && (
-              <BiddingPanel
-                open={showBiddingModal}
-                highBid={gameState.highBid}
-                playerName={humanPlayer.name}
-                isDealer={isDealer}
-                allOthersPassed={passedCount === 3}
-                onBid={handleBid}
-              />
-            )}
-            
+          {/* Bottom player area */}
+          <div className="flex flex-col items-center">
             <PlayerArea
               player={humanPlayer}
               team={getTeamForPlayer(humanPlayer)}
@@ -534,6 +526,17 @@ export function GameBoard() {
         roomCode={multiplayer.roomCode}
       />
       <RulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
+      {/* Bidding bottom sheet */}
+      {showBiddingModal && (
+        <BiddingPanel
+          open={showBiddingModal}
+          highBid={gameState.highBid}
+          playerName={humanPlayer.name}
+          isDealer={isDealer}
+          allOthersPassed={passedCount === 3}
+          onBid={handleBid}
+        />
+      )}
       <DealerDrawModal
         open={isMultiplayerMode ? gameState.phase === 'dealer-draw' : showDealerDraw}
         players={gameState.players}

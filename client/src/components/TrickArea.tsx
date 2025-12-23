@@ -50,14 +50,15 @@ export function TrickArea({ currentTrick, players, trumpSuit }: TrickAreaProps) 
   };
 
   return (
-    <div className="relative w-full h-40 sm:h-56 md:h-72" data-testid="trick-area">
+    <div className="relative w-full h-32 sm:h-48 md:h-56" data-testid="trick-area">
+      {/* Minimal table surface */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-48 h-32 sm:w-64 sm:h-44 md:w-80 md:h-56 rounded-2xl bg-gradient-to-br from-emerald-800/40 to-emerald-900/60 border border-emerald-500/30 shadow-[inset_0_2px_20px_rgba(0,0,0,0.3)] backdrop-blur-sm">
-          <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_at_center,_rgba(16,185,129,0.1)_0%,_transparent_70%)]" />
-          <div className="absolute inset-[2px] rounded-2xl border border-emerald-400/10" />
+        <div className="w-40 h-24 sm:w-56 sm:h-36 md:w-72 md:h-44 rounded-xl bg-emerald-900/30 border border-emerald-500/20">
+          <div className="absolute inset-0 rounded-xl bg-[radial-gradient(ellipse_at_center,_rgba(16,185,129,0.05)_0%,_transparent_70%)]" />
         </div>
       </div>
 
+      {/* Cards in trick */}
       <div className="absolute inset-0 flex items-center justify-center">
         <AnimatePresence mode="popLayout">
           {currentTrick.map((trickCard, index) => {
@@ -95,40 +96,13 @@ export function TrickArea({ currentTrick, players, trumpSuit }: TrickAreaProps) 
                 style={{ zIndex: index + 1 }}
               >
                 <div className="relative">
-                  <div className="absolute -inset-2 bg-black/20 rounded-xl blur-md" />
                   <PlayingCard card={trickCard.card} small trumpSuit={trumpSuit} />
-                  <motion.span
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className={cn(
-                      'absolute -bottom-6 left-1/2 -translate-x-1/2',
-                      'text-xs font-semibold text-emerald-100/90 whitespace-nowrap',
-                      'bg-emerald-900/80 px-2 py-0.5 rounded-full border border-emerald-500/30',
-                      'shadow-lg'
-                    )}
-                  >
-                    {getPlayerName(trickCard.playerId)}
-                  </motion.span>
                 </div>
               </motion.div>
             );
           })}
         </AnimatePresence>
       </div>
-
-      {currentTrick.length === 0 && (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="absolute inset-0 flex items-center justify-center"
-        >
-          <span className="text-sm text-emerald-300/60 font-medium" data-testid="text-trick-prompt">
-            Play a card to start the trick
-          </span>
-        </motion.div>
-      )}
-
     </div>
   );
 }

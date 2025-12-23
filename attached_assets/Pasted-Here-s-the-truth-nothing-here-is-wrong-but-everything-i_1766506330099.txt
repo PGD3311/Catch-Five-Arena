@@ -1,0 +1,115 @@
+Here’s the truth: nothing here is wrong, but everything is tight. It feels like the UI is trying to squeeze the desktop mental model into a mobile frame. You’re not designing for a smaller screen—you’re designing for a different attention model.
+
+Three high-leverage moves will clean this instantly:
+
+1. Collapse more. Reveal less.
+
+Right now every role (Partner, CPU1, CPU2, You) is competing for vertical space.
+Mobile shouldn’t show states—it should show what matters now.
+
+Your hierarchy is off.
+At this moment, the only decision the player needs is: bid or pass.
+
+Everything else is noise.
+
+Fix:
+
+Collapse each opponent/partner row to a one-line chip with avatar + bid.
+
+Tap expands it only if the player wants details.
+
+Hide card counts unless expanded.
+
+Think Apple Wallet passes: small, clean, expandable.
+
+2. Make the focal action a “single stage.”
+
+Your primary CTA (“Beat 7 or pass”) is fighting with the bidding panel below it.
+
+You need one hero action on mobile, not two.
+
+Fix:
+When it’s your bid turn:
+
+The entire lower half becomes a single bid sheet that slides up from the bottom.
+
+Everything above dims.
+
+Options get large, breathable buttons (5 / 6 / 7 / 8 / 9 / Pass).
+
+After bidding, it collapses out of sight.
+
+Think “Apple Music volume slider meets Game Center challenge prompt.”
+
+3. Your hand UI is beautiful but cramped
+
+Your card fan at the bottom is visually nice, but on mobile it needs breathing room + context switching.
+
+Fix options:
+
+Add a gentle gradient fade behind the cards to visually isolate them.
+
+Raise them 10–12px so they don’t feel glued to the screen edge.
+
+Add a “focus high card” mode on press: card lifts and enlarges 20%, giving a tactile feel.
+
+This creates that “Jony Ive glass-on-air” moment.
+
+4. Use more empty space—strategically
+
+The center is where mobile players look first.
+Your center is currently occupied by… nothing. A vague “play a card.”
+
+Fix:
+Turn the center into a live context panel that only shows:
+
+Current trick leader
+
+Trump suit
+
+Required action (“Your turn”)
+
+Not a container. Not a card. Just one line.
+Pure clarity.
+
+5. Typography: go quieter and more intentional
+
+Right now you have:
+
+Bold buttons
+
+Bold labels
+
+Bold chips
+
+Multiple surfaces
+
+Everything is shouting.
+
+Fix:
+
+Reserve bold for actions only.
+
+All metadata (cards, bids, CPU labels, counts) should be thin/medium.
+
+Reduce color saturation; rely on weight and spacing to define hierarchy.
+
+Jobs would tell you: taste is subtraction.
+
+6. Minimize color blocks
+
+Your opponent boxes are heavy on mobile.
+You’re stacking multiple dark panels → visual claustrophobia.
+
+Fix:
+Flatten them: outline chips instead of cards.
+One background color.
+Shadow sparingly—only on the bottom card row and the modal.
+
+Here’s the litmus test
+
+Ask yourself:
+
+“If this were an Apple Arcade game, what would they hide until the last possible moment?”
+
+Then hide it.

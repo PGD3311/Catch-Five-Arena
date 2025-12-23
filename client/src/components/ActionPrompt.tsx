@@ -1,7 +1,6 @@
 import { GameState, Player } from '@shared/gameTypes';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Loader2, Hand, Crown, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ActionPromptProps {
@@ -10,77 +9,62 @@ interface ActionPromptProps {
 
 export function ActionPrompt({ gameState }: ActionPromptProps) {
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-  const dealer = gameState.players[gameState.dealerIndex];
   const bidder = gameState.players.find(p => p.id === gameState.bidderId);
   
-  const getMessage = (): { text: string; isWaiting: boolean; icon: 'hand' | 'crown' | 'zap' | 'loader' } => {
+  const getMessage = (): { text: string; isWaiting: boolean } => {
     switch (gameState.phase) {
       case 'bidding':
         if (currentPlayer.isHuman) {
           return { 
-            text: gameState.highBid > 0 ? `Beat ${gameState.highBid} or pass` : 'Open the bidding (5-9)', 
-            isWaiting: false,
-            icon: 'crown'
+            text: gameState.highBid > 0 ? `Beat ${gameState.highBid} or pass` : 'Open bidding', 
+            isWaiting: false
           };
         }
-        return { text: `${currentPlayer.name} is thinking...`, isWaiting: true, icon: 'loader' };
+        return { text: `${currentPlayer.name} thinking...`, isWaiting: true };
       
       case 'trump-selection':
-        return { text: 'Victory! Now choose your trump suit', isWaiting: false, icon: 'crown' };
+        return { text: 'Choose trump', isWaiting: false };
       
       case 'playing':
         if (currentPlayer.isHuman) {
           if (gameState.currentTrick.length === 0) {
-            return { text: 'Your lead! Play any card', isWaiting: false, icon: 'zap' };
+            return { text: 'Your lead', isWaiting: false };
           }
-          return { text: 'Your turn - select a card', isWaiting: false, icon: 'hand' };
+          return { text: 'Your turn', isWaiting: false };
         }
-        return { text: `${currentPlayer.name} is playing...`, isWaiting: true, icon: 'loader' };
+        return { text: `${currentPlayer.name}...`, isWaiting: true };
       
       default:
-        return { text: '', isWaiting: false, icon: 'hand' };
+        return { text: '', isWaiting: false };
     }
   };
 
-  const { text, isWaiting, icon } = getMessage();
+  const { text, isWaiting } = getMessage();
 
   if (!text) return null;
-
-  const IconComponent = {
-    hand: Hand,
-    crown: Crown,
-    zap: Zap,
-    loader: Loader2
-  }[icon];
 
   return (
     <AnimatePresence mode="wait">
       <motion.div 
         key={text}
-        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-        transition={{ type: "spring", stiffness: 400, damping: 25 }}
-        className={cn(
-          'flex items-center justify-center gap-3 px-6 py-3 rounded-xl',
-          isWaiting 
-            ? 'bg-muted/60 border border-border/50' 
-            : 'bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30',
-          'backdrop-blur-sm shadow-lg'
-        )}
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -5 }}
+        transition={{ duration: 0.2 }}
+        className="text-center"
         data-testid="action-prompt"
+        aria-live="polite"
+        role="status"
       >
-        <IconComponent className={cn(
-          'w-5 h-5',
-          isWaiting ? 'text-muted-foreground' : 'text-primary',
-          icon === 'loader' && 'animate-spin'
-        )} />
         <span className={cn(
-          'text-sm font-semibold',
-          !isWaiting && 'text-primary'
+          'text-xs font-medium tracking-wide',
+          isWaiting ? 'text-muted-foreground/60' : 'text-foreground/80'
         )}>
           {text}
         </span>
+        {isWaiting && (
+          <span className="sr-only"> is thinking</span>
+        )}
       </motion.div>
     </AnimatePresence>
   );
