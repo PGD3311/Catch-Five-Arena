@@ -253,7 +253,9 @@ export function GameBoard() {
           const cardToPlay = getCpuCardToPlay(
             currentPlayer.hand,
             gameState.currentTrick,
-            gameState.trumpSuit
+            gameState.trumpSuit,
+            currentPlayer.id,
+            gameState.players
           );
           
           const newTrick = [...gameState.currentTrick, { playerId: currentPlayer.id, card: cardToPlay }];
