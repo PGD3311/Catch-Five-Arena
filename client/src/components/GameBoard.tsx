@@ -50,7 +50,7 @@ export function GameBoard() {
   const multiplayer = useMultiplayer();
   const isMultiplayerMode = !!multiplayer.roomCode;
   const gameState = isMultiplayerMode && multiplayer.gameState ? multiplayer.gameState : localGameState;
-  const mySeatIndex = multiplayer.seatIndex ?? 0;
+  const mySeatIndex = isMultiplayerMode ? (multiplayer.seatIndex ?? 0) : 0;
 
   const handleTogglePlayerType = useCallback((playerId: string) => {
     setGameState(prev => ({
@@ -313,6 +313,11 @@ export function GameBoard() {
       )}
 
       {gameState.phase !== 'setup' && gameState.phase !== 'dealer-draw' && (
+        isMultiplayerMode && multiplayer.seatIndex === null ? (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-muted-foreground">Connecting to game...</p>
+          </div>
+        ) : (
         <div className="flex-1 flex flex-col p-4 md:p-6 gap-4">
           <div className="flex justify-center">
             <PlayerArea
@@ -375,6 +380,7 @@ export function GameBoard() {
             />
           </div>
         </div>
+        )
       )}
 
       <BiddingPanel
