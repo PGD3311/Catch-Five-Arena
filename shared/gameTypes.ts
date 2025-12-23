@@ -59,7 +59,7 @@ export interface GameState {
   dealerDrawCards?: DealerDrawCard[];
 }
 
-export type DeckColor = 'red' | 'blue' | 'green' | 'purple' | 'gold' | 'black';
+export type DeckColor = 'red' | 'blue' | 'green' | 'purple' | 'gold' | 'black' | 'teal' | 'rose' | 'orange' | 'indigo' | 'crimson' | 'navy';
 
 export const SUITS: Suit[] = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
 export const RANKS: Rank[] = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -86,6 +86,12 @@ export const DECK_COLORS: { value: DeckColor; label: string; gradient: string }[
   { value: 'purple', label: 'Royal Purple', gradient: 'from-purple-600 to-purple-900' },
   { value: 'gold', label: 'Golden', gradient: 'from-amber-500 to-amber-700' },
   { value: 'black', label: 'Midnight', gradient: 'from-slate-700 to-slate-900' },
+  { value: 'teal', label: 'Ocean Teal', gradient: 'from-teal-500 to-teal-800' },
+  { value: 'rose', label: 'Rose Pink', gradient: 'from-rose-500 to-rose-800' },
+  { value: 'orange', label: 'Sunset', gradient: 'from-orange-500 to-orange-800' },
+  { value: 'indigo', label: 'Deep Indigo', gradient: 'from-indigo-500 to-indigo-900' },
+  { value: 'crimson', label: 'Crimson', gradient: 'from-red-600 to-rose-900' },
+  { value: 'navy', label: 'Navy', gradient: 'from-blue-800 to-slate-900' },
 ];
 
 export const MIN_BID = 5;

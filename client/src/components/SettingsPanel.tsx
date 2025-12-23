@@ -104,8 +104,8 @@ export function SettingsPanel({
           <Separator />
 
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Deck Color</Label>
-            <div className="grid grid-cols-3 gap-3">
+            <Label className="text-sm font-medium">Card Back Design</Label>
+            <div className="grid grid-cols-4 gap-2">
               {DECK_COLORS.map((color) => (
                 <button
                   key={color.value}
@@ -117,8 +117,8 @@ export function SettingsPanel({
                     'transition-all duration-200',
                     'border-2',
                     deckColor === color.value
-                      ? 'border-primary ring-2 ring-primary ring-offset-2'
-                      : 'border-transparent',
+                      ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background'
+                      : 'border-transparent hover:border-white/30',
                     'flex items-center justify-center'
                   )}
                   data-testid={`deck-color-${color.value}`}
