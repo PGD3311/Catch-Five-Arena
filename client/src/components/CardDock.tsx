@@ -40,14 +40,14 @@ export function CardDock({ cards, onCardClick, canPlayCard, isCurrentPlayer, tru
       
       <div 
         ref={containerRef}
-        className="relative z-10 overflow-x-auto overflow-y-visible scrollbar-hide pl-safe pr-safe"
-        style={{ paddingLeft: 'max(env(safe-area-inset-left), 1rem)', paddingRight: 'max(env(safe-area-inset-right), 1rem)' }}
+        className="relative z-10 overflow-x-auto overflow-y-visible scrollbar-hide"
+        style={{ paddingLeft: 'max(env(safe-area-inset-left), 2rem)', paddingRight: 'max(env(safe-area-inset-right), 2rem)' }}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleMouseLeave}
       >
-        <div className="flex items-end justify-center gap-1 px-12 py-2 min-w-min">
+        <div className="flex items-end justify-center gap-1 px-16 py-2 min-w-min">
           <AnimatePresence mode="popLayout">
             {cards.map((card, index) => (
               <DockCard
