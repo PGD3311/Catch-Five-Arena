@@ -334,7 +334,6 @@ export function GameBoard() {
         onShareClick={() => setShareOpen(true)}
         onRulesClick={() => setRulesOpen(true)}
       />
-
       {gameState.phase === 'setup' && (
         <div className="flex-1 flex flex-col items-center justify-center gap-10 p-8">
           <div className="text-center space-y-6">
@@ -342,9 +341,7 @@ export function GameBoard() {
               <h1 className="text-6xl font-bold tracking-tight gold-text dark:gold-text">
                 Catch 5
               </h1>
-              <p className="text-sm uppercase tracking-widest text-muted-foreground">
-                Classic Trick-Taking Card Game
-              </p>
+              <p className="text-sm uppercase tracking-widest text-muted-foreground">Grab a pahtnah </p>
             </div>
             <div className="max-w-sm mx-auto space-y-3">
               <p className="text-lg text-foreground/80">
@@ -397,7 +394,6 @@ export function GameBoard() {
           )}
         </div>
       )}
-
       {gameState.phase !== 'setup' && gameState.phase !== 'dealer-draw' && (
         isMultiplayerMode && multiplayer.seatIndex === null ? (
           <div className="flex-1 flex items-center justify-center">
@@ -503,19 +499,16 @@ export function GameBoard() {
         </div>
         )
       )}
-
       <TrumpSelector
         open={showTrumpSelector || false}
         onSelect={handleTrumpSelect}
       />
-
       <PurgeDrawModal
         open={isMultiplayerMode ? false : showPurgeDraw}
         players={gameState.players}
         trumpSuit={gameState.trumpSuit || 'Hearts'}
         onComplete={handlePurgeDrawComplete}
       />
-
       <ScoreModal
         open={showScoreModal}
         teams={gameState.teams}
@@ -528,7 +521,6 @@ export function GameBoard() {
         isGameOver={checkGameOver(gameState)}
         targetScore={gameState.targetScore}
       />
-
       <SettingsPanel
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
@@ -543,15 +535,12 @@ export function GameBoard() {
         onTogglePlayerType={handleTogglePlayerType}
         onPlayerNameChange={handlePlayerNameChange}
       />
-
       <ShareModal 
         open={shareOpen} 
         onClose={() => setShareOpen(false)} 
         roomCode={multiplayer.roomCode}
       />
-
       <RulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
-
       <DealerDrawModal
         open={isMultiplayerMode ? gameState.phase === 'dealer-draw' : showDealerDraw}
         players={gameState.players}
@@ -559,7 +548,6 @@ export function GameBoard() {
         onComplete={handleDealerDrawComplete}
         deckColor={gameState.deckColor}
       />
-
       <LastTrickModal
         open={showLastTrick}
         onClose={() => setShowLastTrick(false)}
