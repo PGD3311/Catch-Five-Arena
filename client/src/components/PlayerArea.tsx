@@ -1,11 +1,12 @@
-import { Player, DeckColor, Card as CardType } from '@shared/gameTypes';
+import { Player, DeckColor, Card as CardType, Team } from '@shared/gameTypes';
 import { PlayingCard, CardBack } from './PlayingCard';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { User, Bot, Crown } from 'lucide-react';
+import { User, Bot, Crown, Users } from 'lucide-react';
 
 interface PlayerAreaProps {
   player: Player;
+  team: Team;
   isCurrentPlayer: boolean;
   isBidder: boolean;
   deckColor: DeckColor;
@@ -17,6 +18,7 @@ interface PlayerAreaProps {
 
 export function PlayerArea({
   player,
+  team,
   isCurrentPlayer,
   isBidder,
   deckColor,
@@ -28,6 +30,7 @@ export function PlayerArea({
   const isBottom = position === 'bottom';
   const isTop = position === 'top';
   const isSide = position === 'left' || position === 'right';
+  const isYourTeam = team.id === 'team1';
 
   const getContainerClasses = () => {
     const base = 'flex items-center gap-3';
@@ -63,9 +66,14 @@ export function PlayerArea({
           <span className="font-semibold text-sm">{player.name}</span>
           {isBidder && <Crown className="w-4 h-4 text-amber-500" />}
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs" data-testid={`score-${player.id}`}>
-            Score: {player.score}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge 
+            variant={isYourTeam ? 'default' : 'secondary'} 
+            className="text-xs"
+            data-testid={`team-badge-${player.id}`}
+          >
+            <Users className="w-3 h-3 mr-1" />
+            {team.name}: {team.score}
           </Badge>
           {player.bid !== null && player.bid > 0 && (
             <Badge variant="outline" className="text-xs">
@@ -79,7 +87,6 @@ export function PlayerArea({
         {showCards ? (
           player.hand.map((card, index) => {
             const canPlay = canPlayCard ? canPlayCard(card) : true;
-            const offset = isBottom ? -((player.hand.length - 1) / 2 - index) * 8 : 0;
             const rotation = isBottom ? ((index - (player.hand.length - 1) / 2) * 3) : 0;
 
             return (

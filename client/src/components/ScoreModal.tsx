@@ -1,35 +1,41 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Player } from '@shared/gameTypes';
+import { Team, Player } from '@shared/gameTypes';
 import { cn } from '@/lib/utils';
-import { Trophy, TrendingDown, TrendingUp } from 'lucide-react';
+import { Trophy, TrendingDown, TrendingUp, Users } from 'lucide-react';
 
 interface ScoreModalProps {
   open: boolean;
+  teams: Team[];
   players: Player[];
   roundScores: Record<string, number>;
   bidderId: string | null;
   highBid: number;
   onContinue: () => void;
   isGameOver?: boolean;
+  targetScore: number;
 }
 
 export function ScoreModal({
   open,
+  teams,
   players,
   roundScores,
   bidderId,
   highBid,
   onContinue,
   isGameOver = false,
+  targetScore,
 }: ScoreModalProps) {
   const bidder = players.find(p => p.id === bidderId);
-  const bidderScore = bidder ? roundScores[bidder.id] || 0 : 0;
-  const bidderMadeIt = bidderScore >= highBid;
+  const bidderTeam = teams.find(t => t.id === bidder?.teamId);
+  const bidderTeamScore = bidderTeam ? roundScores[bidderTeam.id] || 0 : 0;
+  const bidderMadeIt = bidderTeamScore >= highBid;
 
-  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
-  const winner = isGameOver ? sortedPlayers[0] : null;
+  const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
+  const winningTeam = isGameOver ? sortedTeams[0] : null;
+  const isYourTeamWinning = winningTeam?.id === 'team1';
 
   return (
     <Dialog open={open}>
@@ -39,7 +45,7 @@ export function ScoreModal({
             {isGameOver ? (
               <>
                 <Trophy className="w-6 h-6 text-amber-500" />
-                Game Over!
+                {isYourTeamWinning ? 'You Won!' : 'Game Over'}
               </>
             ) : (
               'Round Complete'
@@ -48,7 +54,7 @@ export function ScoreModal({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {bidder && (
+          {bidderTeam && (
             <div
               className={cn(
                 'p-4 rounded-lg text-center',
@@ -65,11 +71,11 @@ export function ScoreModal({
                   <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
                 )}
                 <span className="font-bold text-lg" data-testid="text-bidder-outcome">
-                  {bidder.name} {bidderMadeIt ? 'made it!' : 'went set!'}
+                  {bidderTeam.name} {bidderMadeIt ? 'made it!' : 'went set!'}
                 </span>
               </div>
               <p className="text-sm text-muted-foreground" data-testid="text-bid-summary">
-                Bid: {highBid} | Scored: {bidderScore}
+                {bidder?.name} bid {highBid} | Team scored: {bidderTeamScore}
                 {!bidderMadeIt && ` | Penalty: -${highBid}`}
               </p>
             </div>
@@ -77,34 +83,41 @@ export function ScoreModal({
 
           <div className="space-y-3">
             <h3 className="font-semibold text-lg">
-              {isGameOver ? 'Final Standings' : 'Round Scores'}
+              {isGameOver ? 'Final Standings' : 'Team Scores'}
             </h3>
             <div className="space-y-2">
-              {sortedPlayers.map((player, index) => {
-                const roundScore = roundScores[player.id] || 0;
-                const isBidder = player.id === bidderId;
-                const displayRoundScore = isBidder && roundScore < highBid ? -highBid : roundScore;
+              {sortedTeams.map((team, index) => {
+                const roundScore = roundScores[team.id] || 0;
+                const isBidderTeam = team.id === bidderTeam?.id;
+                const displayRoundScore = isBidderTeam && roundScore < highBid ? -highBid : roundScore;
+                const teamPlayers = players.filter(p => p.teamId === team.id);
 
                 return (
                   <div
-                    key={player.id}
+                    key={team.id}
                     className={cn(
-                      'flex items-center justify-between p-3 rounded-lg',
+                      'flex items-center justify-between p-4 rounded-lg',
                       'bg-muted/50',
                       isGameOver && index === 0 && 'bg-amber-100 dark:bg-amber-900/30 ring-2 ring-amber-400'
                     )}
-                    data-testid={`score-row-${player.id}`}
+                    data-testid={`score-row-${team.id}`}
                   >
-                    <div className="flex items-center gap-3">
-                      {isGameOver && index === 0 && (
-                        <Trophy className="w-5 h-5 text-amber-500" />
-                      )}
-                      <span className="font-medium">{player.name}</span>
-                      {isBidder && (
-                        <Badge variant="secondary" className="text-xs">
-                          Bidder
-                        </Badge>
-                      )}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        {isGameOver && index === 0 && (
+                          <Trophy className="w-5 h-5 text-amber-500" />
+                        )}
+                        <Users className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-medium">{team.name}</span>
+                        {isBidderTeam && (
+                          <Badge variant="secondary" className="text-xs">
+                            Bidder
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {teamPlayers.map(p => p.name).join(' & ')}
+                      </span>
                     </div>
                     <div className="flex items-center gap-4">
                       {!isGameOver && (
@@ -118,12 +131,21 @@ export function ScoreModal({
                           {displayRoundScore > 0 ? '+' : ''}{displayRoundScore}
                         </span>
                       )}
-                      <span className="text-xl font-bold">{player.score}</span>
+                      <div className="text-right">
+                        <span className="text-2xl font-bold">{team.score}</span>
+                        <span className="text-xs text-muted-foreground">/{targetScore}</span>
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
+          </div>
+
+          <div className="p-3 rounded-lg bg-muted/30 text-center">
+            <p className="text-xs text-muted-foreground">
+              Points this round: High (1) + Low (1) + Jack (1) + Five (5) + Game (1) = 9 total
+            </p>
           </div>
         </div>
 

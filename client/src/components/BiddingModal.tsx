@@ -1,17 +1,21 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { MIN_BID, MAX_BID } from '@shared/gameTypes';
 
 interface BiddingModalProps {
   open: boolean;
   highBid: number;
   playerName: string;
+  isDealer: boolean;
+  allOthersPassed: boolean;
   onBid: (bid: number) => void;
 }
 
-export function BiddingModal({ open, highBid, playerName, onBid }: BiddingModalProps) {
-  const bidOptions = [2, 3, 4, 5, 6, 7, 8, 9];
+export function BiddingModal({ open, highBid, playerName, isDealer, allOthersPassed, onBid }: BiddingModalProps) {
+  const bidOptions = Array.from({ length: MAX_BID - MIN_BID + 1 }, (_, i) => MIN_BID + i);
   const validBids = bidOptions.filter(b => b > highBid);
+  const mustBid = isDealer && allOthersPassed;
 
   return (
     <Dialog open={open}>
@@ -27,7 +31,13 @@ export function BiddingModal({ open, highBid, playerName, onBid }: BiddingModalP
             </p>
           )}
 
-          <div className="grid grid-cols-4 gap-3">
+          {mustBid && (
+            <div className="p-3 rounded-lg bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 text-center">
+              <p className="text-sm font-medium">Everyone passed - you must bid {MIN_BID}!</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-5 gap-3">
             {bidOptions.map((bid) => {
               const isValid = bid > highBid;
               return (
@@ -49,21 +59,21 @@ export function BiddingModal({ open, highBid, playerName, onBid }: BiddingModalP
             })}
           </div>
 
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => onBid(0)}
-            className="w-full h-12 text-lg"
-            data-testid="button-pass"
-          >
-            Pass
-          </Button>
-
-          {validBids.length === 0 && highBid > 0 && (
-            <p className="text-center text-sm text-muted-foreground">
-              No valid bids available. You must pass.
-            </p>
+          {!mustBid && (
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => onBid(0)}
+              className="w-full h-12 text-lg"
+              data-testid="button-pass"
+            >
+              Pass
+            </Button>
           )}
+
+          <p className="text-center text-xs text-muted-foreground">
+            Bid on how many of the 9 points your team will catch (High, Low, Jack, Five=5, Game)
+          </p>
         </div>
       </DialogContent>
     </Dialog>

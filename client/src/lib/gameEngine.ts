@@ -1,6 +1,7 @@
 import {
   Card,
   Player,
+  Team,
   GameState,
   Suit,
   DeckColor,
@@ -9,20 +10,33 @@ import {
   determineTrickWinner,
   calculateRoundScores,
   RANK_ORDER,
+  MIN_BID,
+  MAX_BID,
+  INITIAL_HAND_SIZE,
+  FINAL_HAND_SIZE,
+  TOTAL_TRICKS,
+  DEFAULT_TARGET_SCORE,
 } from '@shared/gameTypes';
 
-export function initializeGame(deckColor: DeckColor = 'blue'): GameState {
+export function initializeGame(deckColor: DeckColor = 'blue', targetScore: number = DEFAULT_TARGET_SCORE): GameState {
   const players: Player[] = [
-    { id: 'player1', name: 'You', isHuman: true, hand: [], score: 0, bid: null, tricksWon: [] },
-    { id: 'player2', name: 'CPU 1', isHuman: false, hand: [], score: 0, bid: null, tricksWon: [] },
-    { id: 'player3', name: 'CPU 2', isHuman: false, hand: [], score: 0, bid: null, tricksWon: [] },
-    { id: 'player4', name: 'CPU 3', isHuman: false, hand: [], score: 0, bid: null, tricksWon: [] },
+    { id: 'player1', name: 'You', isHuman: true, hand: [], teamId: 'team1', bid: null, tricksWon: [] },
+    { id: 'player2', name: 'CPU 1', isHuman: false, hand: [], teamId: 'team2', bid: null, tricksWon: [] },
+    { id: 'player3', name: 'Partner', isHuman: false, hand: [], teamId: 'team1', bid: null, tricksWon: [] },
+    { id: 'player4', name: 'CPU 2', isHuman: false, hand: [], teamId: 'team2', bid: null, tricksWon: [] },
+  ];
+
+  const teams: Team[] = [
+    { id: 'team1', name: 'Your Team', score: 0, playerIds: ['player1', 'player3'] },
+    { id: 'team2', name: 'Opponents', score: 0, playerIds: ['player2', 'player4'] },
   ];
 
   return {
     phase: 'setup',
     players,
+    teams,
     currentPlayerIndex: 0,
+    dealerIndex: 0,
     trumpSuit: null,
     highBid: 0,
     bidderId: null,
@@ -31,6 +45,9 @@ export function initializeGame(deckColor: DeckColor = 'blue'): GameState {
     leadPlayerIndex: 0,
     roundScores: {},
     deckColor,
+    stock: [],
+    discardPile: [],
+    targetScore,
   };
 }
 
@@ -38,48 +55,66 @@ export function dealCards(state: GameState): GameState {
   const deck = shuffleDeck(createDeck());
   const newPlayers = state.players.map((player, index) => ({
     ...player,
-    hand: deck.slice(index * 6, (index + 1) * 6),
+    hand: deck.slice(index * INITIAL_HAND_SIZE, (index + 1) * INITIAL_HAND_SIZE),
     bid: null,
     tricksWon: [],
   }));
+
+  const stock = deck.slice(4 * INITIAL_HAND_SIZE);
+  const firstBidderIndex = (state.dealerIndex + 1) % 4;
 
   return {
     ...state,
     phase: 'bidding',
     players: newPlayers,
-    currentPlayerIndex: 0,
+    currentPlayerIndex: firstBidderIndex,
     trumpSuit: null,
     highBid: 0,
     bidderId: null,
     currentTrick: [],
     trickNumber: 1,
     roundScores: {},
+    stock,
+    discardPile: [],
   };
 }
 
-export function getCpuBid(hand: Card[], highBid: number): number {
+export function getCpuBid(hand: Card[], highBid: number, isDealer: boolean, allPassed: boolean): number {
+  if (isDealer && allPassed) {
+    return MIN_BID;
+  }
+
   let trumpPotential = 0;
   const suitCounts: Record<Suit, number> = { Hearts: 0, Diamonds: 0, Clubs: 0, Spades: 0 };
-  const highCards: Record<Suit, number> = { Hearts: 0, Diamonds: 0, Clubs: 0, Spades: 0 };
+  const suitStrength: Record<Suit, number> = { Hearts: 0, Diamonds: 0, Clubs: 0, Spades: 0 };
 
   for (const card of hand) {
     suitCounts[card.suit]++;
-    if (RANK_ORDER[card.rank] >= 9) {
-      highCards[card.suit]++;
-    }
     if (card.rank === '5') {
-      trumpPotential += 2;
-    }
-    if (card.rank === 'A' || card.rank === 'K') {
-      trumpPotential += 1;
+      suitStrength[card.suit] += 5;
+    } else if (card.rank === 'A') {
+      suitStrength[card.suit] += 3;
+    } else if (card.rank === 'J') {
+      suitStrength[card.suit] += 2;
+    } else if (card.rank === 'K' || card.rank === 'Q') {
+      suitStrength[card.suit] += 1;
     }
   }
 
-  const bestSuit = Object.entries(suitCounts).reduce((a, b) => (b[1] > a[1] ? b : a))[0] as Suit;
-  const potentialBid = Math.min(9, Math.max(2, suitCounts[bestSuit] + highCards[bestSuit] + Math.floor(trumpPotential / 2)));
+  let bestSuit: Suit = 'Hearts';
+  let bestScore = 0;
+  for (const suit of Object.keys(suitCounts) as Suit[]) {
+    const score = suitCounts[suit] * 2 + suitStrength[suit];
+    if (score > bestScore) {
+      bestScore = score;
+      bestSuit = suit;
+    }
+  }
 
-  if (potentialBid > highBid && Math.random() > 0.3) {
-    return potentialBid;
+  trumpPotential = Math.min(MAX_BID, Math.max(MIN_BID, Math.floor(bestScore / 2)));
+
+  if (trumpPotential > highBid && Math.random() > 0.3) {
+    return trumpPotential;
   }
   return 0;
 }
@@ -89,9 +124,9 @@ export function getCpuTrumpChoice(hand: Card[]): Suit {
 
   for (const card of hand) {
     suitScores[card.suit] += 1;
-    if (card.rank === '5') suitScores[card.suit] += 5;
+    if (card.rank === '5') suitScores[card.suit] += 6;
     if (card.rank === 'J') suitScores[card.suit] += 2;
-    if (card.rank === 'A') suitScores[card.suit] += 3;
+    if (card.rank === 'A') suitScores[card.suit] += 4;
     if (card.rank === 'K') suitScores[card.suit] += 2;
     if (card.rank === 'Q') suitScores[card.suit] += 1;
   }
@@ -106,10 +141,10 @@ export function getCpuCardToPlay(
 ): Card {
   if (currentTrick.length === 0) {
     const trumpCards = hand.filter(c => c.suit === trumpSuit);
-    if (trumpCards.length > 0 && Math.random() > 0.5) {
+    if (trumpCards.length > 0) {
       return trumpCards.reduce((a, b) => (RANK_ORDER[b.rank] > RANK_ORDER[a.rank] ? b : a));
     }
-    return hand[Math.floor(Math.random() * hand.length)];
+    return hand.reduce((a, b) => (RANK_ORDER[b.rank] > RANK_ORDER[a.rank] ? b : a));
   }
 
   const leadSuit = currentTrick[0].card.suit;
@@ -147,7 +182,10 @@ export function processBid(state: GameState, bid: number): GameState {
 
   if (allBid) {
     if (newHighBid === 0) {
-      return dealCards({ ...state, players: newPlayers });
+      const dealerPlayer = newPlayers[state.dealerIndex];
+      newHighBid = MIN_BID;
+      newBidderId = dealerPlayer.id;
+      newPlayers[state.dealerIndex] = { ...dealerPlayer, bid: MIN_BID };
     }
 
     const bidderIndex = newPlayers.findIndex(p => p.id === newBidderId);
@@ -155,16 +193,14 @@ export function processBid(state: GameState, bid: number): GameState {
 
     if (!bidder.isHuman) {
       const trumpChoice = getCpuTrumpChoice(bidder.hand);
-      return {
+      return performPurgeAndDraw({
         ...state,
         players: newPlayers,
         highBid: newHighBid,
         bidderId: newBidderId,
-        phase: 'playing',
         trumpSuit: trumpChoice,
         currentPlayerIndex: bidderIndex,
-        leadPlayerIndex: bidderIndex,
-      };
+      });
     }
 
     return {
@@ -187,11 +223,65 @@ export function processBid(state: GameState, bid: number): GameState {
 }
 
 export function selectTrump(state: GameState, suit: Suit): GameState {
+  return performPurgeAndDraw({
+    ...state,
+    trumpSuit: suit,
+  });
+}
+
+export function performPurgeAndDraw(state: GameState): GameState {
+  const trumpSuit = state.trumpSuit!;
+  let stock = [...state.stock];
+  let discardPile = [...state.discardPile];
   const bidderIndex = state.players.findIndex(p => p.id === state.bidderId);
+
+  const newPlayers = state.players.map((player) => {
+    const trumpCards = player.hand.filter(c => c.suit === trumpSuit);
+    const nonTrumpCards = player.hand.filter(c => c.suit !== trumpSuit);
+
+    discardPile = [...discardPile, ...nonTrumpCards];
+
+    let keptCards: Card[];
+    if (trumpCards.length >= INITIAL_HAND_SIZE) {
+      keptCards = trumpCards
+        .sort((a, b) => RANK_ORDER[b.rank] - RANK_ORDER[a.rank])
+        .slice(0, FINAL_HAND_SIZE);
+      discardPile = [...discardPile, ...trumpCards.slice(FINAL_HAND_SIZE)];
+    } else {
+      keptCards = trumpCards;
+    }
+
+    return { ...player, hand: keptCards };
+  });
+
+  const drawOrder = [
+    bidderIndex,
+    (bidderIndex + 1) % 4,
+    (bidderIndex + 2) % 4,
+    (bidderIndex + 3) % 4,
+  ];
+
+  for (const playerIndex of drawOrder) {
+    const player = newPlayers[playerIndex];
+    const cardsToDraw = FINAL_HAND_SIZE - player.hand.length;
+
+    for (let i = 0; i < cardsToDraw; i++) {
+      if (stock.length === 0 && discardPile.length > 0) {
+        stock = shuffleDeck(discardPile);
+        discardPile = [];
+      }
+      if (stock.length > 0) {
+        player.hand.push(stock.pop()!);
+      }
+    }
+  }
+
   return {
     ...state,
+    players: newPlayers,
+    stock,
+    discardPile,
     phase: 'playing',
-    trumpSuit: suit,
     currentPlayerIndex: bidderIndex,
     leadPlayerIndex: bidderIndex,
   };
@@ -217,32 +307,33 @@ export function playCard(state: GameState, card: Card): GameState {
 
     const newTrickNumber = state.trickNumber + 1;
 
-    if (newTrickNumber > 6) {
-      const roundScores = calculateRoundScores(newPlayers, state.trumpSuit!);
-
-      for (let i = 0; i < newPlayers.length; i++) {
-        const scoreData = roundScores[newPlayers[i].id];
-        let pointsToAdd = scoreData.points;
-
-        if (newPlayers[i].id === state.bidderId && pointsToAdd < state.highBid) {
+    if (newTrickNumber > TOTAL_TRICKS) {
+      const scoreDetails = calculateRoundScores(newPlayers, state.teams, state.trumpSuit!);
+      const bidderTeamId = newPlayers.find(p => p.id === state.bidderId)?.teamId;
+      
+      const newTeams = state.teams.map(team => {
+        let pointsToAdd = scoreDetails.teamPoints[team.id];
+        
+        if (team.id === bidderTeamId && pointsToAdd < state.highBid) {
           pointsToAdd = -state.highBid;
         }
-
-        newPlayers[i] = {
-          ...newPlayers[i],
-          score: newPlayers[i].score + pointsToAdd,
+        
+        return {
+          ...team,
+          score: team.score + pointsToAdd,
         };
-      }
+      });
+
+      const gameOver = newTeams.some(t => t.score >= state.targetScore);
 
       return {
         ...state,
         players: newPlayers,
+        teams: newTeams,
         currentTrick: [],
         trickNumber: newTrickNumber,
-        phase: 'scoring',
-        roundScores: Object.fromEntries(
-          Object.entries(roundScores).map(([id, data]) => [id, data.points])
-        ),
+        phase: gameOver ? 'game-over' : 'scoring',
+        roundScores: scoreDetails.teamPoints,
       };
     }
 
@@ -278,15 +369,27 @@ export function canPlayCard(card: Card, hand: Card[], currentTrick: { playerId: 
 }
 
 export function startNewRound(state: GameState): GameState {
-  return dealCards(state);
+  const newDealerIndex = (state.dealerIndex + 1) % 4;
+  return dealCards({
+    ...state,
+    dealerIndex: newDealerIndex,
+    players: state.players.map(p => ({ ...p, tricksWon: [], bid: null })),
+  });
 }
 
-export function checkGameOver(state: GameState, targetScore: number = 21): boolean {
-  return state.players.some(p => p.score >= targetScore);
+export function checkGameOver(state: GameState): boolean {
+  return state.teams.some(t => t.score >= state.targetScore);
 }
 
-export function getWinner(state: GameState): Player | null {
-  const maxScore = Math.max(...state.players.map(p => p.score));
-  const winners = state.players.filter(p => p.score === maxScore);
+export function getWinningTeam(state: GameState): Team | null {
+  const winningTeam = state.teams.find(t => t.score >= state.targetScore);
+  if (winningTeam) return winningTeam;
+  
+  const maxScore = Math.max(...state.teams.map(t => t.score));
+  const winners = state.teams.filter(t => t.score === maxScore);
   return winners.length === 1 ? winners[0] : null;
+}
+
+export function isPlayersTurn(state: GameState, playerId: string): boolean {
+  return state.players[state.currentPlayerIndex].id === playerId;
 }

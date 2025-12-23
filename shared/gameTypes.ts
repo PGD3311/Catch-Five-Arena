@@ -12,12 +12,19 @@ export interface Player {
   name: string;
   isHuman: boolean;
   hand: Card[];
-  score: number;
+  teamId: 'team1' | 'team2';
   bid: number | null;
   tricksWon: Card[];
 }
 
-export type GamePhase = 'setup' | 'dealing' | 'bidding' | 'trump-selection' | 'playing' | 'scoring' | 'game-over';
+export interface Team {
+  id: 'team1' | 'team2';
+  name: string;
+  score: number;
+  playerIds: string[];
+}
+
+export type GamePhase = 'setup' | 'dealing' | 'bidding' | 'trump-selection' | 'purge-draw' | 'playing' | 'scoring' | 'game-over';
 
 export interface TrickCard {
   playerId: string;
@@ -27,7 +34,9 @@ export interface TrickCard {
 export interface GameState {
   phase: GamePhase;
   players: Player[];
+  teams: Team[];
   currentPlayerIndex: number;
+  dealerIndex: number;
   trumpSuit: Suit | null;
   highBid: number;
   bidderId: string | null;
@@ -36,6 +45,9 @@ export interface GameState {
   leadPlayerIndex: number;
   roundScores: Record<string, number>;
   deckColor: DeckColor;
+  stock: Card[];
+  discardPile: Card[];
+  targetScore: number;
 }
 
 export type DeckColor = 'red' | 'blue' | 'green' | 'purple' | 'gold' | 'black';
@@ -61,6 +73,14 @@ export const DECK_COLORS: { value: DeckColor; label: string; gradient: string }[
   { value: 'gold', label: 'Golden', gradient: 'from-amber-500 to-amber-700' },
   { value: 'black', label: 'Midnight', gradient: 'from-slate-700 to-slate-900' },
 ];
+
+export const MIN_BID = 5;
+export const MAX_BID = 9;
+export const INITIAL_HAND_SIZE = 9;
+export const FINAL_HAND_SIZE = 6;
+export const TOTAL_TRICKS = 6;
+export const DEFAULT_TARGET_SCORE = 31;
+export const TOTAL_POINTS_PER_ROUND = 9;
 
 export function createDeck(): Card[] {
   const deck: Card[] = [];
@@ -114,57 +134,77 @@ export function determineTrickWinner(trick: TrickCard[], trumpSuit: Suit | null)
   return winner.playerId;
 }
 
-export function calculateRoundScores(players: Player[], trumpSuit: Suit): Record<string, { points: number; details: string[] }> {
-  const scores: Record<string, { points: number; details: string[] }> = {};
-  const allTrumps: { playerId: string; card: Card }[] = [];
+export interface RoundScoreDetails {
+  high: { teamId: string; card: Card } | null;
+  low: { teamId: string; card: Card } | null;
+  jack: { teamId: string } | null;
+  five: { teamId: string } | null;
+  game: { teamId: string; points: number } | null;
+  teamPoints: Record<string, number>;
+}
+
+export function calculateRoundScores(
+  players: Player[],
+  teams: Team[],
+  trumpSuit: Suit
+): RoundScoreDetails {
+  const allTrumps: { teamId: string; card: Card }[] = [];
   const gamePoints: Record<string, number> = {};
+  
+  for (const team of teams) {
+    gamePoints[team.id] = 0;
+  }
 
   for (const player of players) {
-    scores[player.id] = { points: 0, details: [] };
-    gamePoints[player.id] = 0;
-
     for (const card of player.tricksWon) {
       if (card.suit === trumpSuit) {
-        allTrumps.push({ playerId: player.id, card });
-        if (card.rank === '5') {
-          scores[player.id].points += 5;
-          scores[player.id].details.push('Caught the 5! (+5)');
-        }
-        if (card.rank === 'J') {
-          scores[player.id].points += 1;
-          scores[player.id].details.push('Won the Jack (+1)');
-        }
+        allTrumps.push({ teamId: player.teamId, card });
       }
-      gamePoints[player.id] += getCardValue(card);
+      gamePoints[player.teamId] += getCardValue(card);
     }
   }
+
+  const result: RoundScoreDetails = {
+    high: null,
+    low: null,
+    jack: null,
+    five: null,
+    game: null,
+    teamPoints: { team1: 0, team2: 0 },
+  };
 
   if (allTrumps.length > 0) {
     allTrumps.sort((a, b) => RANK_ORDER[a.card.rank] - RANK_ORDER[b.card.rank]);
-    const lowWinner = allTrumps[0].playerId;
-    const highWinner = allTrumps[allTrumps.length - 1].playerId;
+    
+    result.low = { teamId: allTrumps[0].teamId, card: allTrumps[0].card };
+    result.teamPoints[result.low.teamId] += 1;
+    
+    result.high = { teamId: allTrumps[allTrumps.length - 1].teamId, card: allTrumps[allTrumps.length - 1].card };
+    result.teamPoints[result.high.teamId] += 1;
 
-    scores[highWinner].points += 1;
-    scores[highWinner].details.push('Won High (+1)');
-    scores[lowWinner].points += 1;
-    scores[lowWinner].details.push('Won Low (+1)');
-  }
+    const jack = allTrumps.find(t => t.card.rank === 'J');
+    if (jack) {
+      result.jack = { teamId: jack.teamId };
+      result.teamPoints[jack.teamId] += 1;
+    }
 
-  let maxGamePoints = -1;
-  let gameWinner: string | null = null;
-  for (const [playerId, pts] of Object.entries(gamePoints)) {
-    if (pts > maxGamePoints) {
-      maxGamePoints = pts;
-      gameWinner = playerId;
-    } else if (pts === maxGamePoints) {
-      gameWinner = null;
+    const five = allTrumps.find(t => t.card.rank === '5');
+    if (five) {
+      result.five = { teamId: five.teamId };
+      result.teamPoints[five.teamId] += 5;
     }
   }
 
-  if (gameWinner) {
-    scores[gameWinner].points += 1;
-    scores[gameWinner].details.push(`Won Game (${maxGamePoints} pts) (+1)`);
+  const team1Points = gamePoints['team1'];
+  const team2Points = gamePoints['team2'];
+  
+  if (team1Points > team2Points) {
+    result.game = { teamId: 'team1', points: team1Points };
+    result.teamPoints['team1'] += 1;
+  } else if (team2Points > team1Points) {
+    result.game = { teamId: 'team2', points: team2Points };
+    result.teamPoints['team2'] += 1;
   }
 
-  return scores;
+  return result;
 }

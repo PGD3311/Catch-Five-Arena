@@ -1,0 +1,250 @@
+You need to tell Replit to completely change the **Deal** and **Pre-Play** logic. The previous code was for "Standard Pitch" (deal 6, play 6). Your version ("Draw Pitch") is much more complex to code because of the discarding and refilling mechanics.
+
+Here is the **exact, updated code** you need. I have rewritten the engine to handle the **9-card deal**, the **Mandatory Purge**, and the **Force Bid**.
+
+### What changed in this code?
+
+1. **The Deal:** It now deals **9 cards** initially.
+2. **The Purge:** It automatically identifies the Trump suit and forces players to discard *all* non-trumps.
+3. **The Refill:** It draws back up to 6 cards. If the deck runs empty, it reshuffles the discard pile (just like you asked).
+4. **Bidding:** The minimum bid is 5. If players 1, 2, and 3 pass, the Dealer (Player 4) is auto-forced to bid 5.
+
+### Copy and Paste this into Replit (`main.py`):
+
+```python
+import random
+
+# --- CONFIGURATION ---
+SUITS = ['Hearts', 'Diamonds', 'Clubs', 'Spades']
+RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
+VALUES = {
+    '2': 0, '3': 0, '4': 0, '5': 0, '6': 0, '7': 0, '8': 0, '9': 0, 
+    '10': 10, 'J': 1, 'Q': 2, 'K': 3, 'A': 4
+}
+RANK_ORDER = {r: i for i, r in enumerate(RANKS)}
+
+class Card:
+    def __init__(self, rank, suit):
+        self.rank = rank
+        self.suit = suit
+    def __str__(self): return f"{self.rank} of {self.suit}"
+    def __repr__(self): return self.__str__()
+
+def create_deck():
+    return [Card(r, s) for s in SUITS for r in RANKS]
+
+def get_game_points(card):
+    return VALUES[card.rank]
+
+def play_game():
+    print("--- CATCH 5: STRICT DRAW VARIATION ---")
+    players = ["Player 1", "Player 2", "Player 3", "Dealer"]
+    deck = create_deck()
+    random.shuffle(deck)
+    discard_pile = [] # For the "reshuffle discards" rule
+
+    # --- 1. DEAL 9 CARDS ---
+    print("\n[Dealing 9 cards to each player...]")
+    hands = {p: [] for p in players}
+    for _ in range(9):
+        for p in players:
+            if not deck: break
+            hands[p].append(deck.pop())
+
+    # --- 2. BIDDING (5-9, Force Dealer) ---
+    print("\n--- BIDDING (Min 5) ---")
+    high_bid = 0
+    bidder = None
+    
+    # Ask first 3 players
+    for i in range(3):
+        p = players[i]
+        print(f"\n{p}'s Hand: {hands[p]}")
+        try:
+            bid = int(input(f"{p}, bid (5-9) or 0 to pass: "))
+        except: bid = 0
+        
+        if bid >= 5 and bid > high_bid:
+            high_bid = bid
+            bidder = p
+
+    # Check Dealer (Player 4)
+    dealer = players[3]
+    print(f"\n{dealer}'s Hand: {hands[dealer]}")
+    
+    if high_bid == 0:
+        print(f"Everyone passed. {dealer} is FORCED to bid 5.")
+        high_bid = 5
+        bidder = dealer
+    else:
+        try:
+            bid = int(input(f"{dealer}, beat {high_bid} or 0 to pass: "))
+        except: bid = 0
+        if bid > high_bid:
+            high_bid = bid
+            bidder = dealer
+
+    print(f"\n*** WINNING BID: {bidder} with {high_bid} ***")
+
+    # --- 3. NAMING TRUMP ---
+    print(f"{bidder}, please set the Trump suit.")
+    print("0: Hearts, 1: Diamonds, 2: Clubs, 3: Spades")
+    try:
+        suit_idx = int(input("Enter number: "))
+        trump_suit = SUITS[suit_idx]
+    except:
+        trump_suit = SUITS[0]
+    
+    print(f"\n*** TRUMP IS {trump_suit} ***")
+
+    # --- 4. THE PURGE & REFILL ---
+    print("\n--- DISCARDING NON-TRUMPS & DRAWING ---")
+    
+    # Add everyone's discards to the pile first
+    for p in players:
+        # Keep only trumps
+        kept_cards = [c for c in hands[p] if c.suit == trump_suit]
+        discards = [c for c in hands[p] if c.suit != trump_suit]
+        
+        discard_pile.extend(discards)
+        hands[p] = kept_cards
+        print(f"{p} kept {len(hands[p])} trumps.")
+
+    # Refill hands to 6
+    # Start refilling from the bidder (usually standard, or start left of dealer)
+    bidder_idx = players.index(bidder)
+    draw_order = players[bidder_idx:] + players[:bidder_idx]
+    
+    for p in draw_order:
+        while len(hands[p]) < 6:
+            if not deck:
+                print("!! Deck empty! Shuffling discard pile... !!")
+                if not discard_pile:
+                    print("!! No cards left in discard either! Playing with short hands. !!")
+                    break
+                random.shuffle(discard_pile)
+                deck.extend(discard_pile)
+                discard_pile = []
+            
+            hands[p].append(deck.pop())
+            
+        # If they had more than 6 trumps (rare), trim down
+        if len(hands[p]) > 6:
+            print(f"{p} has too many cards ({len(hands[p])}). Trimming...")
+            # Simple logic: remove lowest trumps
+            hands[p].sort(key=lambda c: RANK_ORDER[c.rank], reverse=True)
+            hands[p] = hands[p][:6]
+
+    # --- 5. PLAYING TRICKS ---
+    tricks_won = {p: [] for p in players}
+    current_lead_idx = players.index(bidder) # Bidder leads first
+
+    for trick_num in range(1, 7):
+        print(f"\n--- TRICK {trick_num} (Trump: {trump_suit}) ---")
+        played_cards = []
+        play_order = players[current_lead_idx:] + players[:current_lead_idx]
+        
+        for p in play_order:
+            # Sort hand for display
+            hands[p].sort(key=lambda c: (c.suit==trump_suit, RANK_ORDER[c.rank]))
+            
+            print(f"{p}: {[f'{i}:{c}' for i, c in enumerate(hands[p])]}")
+            valid_input = False
+            while not valid_input:
+                try:
+                    choice = int(input(f"{p} choose card index: "))
+                    if 0 <= choice < len(hands[p]):
+                        # Basic validation: Must follow suit? 
+                        # Pitch allows playing Trump anytime, but must follow led non-trump if possible.
+                        # For this simple text version, we allow any play.
+                        card = hands[p].pop(choice)
+                        valid_input = True
+                    else: print("Invalid index.")
+                except: print("Enter a number.")
+            
+            print(f"> {p} plays {card}")
+            played_cards.append((p, card))
+
+        # Determine Winner
+        winning_play = played_cards[0] # (player, card)
+        lead_suit = winning_play[1].suit
+        
+        for p, card in played_cards[1:]:
+            current_best = winning_play[1]
+            
+            # If new card is Trump
+            if card.suit == trump_suit:
+                if current_best.suit != trump_suit:
+                    winning_play = (p, card) # Trump beats non-trump
+                elif RANK_ORDER[card.rank] > RANK_ORDER[current_best.rank]:
+                    winning_play = (p, card) # Higher trump
+            # If new card follows suit and current best is NOT trump
+            elif card.suit == lead_suit and current_best.suit != trump_suit:
+                if RANK_ORDER[card.rank] > RANK_ORDER[current_best.rank]:
+                    winning_play = (p, card)
+
+        winner = winning_play[0]
+        print(f"*** {winner} takes the trick! ***")
+        current_lead_idx = players.index(winner)
+        for _, c in played_cards:
+            tricks_won[winner].append(c)
+
+    # --- 6. SCORING ---
+    print("\n--- FINAL SCORING ---")
+    scores = {p: 0 for p in players}
+    game_points = {p: 0 for p in players}
+    
+    all_trumps = []
+    
+    for p in players:
+        for card in tricks_won[p]:
+            game_points[p] += get_game_points(card)
+            
+            if card.suit == trump_suit:
+                all_trumps.append((p, card))
+                if card.rank == '5':
+                    print(f"{p} caught the FIVE! (+5)")
+                    scores[p] += 5
+                if card.rank == 'J':
+                    print(f"{p} caught the JACK! (+1)")
+                    scores[p] += 1
+
+    # High / Low
+    if all_trumps:
+        all_trumps.sort(key=lambda x: RANK_ORDER[x[1].rank])
+        high_winner = all_trumps[-1][0]
+        low_winner = all_trumps[0][0] # Low to Taker logic
+        print(f"{high_winner} gets HIGH (+1)")
+        scores[high_winner] += 1
+        print(f"{low_winner} gets LOW (+1)")
+        scores[low_winner] += 1
+    
+    # Game Point
+    winner_game = max(game_points, key=game_points.get)
+    # Check for tie
+    max_pts = game_points[winner_game]
+    leaders = [p for p, pts in game_points.items() if pts == max_pts]
+    if len(leaders) == 1:
+        print(f"{winner_game} gets GAME ({max_pts} pts) (+1)")
+        scores[winner_game] += 1
+    else:
+        print("Tie for GAME point (no award).")
+
+    # Final Tally
+    print("\n--- RESULTS ---")
+    bidder_total = scores[bidder]
+    print(f"Bidder ({bidder}) needed {high_bid}, got {bidder_total}.")
+    
+    if bidder_total >= high_bid:
+        print("BID MADE!")
+    else:
+        print(f"BID SET! ({bidder} loses {high_bid} points)")
+        scores[bidder] = -high_bid # Visual representation
+
+    for p in players:
+        print(f"{p}: {scores[p]}")
+
+if __name__ == "__main__":
+    play_game()
+
+```

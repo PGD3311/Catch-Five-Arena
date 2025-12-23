@@ -1,7 +1,7 @@
-import { GameState, Suit } from '@shared/gameTypes';
+import { GameState, Suit, Team } from '@shared/gameTypes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Settings, Heart, Diamond, Club, Spade } from 'lucide-react';
+import { Settings, Heart, Diamond, Club, Spade, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface GameHeaderProps {
@@ -22,8 +22,8 @@ const SuitDisplay = ({ suit }: { suit: Suit }) => {
 
   return (
     <div className={cn('flex items-center gap-1.5', color)}>
-      <Icon className="w-6 h-6" fill="currentColor" />
-      <span className="font-bold">{suit}</span>
+      <Icon className="w-5 h-5" fill="currentColor" />
+      <span className="font-semibold text-sm">{suit}</span>
     </div>
   );
 };
@@ -38,6 +38,8 @@ const getPhaseLabel = (phase: GameState['phase'], trickNumber: number): string =
       return 'Bidding Phase';
     case 'trump-selection':
       return 'Select Trump';
+    case 'purge-draw':
+      return 'Drawing Cards...';
     case 'playing':
       return `Trick ${Math.min(trickNumber, 6)} of 6`;
     case 'scoring':
@@ -49,8 +51,25 @@ const getPhaseLabel = (phase: GameState['phase'], trickNumber: number): string =
   }
 };
 
+const TeamScoreDisplay = ({ team, isYourTeam, targetScore }: { team: Team; isYourTeam: boolean; targetScore: number }) => (
+  <div 
+    className={cn(
+      'flex items-center gap-2 px-3 py-1.5 rounded-lg',
+      isYourTeam ? 'bg-primary/10' : 'bg-muted'
+    )}
+    data-testid={`team-score-${team.id}`}
+  >
+    <Users className="w-4 h-4 text-muted-foreground" />
+    <span className="text-xs text-muted-foreground">{team.name}:</span>
+    <span className={cn('font-bold', isYourTeam && 'text-primary')}>{team.score}</span>
+    <span className="text-xs text-muted-foreground">/{targetScore}</span>
+  </div>
+);
+
 export function GameHeader({ gameState, onSettingsClick }: GameHeaderProps) {
   const phaseLabel = getPhaseLabel(gameState.phase, gameState.trickNumber);
+  const yourTeam = gameState.teams.find(t => t.id === 'team1');
+  const opponentTeam = gameState.teams.find(t => t.id === 'team2');
 
   return (
     <header className="flex items-center justify-between gap-4 p-4 border-b bg-card" data-testid="game-header">
@@ -61,17 +80,24 @@ export function GameHeader({ gameState, onSettingsClick }: GameHeaderProps) {
 
         {gameState.highBid > 0 && (
           <Badge variant="outline" className="text-sm" data-testid="badge-high-bid">
-            High Bid: {gameState.highBid}
+            Bid: {gameState.highBid}
           </Badge>
+        )}
+
+        {gameState.trumpSuit && (
+          <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-secondary" data-testid="display-trump-suit">
+            <span className="text-xs text-muted-foreground">Trump:</span>
+            <SuitDisplay suit={gameState.trumpSuit} />
+          </div>
         )}
       </div>
 
       <div className="flex items-center gap-3">
-        {gameState.trumpSuit && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary" data-testid="display-trump-suit">
-            <span className="text-sm text-muted-foreground">Trump:</span>
-            <SuitDisplay suit={gameState.trumpSuit} />
-          </div>
+        {yourTeam && gameState.phase !== 'setup' && (
+          <TeamScoreDisplay team={yourTeam} isYourTeam targetScore={gameState.targetScore} />
+        )}
+        {opponentTeam && gameState.phase !== 'setup' && (
+          <TeamScoreDisplay team={opponentTeam} isYourTeam={false} targetScore={gameState.targetScore} />
         )}
 
         <Button
