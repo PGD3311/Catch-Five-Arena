@@ -7,15 +7,21 @@ interface TrickAreaProps {
   currentTrick: TrickCard[];
   players: Player[];
   trumpSuit?: Suit | null;
+  mySeatIndex?: number;
 }
 
-export function TrickArea({ currentTrick, players, trumpSuit }: TrickAreaProps) {
+export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0 }: TrickAreaProps) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   
+  const getVisualIndex = (playerId: string): number => {
+    const seatIndex = players.findIndex(p => p.id === playerId);
+    return (seatIndex - mySeatIndex + 4) % 4;
+  };
+  
   const getPositionForPlayer = (playerId: string): { x: number; y: number; rotate: number } => {
-    const playerIndex = players.findIndex(p => p.id === playerId);
+    const visualIndex = getVisualIndex(playerId);
     const scale = isMobile ? 0.65 : 1;
-    switch (playerIndex) {
+    switch (visualIndex) {
       case 0:
         return { x: 0, y: 70 * scale, rotate: 0 };
       case 1:
@@ -30,8 +36,8 @@ export function TrickArea({ currentTrick, players, trumpSuit }: TrickAreaProps) 
   };
 
   const getStartPosition = (playerId: string): { x: number; y: number } => {
-    const playerIndex = players.findIndex(p => p.id === playerId);
-    switch (playerIndex) {
+    const visualIndex = getVisualIndex(playerId);
+    switch (visualIndex) {
       case 0:
         return { x: 0, y: 150 };
       case 1:

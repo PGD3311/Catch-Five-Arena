@@ -74,7 +74,9 @@ export function PlayerArea({
         'text-[11px] font-medium',
         isYourTeam ? 'text-emerald-400' : 'text-foreground/70'
       )}>{player.name}</span>
-      {isDealer && <span className="text-[9px] text-amber-400 font-semibold">D</span>}
+      {isDealer && (
+        <span className="px-1.5 py-0.5 text-[9px] text-amber-400 font-bold rounded-full border border-amber-400/60 bg-amber-500/10">D</span>
+      )}
       {isBidder && <Crown className="w-2.5 h-2.5 text-amber-400" />}
       {showBidResult && player.bid !== null && (
         <span className={cn(
@@ -119,7 +121,8 @@ export function PlayerArea({
           className={cn(
             'absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full',
             'bg-amber-500 text-white flex items-center justify-center',
-            'text-[9px] font-bold'
+            'text-[9px] font-bold',
+            'ring-2 ring-amber-400 ring-offset-1 ring-offset-background'
           )}
           title="Dealer"
           data-testid={`dealer-chip-${player.id}`}
@@ -240,7 +243,9 @@ export function PlayerArea({
                 'text-xs font-medium',
                 isYourTeam ? 'text-emerald-400' : 'text-foreground/70'
               )}>{player.name}</span>
-              {isDealer && <span className="text-[9px] text-amber-400 font-bold">D</span>}
+              {isDealer && (
+                <span className="px-1.5 py-0.5 text-[9px] text-amber-400 font-bold rounded-full border border-amber-400/60 bg-amber-500/10">D</span>
+              )}
               {isBidder && <Crown className="w-3 h-3 text-amber-400" />}
               {showBidResult && player.bid !== null && (
                 <Badge 

@@ -483,7 +483,8 @@ export function GameBoard() {
               <TrickArea 
                 currentTrick={displayTrick.length > 0 ? displayTrick : gameState.currentTrick} 
                 players={gameState.players} 
-                trumpSuit={gameState.trumpSuit} 
+                trumpSuit={gameState.trumpSuit}
+                mySeatIndex={mySeatIndex}
               />
               
               {/* Minimal context line */}
