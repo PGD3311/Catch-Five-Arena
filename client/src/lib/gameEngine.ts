@@ -188,11 +188,14 @@ function evaluateSuitStrength(hand: Card[], suit: Suit): {
   
   let estimatedBid = 0;
   
+  const fiveIsProtected = hasFive && (hasAce || trumpCount >= 4);
+  const fiveIsRisky = hasFive && !hasAce && trumpCount <= 2;
+  
   if (trumpCount === 0) {
     estimatedBid = 0;
   } else if (trumpCount === 1) {
-    if (hasFive) estimatedBid = 5;
-    else if (hasAce) estimatedBid = 5;
+    if (hasAce) estimatedBid = 5;
+    else if (hasFive) estimatedBid = 0;
     else estimatedBid = 0;
   } else if (trumpCount === 2) {
     if (hasAce && hasFive) estimatedBid = 7;
@@ -216,6 +219,10 @@ function evaluateSuitStrength(hand: Card[], suit: Suit): {
   
   if (!hasAce && estimatedBid >= 8) {
     estimatedBid = 7;
+  }
+  
+  if (fiveIsRisky && estimatedBid > 5) {
+    estimatedBid = 5;
   }
   
   return { trumpCount, hasAce, hasFive, hasJack, hasDeuce, hasKing, hasQueen, pointsAvailable, estimatedBid };
