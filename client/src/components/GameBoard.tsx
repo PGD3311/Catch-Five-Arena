@@ -51,6 +51,7 @@ export function GameBoard() {
   const [trickWinner, setTrickWinner] = useState<Player | null>(null);
   const [displayTrick, setDisplayTrick] = useState<TrickCard[]>([]);
   const trickWinnerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const prevTrickRef = useRef<TrickCard[]>([]);
   const { toast } = useToast();
 
   const multiplayer = useMultiplayer();
@@ -210,6 +211,42 @@ export function GameBoard() {
       }
     };
   }, []);
+
+  // Multiplayer: Capture completed tricks to display before transitioning
+  useEffect(() => {
+    if (!isMultiplayerMode) return;
+    if (displayTrick.length > 0) return; // Already displaying a trick
+    
+    const prevTrick = prevTrickRef.current;
+    const currentTrick = gameState.currentTrick;
+    
+    // Case 1: Trick just completed (was building, now reset)
+    // Use lastTrick if available (server populates this when trick completes)
+    if (prevTrick.length > 0 && currentTrick.length === 0 && gameState.lastTrick && gameState.lastTrick.length === 4) {
+      setDisplayTrick(gameState.lastTrick);
+      
+      if (trickWinnerTimeoutRef.current) {
+        clearTimeout(trickWinnerTimeoutRef.current);
+      }
+      trickWinnerTimeoutRef.current = setTimeout(() => {
+        setDisplayTrick([]);
+      }, 2500);
+    }
+    // Case 2: We have exactly 4 cards in current trick (show it)
+    else if (currentTrick.length === 4 && prevTrick.length < 4) {
+      setDisplayTrick(currentTrick);
+      
+      if (trickWinnerTimeoutRef.current) {
+        clearTimeout(trickWinnerTimeoutRef.current);
+      }
+      trickWinnerTimeoutRef.current = setTimeout(() => {
+        setDisplayTrick([]);
+      }, 2500);
+    }
+    
+    // Update ref for next comparison
+    prevTrickRef.current = currentTrick;
+  }, [isMultiplayerMode, gameState.currentTrick, gameState.lastTrick, displayTrick.length]);
 
   useEffect(() => {
     if (isMultiplayerMode) return;
