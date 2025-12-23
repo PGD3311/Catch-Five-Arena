@@ -73,13 +73,18 @@ export function finalizeDealerDraw(state: GameState): GameState {
     return { ...state, phase: 'setup', dealerIndex: 0 };
   }
 
+  const getDealerDrawValue = (card: Card): number => {
+    if (card.rank === 'A' && card.suit === 'Spades') return -1;
+    return RANK_ORDER_ACE_LOW[card.rank];
+  };
+
   let lowestIndex = 0;
-  let lowestRank = RANK_ORDER_ACE_LOW[state.dealerDrawCards[0].card.rank];
+  let lowestValue = getDealerDrawValue(state.dealerDrawCards[0].card);
 
   for (let i = 1; i < state.dealerDrawCards.length; i++) {
-    const cardRank = RANK_ORDER_ACE_LOW[state.dealerDrawCards[i].card.rank];
-    if (cardRank < lowestRank) {
-      lowestRank = cardRank;
+    const cardValue = getDealerDrawValue(state.dealerDrawCards[i].card);
+    if (cardValue < lowestValue) {
+      lowestValue = cardValue;
       lowestIndex = i;
     }
   }
