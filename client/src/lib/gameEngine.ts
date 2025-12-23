@@ -250,8 +250,23 @@ export function getCpuCardToPlay(
   allPlayers?: { id: string }[]
 ): Card {
   const trumpCards = hand.filter(c => c.suit === trumpSuit);
-  const hasFiveOfTrump = hand.some(c => c.suit === trumpSuit && c.rank === '5');
-  const fiveInTrick = currentTrick.find(tc => tc.card.suit === trumpSuit && tc.card.rank === '5');
+  const POINT_RANKS = ['5', 'J', '2', 'A'];
+  const hasPointCard = (rank: string) => hand.some(c => c.suit === trumpSuit && c.rank === rank);
+  const hasFiveOfTrump = hasPointCard('5');
+  const hasJackOfTrump = hasPointCard('J');
+  const hasDeuceOfTrump = hasPointCard('2');
+  const hasAceOfTrump = hasPointCard('A');
+  
+  const getPointCardInTrick = () => {
+    const pointCards = currentTrick.filter(tc => 
+      tc.card.suit === trumpSuit && POINT_RANKS.includes(tc.card.rank)
+    );
+    pointCards.sort((a, b) => {
+      const priority: Record<string, number> = { '5': 0, 'J': 1, '2': 2, 'A': 3 };
+      return priority[a.card.rank] - priority[b.card.rank];
+    });
+    return pointCards[0] || null;
+  };
   
   const getTeammate = () => {
     if (!cpuPlayerId || !allPlayers) return null;
@@ -295,14 +310,25 @@ export function getCpuCardToPlay(
     }
     return winner;
   };
+  
+  const getMyPointCards = () => trumpCards.filter(c => POINT_RANKS.includes(c.rank));
+  const getNonPointTrumps = () => trumpCards.filter(c => !POINT_RANKS.includes(c.rank));
 
   if (currentTrick.length === 0) {
     if (trumpCards.length > 0) {
+      if (hasAceOfTrump && !hasFiveOfTrump && trumpCards.length >= 2) {
+        const aceCard = trumpCards.find(c => c.rank === 'A');
+        if (aceCard) return aceCard;
+      }
       if (hasFiveOfTrump && trumpCards.length >= 3) {
         const highTrumps = trumpCards.filter(c => c.rank !== '5' && RANK_ORDER[c.rank] >= RANK_ORDER['J']);
         if (highTrumps.length > 0) {
           return highTrumps.reduce((a, b) => (RANK_ORDER[b.rank] > RANK_ORDER[a.rank] ? b : a));
         }
+      }
+      const nonPointTrumps = getNonPointTrumps();
+      if (nonPointTrumps.length > 0) {
+        return nonPointTrumps.reduce((a, b) => (RANK_ORDER[b.rank] > RANK_ORDER[a.rank] ? b : a));
       }
       return trumpCards.reduce((a, b) => (RANK_ORDER[b.rank] > RANK_ORDER[a.rank] ? b : a));
     }
@@ -314,42 +340,64 @@ export function getCpuCardToPlay(
   const teammateId = getTeammate();
   const currentWinner = getCurrentWinner();
   const teammateIsWinning = currentWinner && currentWinner.playerId === teammateId;
-  const teammateHasFive = fiveInTrick && fiveInTrick.playerId === teammateId;
   const playersAfterMe = getPlayersAfterMe();
   const opponentsAfterMe = playersAfterMe.filter(pid => pid !== teammateId);
+  
+  const pointCardInTrick = getPointCardInTrick();
+  const teammateHasPointCard = pointCardInTrick && pointCardInTrick.playerId === teammateId;
 
-  if (fiveInTrick && !teammateHasFive) {
+  if (pointCardInTrick && !teammateHasPointCard) {
+    const targetRank = RANK_ORDER[pointCardInTrick.card.rank];
+    
     if (followCards.length > 0 && leadSuit === trumpSuit) {
-      const winningCards = followCards.filter(c => RANK_ORDER[c.rank] > RANK_ORDER[fiveInTrick.card.rank]);
+      const winningCards = followCards.filter(c => RANK_ORDER[c.rank] > targetRank);
       if (winningCards.length > 0) {
+        const nonPointWinners = winningCards.filter(c => !POINT_RANKS.includes(c.rank) || c.rank === 'A');
+        if (nonPointWinners.length > 0) {
+          return nonPointWinners.reduce((a, b) => (RANK_ORDER[a.rank] < RANK_ORDER[b.rank] ? a : b));
+        }
         return winningCards.reduce((a, b) => (RANK_ORDER[a.rank] < RANK_ORDER[b.rank] ? a : b));
       }
     }
     
     if (followCards.length === 0 && trumpCards.length > 0) {
-      const winningTrumps = trumpCards.filter(c => 
-        !currentTrick.some(tc => tc.card.suit === trumpSuit && RANK_ORDER[tc.card.rank] > RANK_ORDER[c.rank])
-      );
+      const highestTrickTrump = currentTrick
+        .filter(tc => tc.card.suit === trumpSuit)
+        .reduce((max, tc) => Math.max(max, RANK_ORDER[tc.card.rank]), -1);
+      
+      const winningTrumps = trumpCards.filter(c => RANK_ORDER[c.rank] > highestTrickTrump);
       if (winningTrumps.length > 0) {
+        const nonPointWinners = winningTrumps.filter(c => !POINT_RANKS.includes(c.rank) || c.rank === 'A');
+        if (nonPointWinners.length > 0) {
+          return nonPointWinners.reduce((a, b) => (RANK_ORDER[a.rank] < RANK_ORDER[b.rank] ? a : b));
+        }
+        if (hasAceOfTrump) {
+          const aceCard = trumpCards.find(c => c.rank === 'A');
+          if (aceCard) return aceCard;
+        }
         return winningTrumps.reduce((a, b) => (RANK_ORDER[a.rank] < RANK_ORDER[b.rank] ? a : b));
       }
     }
   }
 
   if (followCards.length > 0) {
-    if (leadSuit === trumpSuit && hasFiveOfTrump) {
-      const safeCards = followCards.filter(c => c.rank !== '5');
-      if (safeCards.length > 0) {
+    const myPointCards = getMyPointCards();
+    const safeFollowCards = followCards.filter(c => !POINT_RANKS.includes(c.rank) || c.rank === 'A');
+    
+    if (leadSuit === trumpSuit && myPointCards.length > 0) {
+      if (safeFollowCards.length > 0) {
         if (currentWinner && !teammateIsWinning) {
-          const winningCards = safeCards.filter(c => RANK_ORDER[c.rank] > RANK_ORDER[currentWinner.card.rank]);
+          const winningCards = safeFollowCards.filter(c => RANK_ORDER[c.rank] > RANK_ORDER[currentWinner.card.rank]);
           if (winningCards.length > 0) {
             return winningCards.reduce((a, b) => (RANK_ORDER[a.rank] < RANK_ORDER[b.rank] ? a : b));
           }
         }
-        return safeCards.reduce((a, b) => (RANK_ORDER[a.rank] < RANK_ORDER[b.rank] ? a : b));
+        return safeFollowCards.reduce((a, b) => (RANK_ORDER[a.rank] < RANK_ORDER[b.rank] ? a : b));
       }
-      const fiveCard = followCards.find(c => c.rank === '5');
-      if (fiveCard) return fiveCard;
+      if (hasAceOfTrump) {
+        const aceCard = followCards.find(c => c.rank === 'A');
+        if (aceCard) return aceCard;
+      }
     }
     
     return followCards.reduce((a, b) => (RANK_ORDER[b.rank] > RANK_ORDER[a.rank] ? b : a));
@@ -358,13 +406,13 @@ export function getCpuCardToPlay(
   if (trumpCards.length > 0) {
     const shouldProtect = 
       !hasFiveOfTrump && 
-      !fiveInTrick && 
+      !pointCardInTrick && 
       leadSuit !== trumpSuit && 
       opponentsAfterMe.length > 0 && 
       !teammateIsWinning;
     
     if (shouldProtect) {
-      const protectiveTrumps = trumpCards.filter(c => RANK_ORDER[c.rank] > RANK_ORDER['5']);
+      const protectiveTrumps = trumpCards.filter(c => RANK_ORDER[c.rank] > RANK_ORDER['5'] && c.rank !== 'A');
       const highestTrickTrump = currentTrick
         .filter(tc => tc.card.suit === trumpSuit)
         .reduce((max, tc) => Math.max(max, RANK_ORDER[tc.card.rank]), -1);
@@ -374,14 +422,23 @@ export function getCpuCardToPlay(
       if (winningProtectiveTrumps.length > 0) {
         return winningProtectiveTrumps.reduce((a, b) => (RANK_ORDER[a.rank] < RANK_ORDER[b.rank] ? a : b));
       }
-    }
-    
-    if (hasFiveOfTrump) {
-      const safeTrumps = trumpCards.filter(c => c.rank !== '5');
-      if (safeTrumps.length > 0) {
-        return safeTrumps.reduce((a, b) => (RANK_ORDER[a.rank] < RANK_ORDER[b.rank] ? a : b));
+      
+      if (hasAceOfTrump && opponentsAfterMe.length > 0) {
+        const aceCard = trumpCards.find(c => c.rank === 'A');
+        if (aceCard) return aceCard;
       }
     }
+    
+    const nonPointTrumps = getNonPointTrumps();
+    if (nonPointTrumps.length > 0) {
+      return nonPointTrumps.reduce((a, b) => (RANK_ORDER[a.rank] < RANK_ORDER[b.rank] ? a : b));
+    }
+    
+    if (hasAceOfTrump) {
+      const aceCard = trumpCards.find(c => c.rank === 'A');
+      if (aceCard) return aceCard;
+    }
+    
     return trumpCards.reduce((a, b) => (RANK_ORDER[a.rank] < RANK_ORDER[b.rank] ? a : b));
   }
 
