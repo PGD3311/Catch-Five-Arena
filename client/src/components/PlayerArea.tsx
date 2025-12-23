@@ -99,8 +99,8 @@ export function PlayerArea({
           <div className={cn(
             'w-8 h-8 rounded-full flex items-center justify-center',
             isYourTeam 
-              ? 'bg-gradient-to-br from-blue-500/30 to-blue-600/20 border border-blue-400/30' 
-              : 'bg-gradient-to-br from-rose-500/30 to-rose-600/20 border border-rose-400/30'
+              ? 'bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 border border-emerald-400/30' 
+              : 'bg-gradient-to-br from-slate-500/30 to-slate-600/20 border border-slate-400/30'
           )}>
             {player.isHuman ? (
               <User className="w-4 h-4 text-foreground/80" />
@@ -123,7 +123,7 @@ export function PlayerArea({
             </div>
             <span className={cn(
               'text-[10px] font-medium uppercase tracking-wider',
-              isYourTeam ? 'text-blue-400' : 'text-rose-400'
+              isYourTeam ? 'text-emerald-400' : 'text-muted-foreground'
             )}>
               {team.name}
             </span>

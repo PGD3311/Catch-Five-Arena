@@ -406,7 +406,18 @@ export function GameBoard() {
             />
           </div>
 
-          <div className={cn("flex justify-center transition-all duration-300", showBiddingModal && "pb-24")}>
+          <div className="flex flex-col items-center gap-3">
+            {showBiddingModal && (
+              <BiddingPanel
+                open={showBiddingModal}
+                highBid={gameState.highBid}
+                playerName={humanPlayer.name}
+                isDealer={isDealer}
+                allOthersPassed={passedCount === 3}
+                onBid={handleBid}
+              />
+            )}
+            
             <PlayerArea
               player={humanPlayer}
               team={getTeamForPlayer(humanPlayer)}
@@ -425,15 +436,6 @@ export function GameBoard() {
         </div>
         )
       )}
-
-      <BiddingPanel
-        open={showBiddingModal}
-        highBid={gameState.highBid}
-        playerName={humanPlayer.name}
-        isDealer={isDealer}
-        allOthersPassed={passedCount === 3}
-        onBid={handleBid}
-      />
 
       <TrumpSelector
         open={showTrumpSelector || false}
