@@ -318,6 +318,8 @@ async function handleJoinRoom(ws: WebSocket, message: any) {
     existingPlayer.ws = ws;
     playerConnections.set(ws, existingPlayer);
     
+    log(`Player ${existingPlayer.playerName} rejoined room ${room.code} at seat ${existingPlayer.seatIndex}`, 'ws');
+    
     ws.send(JSON.stringify({
       type: 'rejoined',
       roomCode: room.code,
@@ -329,6 +331,17 @@ async function handleJoinRoom(ws: WebSocket, message: any) {
     }));
     
     broadcastToRoom(room, { type: 'player_reconnected', seatIndex: existingPlayer.seatIndex }, ws);
+    return;
+  }
+  
+  // If player has a stale token that doesn't exist in this room, clear their session and ask them to rejoin fresh
+  if (existingToken && !room.players.has(existingToken)) {
+    log(`Stale token detected for room ${room.code}, asking player to rejoin fresh`, 'ws');
+    ws.send(JSON.stringify({ 
+      type: 'error', 
+      message: 'Your session expired. Please rejoin the room.',
+      clearSession: true 
+    }));
     return;
   }
   
