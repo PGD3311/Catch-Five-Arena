@@ -459,24 +459,33 @@ export function MultiplayerLobby({
         {mode === 'select-seat' && connected && (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground text-center">
-              Choose your seat in the game
+              Tap an available seat to join
             </p>
             <div className="grid grid-cols-2 gap-2">
               {[0, 1, 2, 3].map((seat) => {
                 const player = previewPlayers.find(p => p.seatIndex === seat);
                 const isAvailable = availableSeats.includes(seat);
-                const isSelected = preferredSeat === seat;
+                const isJoining = preferredSeat === seat && isLoading;
+                
+                const handleSeatClick = () => {
+                  if (!isAvailable || isLoading) return;
+                  setPreferredSeat(seat);
+                  setIsLoading(true);
+                  onJoinRoom(joinCode.trim().toUpperCase(), playerName.trim(), seat);
+                };
                 
                 return (
                   <div
                     key={seat}
-                    onClick={() => isAvailable && setPreferredSeat(seat)}
+                    onClick={handleSeatClick}
                     className={`p-3 rounded-md border transition-all ${
                       player
-                        ? 'bg-muted/50 border-border opacity-60'
-                        : isSelected
+                        ? 'bg-muted/50 border-border opacity-60 cursor-not-allowed'
+                        : isJoining
                         ? 'border-primary bg-primary/10 ring-2 ring-primary'
-                        : 'border-dashed border-muted-foreground/30 cursor-pointer hover:border-primary/50'
+                        : isLoading
+                        ? 'border-muted opacity-50 cursor-not-allowed'
+                        : 'border-dashed border-muted-foreground/30 cursor-pointer hover:border-primary/50 hover:bg-primary/5'
                     }`}
                     data-testid={`select-seat-${seat}`}
                   >
@@ -503,8 +512,8 @@ export function MultiplayerLobby({
                         </span>
                       </div>
                     ) : (
-                      <span className={`text-sm ${isSelected ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                        {isSelected ? 'Selected' : 'Available'}
+                      <span className={`text-sm ${isJoining ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                        {isJoining ? 'Joining...' : 'Tap to join'}
                       </span>
                     )}
                   </div>
@@ -512,15 +521,10 @@ export function MultiplayerLobby({
               })}
             </div>
             <Button
-              onClick={handleJoinRoom}
-              disabled={preferredSeat === null}
-              className="w-full"
-              data-testid="button-join-with-seat"
-            >
-              Join Room
-            </Button>
-            <Button
-              onClick={() => setMode('join')}
+              onClick={() => {
+                setMode('join');
+                setIsLoading(false);
+              }}
               variant="ghost"
               className="w-full"
             >
