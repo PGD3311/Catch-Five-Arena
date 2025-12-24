@@ -11,6 +11,7 @@ import { ShareModal } from './ShareModal';
 import { PurgeDrawModal } from './PurgeDrawModal';
 import { DealerDrawModal } from './DealerDrawModal';
 import { ActionPrompt } from './ActionPrompt';
+import { TurnTimer } from './TurnTimer';
 import { MultiplayerLobby } from './MultiplayerLobby';
 import { LastTrickModal } from './LastTrickModal';
 import { ChatPanel, FloatingEmoji, initAudioContext } from './ChatPanel';
@@ -55,6 +56,7 @@ export function GameBoard() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [floatingEmojis, setFloatingEmojis] = useState<ChatMessage[]>([]);
+  const [timerKey, setTimerKey] = useState(0);
   const trickWinnerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const prevTrickRef = useRef<TrickCard[]>([]);
   const lastChatCountRef = useRef(0);
@@ -458,6 +460,56 @@ export function GameBoard() {
   const passedCount = gameState.players.filter(p => p.bid === 0).length;
   const isDealer = gameState.currentPlayerIndex === gameState.dealerIndex;
   
+  // Reset timer when turn changes
+  useEffect(() => {
+    setTimerKey(prev => prev + 1);
+  }, [gameState.currentPlayerIndex, gameState.phase, gameState.trickNumber]);
+  
+  // Timer should be active during bidding and playing phases for human turns
+  const timerActive = (gameState.phase === 'bidding' || gameState.phase === 'playing') && 
+    isMyTurn && !currentPlayer?.isHuman === false;
+  
+  // Handle turn timeout - auto-pass in bidding, auto-play lowest card in playing
+  const handleTurnTimeout = useCallback(() => {
+    if (!isMyTurn) return;
+    
+    if (isMultiplayerMode) {
+      // In multiplayer, notify user they timed out
+      toast({
+        title: "Time's up!",
+        description: "You ran out of time. Making automatic move...",
+        variant: "destructive",
+      });
+      
+      if (gameState.phase === 'bidding') {
+        // Auto-pass
+        multiplayer.sendAction('bid', { amount: 0 });
+      } else if (gameState.phase === 'playing') {
+        // Auto-play first valid card
+        const humanPlayer = gameState.players[mySeatIndex];
+        const validCard = humanPlayer.hand.find(card => 
+          canPlayCard(card, humanPlayer.hand, gameState.currentTrick, gameState.trumpSuit)
+        );
+        if (validCard) {
+          multiplayer.sendAction('play_card', { card: validCard });
+        }
+      }
+    } else {
+      // In single player, auto-move
+      if (gameState.phase === 'bidding') {
+        setGameState(prev => processBid(prev, 0));
+      } else if (gameState.phase === 'playing') {
+        const humanPlayer = gameState.players[0];
+        const validCard = humanPlayer.hand.find(card => 
+          canPlayCard(card, humanPlayer.hand, gameState.currentTrick, gameState.trumpSuit)
+        );
+        if (validCard) {
+          setGameState(prev => playCard(prev, validCard));
+        }
+      }
+    }
+  }, [isMyTurn, isMultiplayerMode, gameState.phase, gameState.players, gameState.currentTrick, gameState.trumpSuit, mySeatIndex, multiplayer, toast]);
+  
   const showBiddingModal = gameState.phase === 'bidding' && isMyTurn;
   const amIBidder = gameState.bidderId === gameState.players[mySeatIndex]?.id;
   const showTrumpSelector = gameState.phase === 'trump-selection' && 
@@ -586,22 +638,34 @@ export function GameBoard() {
                 mySeatIndex={mySeatIndex}
               />
               
-              {/* Minimal context line */}
-              <div className="mt-1 flex items-center gap-2">
-                <ActionPrompt gameState={gameState} />
-                
-                {gameState.lastTrick && gameState.lastTrick.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowLastTrick(true)}
-                    className="h-6 px-2 text-[10px] text-muted-foreground"
-                    data-testid="button-last-trick"
-                  >
-                    <History className="w-3 h-3 mr-1" />
-                    Last
-                  </Button>
+              {/* Timer and context line */}
+              <div className="mt-1 flex flex-col items-center gap-1">
+                {(gameState.phase === 'bidding' || gameState.phase === 'playing') && (
+                  <TurnTimer
+                    key={timerKey}
+                    isActive={isMyTurn}
+                    duration={20}
+                    onTimeout={handleTurnTimeout}
+                    playerName={currentPlayer?.name}
+                    isCurrentPlayer={isMyTurn}
+                  />
                 )}
+                <div className="flex items-center gap-2">
+                  <ActionPrompt gameState={gameState} />
+                  
+                  {gameState.lastTrick && gameState.lastTrick.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowLastTrick(true)}
+                      className="h-6 px-2 text-[10px] text-muted-foreground"
+                      data-testid="button-last-trick"
+                    >
+                      <History className="w-3 h-3 mr-1" />
+                      Last
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
 
