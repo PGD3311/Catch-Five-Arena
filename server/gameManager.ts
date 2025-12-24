@@ -302,8 +302,25 @@ async function handleJoinRoom(ws: WebSocket, message: any) {
     broadcastToRoom(room, { type: 'player_reconnected', seatIndex: existingPlayer.seatIndex }, ws);
     return;
   }
+  
+  // Clean up stale disconnected players (only if game hasn't started yet)
+  if (!room.gameState) {
+    const staleTokens: string[] = [];
+    for (const [token, p] of Array.from(room.players.entries())) {
+      if (!p.ws || p.ws.readyState !== WebSocket.OPEN) {
+        staleTokens.push(token);
+      }
+    }
+    for (const token of staleTokens) {
+      room.players.delete(token);
+      log(`Cleaned up stale player with token ${token.substring(0, 8)}...`, 'ws');
+    }
+  }
 
-  const humanSeats = Array.from(room.players.values()).map(p => p.seatIndex);
+  // Get only connected human player seats
+  const humanSeats = Array.from(room.players.values())
+    .filter(p => p.ws && p.ws.readyState === WebSocket.OPEN)
+    .map(p => p.seatIndex);
   const cpuSeats = room.cpuPlayers.map(cpu => cpu.seatIndex);
   
   let availableSeat = [0, 1, 2, 3].find(seat => !humanSeats.includes(seat) && !cpuSeats.includes(seat));

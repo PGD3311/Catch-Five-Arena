@@ -217,6 +217,12 @@ export function useMultiplayer() {
 
   const joinRoom = useCallback((roomCode: string, playerName: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
+      // Clear any existing session data before joining a new room
+      // to prevent stale token issues
+      sessionStorage.removeItem('playerToken');
+      sessionStorage.removeItem('roomCode');
+      sessionStorage.removeItem('playerName');
+      
       wsRef.current.send(JSON.stringify({
         type: 'join_room',
         roomCode,
