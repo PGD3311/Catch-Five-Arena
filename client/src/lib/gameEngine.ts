@@ -776,6 +776,7 @@ export function playCard(state: GameState, card: Card): GameState {
         };
       });
 
+      // Game ends when any team reaches target score (set penalty already applied above)
       const gameOver = newTeams.some(t => t.score >= state.targetScore);
 
       return {
@@ -788,6 +789,7 @@ export function playCard(state: GameState, card: Card): GameState {
         trickNumber: newTrickNumber,
         phase: gameOver ? 'game-over' : 'scoring',
         roundScores: scoreDetails.teamPoints,
+        roundScoreDetails: scoreDetails,
       };
     }
 
@@ -872,6 +874,7 @@ export function applyAutoClaim(state: GameState, claimerId: string): GameState {
     };
   });
 
+  // Game ends when any team reaches target score (set penalty already applied above)
   const gameOver = newTeams.some(t => t.score >= state.targetScore);
 
   return {
@@ -888,12 +891,39 @@ export function applyAutoClaim(state: GameState, claimerId: string): GameState {
 }
 
 export function getWinningTeam(state: GameState): Team | null {
-  const winningTeam = state.teams.find(t => t.score >= state.targetScore);
-  if (winningTeam) return winningTeam;
+  const teamsAt25 = state.teams.filter(t => t.score >= state.targetScore);
   
-  const maxScore = Math.max(...state.teams.map(t => t.score));
-  const winners = state.teams.filter(t => t.score === maxScore);
-  return winners.length === 1 ? winners[0] : null;
+  if (teamsAt25.length === 0) {
+    // No team at target - check for max score (shouldn't happen in game-over)
+    const maxScore = Math.max(...state.teams.map(t => t.score));
+    const winners = state.teams.filter(t => t.score === maxScore);
+    return winners.length === 1 ? winners[0] : null;
+  }
+  
+  if (teamsAt25.length === 1) {
+    return teamsAt25[0];
+  }
+  
+  // Both teams at 25+ - bidder wins if they made their bid, otherwise highest score
+  const bidderTeamId = state.players.find(p => p.id === state.bidderId)?.teamId;
+  const bidderTeam = teamsAt25.find(t => t.id === bidderTeamId);
+  const nonBidderTeam = teamsAt25.find(t => t.id !== bidderTeamId);
+  
+  // If bidder made their bid (they're at 25+ without being set), they win
+  if (bidderTeam && state.roundScores) {
+    const bidderPoints = state.roundScores[bidderTeamId!] || 0;
+    if (bidderPoints >= state.highBid) {
+      return bidderTeam;
+    }
+  }
+  
+  // Otherwise highest score wins, or non-bidder if tied
+  if (bidderTeam && nonBidderTeam) {
+    if (bidderTeam.score > nonBidderTeam.score) return bidderTeam;
+    return nonBidderTeam;
+  }
+  
+  return teamsAt25[0];
 }
 
 export function isPlayersTurn(state: GameState, playerId: string): boolean {
