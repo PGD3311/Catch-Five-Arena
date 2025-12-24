@@ -488,7 +488,16 @@ async function processCpuTurns(room: GameRoom) {
     const currentPlayer = state.players[state.currentPlayerIndex];
     if (currentPlayer.isHuman) break;
     
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // Longer delay for CPU actions (1.2-1.5 seconds) for better visual pacing
+    const baseDelay = 1200 + Math.random() * 300;
+    await new Promise(resolve => setTimeout(resolve, baseDelay));
+    
+    // Check again after delay (state may have changed)
+    if (!room.gameState) return;
+    state = room.gameState;
+    if (state.players[state.currentPlayerIndex].isHuman) break;
+    
+    const trickLengthBefore = state.currentTrick.length;
     
     if (state.phase === 'bidding') {
       const isDealer = state.dealerIndex === state.currentPlayerIndex;
@@ -518,6 +527,14 @@ async function processCpuTurns(room: GameRoom) {
     
     room.gameState = state;
     broadcastGameState(room);
+    
+    // If a trick just completed (was 3 cards, now reset to 0), add extra delay for animation
+    if (trickLengthBefore === 3 && state.currentTrick.length === 0) {
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      // Re-check state after the pause
+      if (!room.gameState) return;
+      state = room.gameState;
+    }
   }
 }
 
