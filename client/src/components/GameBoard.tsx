@@ -355,7 +355,8 @@ export function GameBoard() {
     if (gameState.phase === 'bidding') {
       const currentPlayer = gameState.players[gameState.currentPlayerIndex];
       if (!currentPlayer.isHuman) {
-        const baseDelay = 800 + Math.random() * 600;
+        // Slower bidding timing (1.0-1.5 seconds)
+        const baseDelay = 1000 + Math.random() * 500;
         const timer = setTimeout(() => {
           const passedCount = gameState.players.filter(p => p.bid === 0).length;
           const isDealer = gameState.currentPlayerIndex === gameState.dealerIndex;
@@ -373,13 +374,14 @@ export function GameBoard() {
     if (gameState.phase === 'trump-selection') {
       const bidder = gameState.players.find(p => p.id === gameState.bidderId);
       if (bidder && !bidder.isHuman) {
+        // Slower trump selection timing (1.0-1.4 seconds)
         const timer = setTimeout(() => {
           // Check if dealer was forced to bid (all others passed, bid is minimum)
           const wasForcedBid = gameState.highBid === 5 && 
             gameState.players.filter(p => p.bid === 0).length === 3;
           const bestSuit = getCpuTrumpChoice(bidder.hand, wasForcedBid);
           handleTrumpSelect(bestSuit);
-        }, 900 + Math.random() * 400);
+        }, 1000 + Math.random() * 400);
         return () => clearTimeout(timer);
       }
     }
@@ -393,7 +395,8 @@ export function GameBoard() {
     
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
     if (!currentPlayer.isHuman && currentPlayer.hand.length > 0) {
-      const baseDelay = 700 + Math.random() * 500;
+      // Slower, more deliberate timing for CPU plays (1.2-1.8 seconds)
+      const baseDelay = 1200 + Math.random() * 600;
       const timer = setTimeout(() => {
         // Double-check we're still in playing phase and it's still this CPU's turn
         setGameState(prev => {
