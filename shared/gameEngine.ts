@@ -791,13 +791,19 @@ export function canPlayCard(card: Card, hand: Card[], currentTrick: { playerId: 
     return true;
   }
   
+  // PITCH RULE: You can ALWAYS play trump, even if you have the lead suit
+  if (trumpSuit && card.suit === trumpSuit) {
+    return true;
+  }
+  
+  // If you don't have the lead suit, you can play anything
   const hasLeadSuit = hand.some(c => c.suit === leadSuit);
-
-  if (hasLeadSuit) {
-    return card.suit === leadSuit;
+  if (!hasLeadSuit) {
+    return true;
   }
 
-  return true;
+  // You have the lead suit but are trying to play a non-trump off-suit - not allowed
+  return false;
 }
 
 export function startNewRound(state: GameState): GameState {
