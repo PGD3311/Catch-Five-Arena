@@ -303,24 +303,9 @@ async function handleJoinRoom(ws: WebSocket, message: any) {
     return;
   }
   
-  // Clean up stale disconnected players (only if game hasn't started yet)
-  if (!room.gameState) {
-    const staleTokens: string[] = [];
-    for (const [token, p] of Array.from(room.players.entries())) {
-      if (!p.ws || p.ws.readyState !== WebSocket.OPEN) {
-        staleTokens.push(token);
-      }
-    }
-    for (const token of staleTokens) {
-      room.players.delete(token);
-      log(`Cleaned up stale player with token ${token.substring(0, 8)}...`, 'ws');
-    }
-  }
-
-  // Get only connected human player seats
-  const humanSeats = Array.from(room.players.values())
-    .filter(p => p.ws && p.ws.readyState === WebSocket.OPEN)
-    .map(p => p.seatIndex);
+  // Get all human player seats (both connected and disconnected during lobby)
+  // Don't clean up stale players here - let handlePlayerDisconnect manage that
+  const humanSeats = Array.from(room.players.values()).map(p => p.seatIndex);
   const cpuSeats = room.cpuPlayers.map(cpu => cpu.seatIndex);
   
   let availableSeat = [0, 1, 2, 3].find(seat => !humanSeats.includes(seat) && !cpuSeats.includes(seat));
@@ -597,26 +582,14 @@ async function handleAddCpu(ws: WebSocket, message: any) {
     return;
   }
   
-  // Check for connected human players at this seat
-  const humanAtSeat = Array.from(room.players.values()).find(
-    p => p.seatIndex === seatIndex && p.ws && p.ws.readyState === WebSocket.OPEN
-  );
+  // Check if any player (human or CPU) is at this seat
+  const humanAtSeat = Array.from(room.players.values()).find(p => p.seatIndex === seatIndex);
+  const cpuAtSeat = room.cpuPlayers.find(cpu => cpu.seatIndex === seatIndex);
   
-  if (humanAtSeat) {
-    ws.send(JSON.stringify({ type: 'error', message: 'Seat is already taken by a connected player' }));
+  if (humanAtSeat || cpuAtSeat) {
+    ws.send(JSON.stringify({ type: 'error', message: 'Seat is already taken' }));
     return;
   }
-  
-  // Remove any disconnected human players at this seat
-  const playersToRemove = Array.from(room.players.entries())
-    .filter(([_, p]) => p.seatIndex === seatIndex);
-  for (const [token] of playersToRemove) {
-    room.players.delete(token);
-    log(`Removed disconnected player from seat ${seatIndex}`, 'ws');
-  }
-  
-  // Remove any existing CPU at this seat (shouldn't happen but be safe)
-  room.cpuPlayers = room.cpuPlayers.filter(cpu => cpu.seatIndex !== seatIndex);
 
   const cpuNames = ['CPU Alpha', 'CPU Beta', 'CPU Gamma', 'CPU Delta'];
   room.cpuPlayers.push({
