@@ -266,7 +266,7 @@ async function handleJoinRoom(ws: WebSocket, message: any) {
   }
   
   if (!room) {
-    ws.send(JSON.stringify({ type: 'error', message: 'Room not found' }));
+    ws.send(JSON.stringify({ type: 'error', message: 'Room not found', clearSession: true }));
     return;
   }
 

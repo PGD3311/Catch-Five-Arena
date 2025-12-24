@@ -46,11 +46,13 @@ export function useMultiplayer() {
 
       const savedToken = sessionStorage.getItem('playerToken');
       const savedRoom = sessionStorage.getItem('roomCode');
+      const savedName = sessionStorage.getItem('playerName');
       if (savedToken && savedRoom) {
         ws.send(JSON.stringify({
           type: 'join_room',
           roomCode: savedRoom,
           playerToken: savedToken,
+          playerName: savedName || '', // Send saved name for fallback if token is invalid
         }));
       }
       
@@ -90,6 +92,11 @@ export function useMultiplayer() {
       case 'joined':
         sessionStorage.setItem('playerToken', message.playerToken);
         sessionStorage.setItem('roomCode', message.roomCode);
+        // Also save the player name from the players list
+        const myPlayer = message.players?.find((p: any) => p.seatIndex === message.seatIndex);
+        if (myPlayer?.playerName) {
+          sessionStorage.setItem('playerName', myPlayer.playerName);
+        }
         setState(prev => ({
           ...prev,
           roomCode: message.roomCode,
@@ -101,6 +108,11 @@ export function useMultiplayer() {
         break;
 
       case 'rejoined':
+        // Update saved player name on rejoin
+        const rejoiningPlayer = message.players?.find((p: any) => p.seatIndex === message.seatIndex);
+        if (rejoiningPlayer?.playerName) {
+          sessionStorage.setItem('playerName', rejoiningPlayer.playerName);
+        }
         setState(prev => ({
           ...prev,
           roomCode: message.roomCode,
@@ -162,6 +174,12 @@ export function useMultiplayer() {
         break;
 
       case 'error':
+        // If the error indicates session is invalid, clear stored session data
+        if (message.clearSession) {
+          sessionStorage.removeItem('playerToken');
+          sessionStorage.removeItem('roomCode');
+          sessionStorage.removeItem('playerName');
+        }
         setState(prev => ({ ...prev, error: message.message }));
         break;
       
