@@ -106,8 +106,22 @@ export function MultiplayerLobby({
     }
   };
 
-  const getSeatLabel = (index: number) => {
-    const labels = ['South (You)', 'West', 'North (Partner)', 'East'];
+  const getSeatLabel = (index: number, showYou: boolean = true) => {
+    if (showYou && index === seatIndex) {
+      if (index === 0) return 'South (You)';
+      if (index === 1) return 'West (You)';
+      if (index === 2) return 'North (You)';
+      if (index === 3) return 'East (You)';
+    }
+    // Partner is whoever shares your team
+    if (showYou && seatIndex !== null) {
+      const partnerSeat = (seatIndex + 2) % 4;
+      if (index === partnerSeat) {
+        const baseLabels = ['South', 'West', 'North', 'East'];
+        return `${baseLabels[index]} (Partner)`;
+      }
+    }
+    const labels = ['South', 'West', 'North', 'East'];
     return labels[index];
   };
 
@@ -468,7 +482,7 @@ export function MultiplayerLobby({
                   >
                     <div className="flex items-center justify-between gap-1 mb-1">
                       <span className="text-xs text-muted-foreground">
-                        {getSeatLabel(seat)}
+                        {getSeatLabel(seat, false)}
                       </span>
                       <Badge 
                         variant="secondary" 
