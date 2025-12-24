@@ -587,6 +587,7 @@ export function GameBoard() {
               error={multiplayer.error}
               onCreateRoom={multiplayer.createRoom}
               onJoinRoom={multiplayer.joinRoom}
+              onPreviewRoom={multiplayer.previewRoom}
               onStartGame={multiplayer.startGame}
               onLeaveRoom={() => {
                 multiplayer.leaveRoom();

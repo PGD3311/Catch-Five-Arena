@@ -215,7 +215,7 @@ export function useMultiplayer() {
     }
   }, []);
 
-  const joinRoom = useCallback((roomCode: string, playerName: string) => {
+  const joinRoom = useCallback((roomCode: string, playerName: string, preferredSeat?: number) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       // Clear any existing session data before joining a new room
       // to prevent stale token issues
@@ -227,8 +227,45 @@ export function useMultiplayer() {
         type: 'join_room',
         roomCode,
         playerName,
+        preferredSeat,
       }));
     }
+  }, []);
+
+  const previewRoom = useCallback((roomCode: string): Promise<{ availableSeats: number[]; players: { seatIndex: number; playerName: string; connected: boolean; isCpu?: boolean }[] } | null> => {
+    return new Promise((resolve) => {
+      if (wsRef.current?.readyState !== WebSocket.OPEN) {
+        resolve(null);
+        return;
+      }
+      
+      const handler = (event: MessageEvent) => {
+        const message = JSON.parse(event.data);
+        if (message.type === 'room_preview') {
+          wsRef.current?.removeEventListener('message', handler);
+          resolve({
+            availableSeats: message.availableSeats,
+            players: message.players,
+          });
+        } else if (message.type === 'error') {
+          wsRef.current?.removeEventListener('message', handler);
+          setState(prev => ({ ...prev, error: message.message }));
+          resolve(null);
+        }
+      };
+      
+      wsRef.current.addEventListener('message', handler);
+      wsRef.current.send(JSON.stringify({
+        type: 'preview_room',
+        roomCode,
+      }));
+      
+      // Timeout after 5 seconds
+      setTimeout(() => {
+        wsRef.current?.removeEventListener('message', handler);
+        resolve(null);
+      }, 5000);
+    });
   }, []);
 
   const startGame = useCallback(() => {
@@ -291,6 +328,7 @@ export function useMultiplayer() {
     ...state,
     createRoom,
     joinRoom,
+    previewRoom,
     startGame,
     sendAction,
     leaveRoom,

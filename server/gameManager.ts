@@ -132,9 +132,38 @@ async function handleMessage(ws: WebSocket, message: any) {
     case 'send_chat':
       await handleSendChat(ws, message);
       break;
+    case 'preview_room':
+      handlePreviewRoom(ws, message);
+      break;
     default:
       ws.send(JSON.stringify({ type: 'error', message: 'Unknown message type' }));
   }
+}
+
+function handlePreviewRoom(ws: WebSocket, message: any) {
+  const { roomCode } = message;
+  const room = rooms.get(roomCode?.toUpperCase());
+  
+  if (!room) {
+    ws.send(JSON.stringify({ type: 'error', message: 'Room not found' }));
+    return;
+  }
+  
+  if (room.gameState) {
+    ws.send(JSON.stringify({ type: 'error', message: 'Game already in progress' }));
+    return;
+  }
+  
+  const players = getPlayerList(room);
+  const occupiedSeats = new Set(players.map(p => p.seatIndex));
+  const availableSeats = [0, 1, 2, 3].filter(seat => !occupiedSeats.has(seat));
+  
+  ws.send(JSON.stringify({
+    type: 'room_preview',
+    roomCode: room.code,
+    players,
+    availableSeats,
+  }));
 }
 
 async function handleCreateRoom(ws: WebSocket, message: any) {
@@ -208,7 +237,7 @@ async function handleCreateRoom(ws: WebSocket, message: any) {
 }
 
 async function handleJoinRoom(ws: WebSocket, message: any) {
-  const { roomCode, playerName, playerToken: existingToken } = message;
+  const { roomCode, playerName, playerToken: existingToken, preferredSeat } = message;
   
   // Require a player name to join
   const trimmedName = playerName?.trim?.() || '';
@@ -308,8 +337,26 @@ async function handleJoinRoom(ws: WebSocket, message: any) {
   const humanSeats = Array.from(room.players.values()).map(p => p.seatIndex);
   const cpuSeats = room.cpuPlayers.map(cpu => cpu.seatIndex);
   
-  let availableSeat = [0, 1, 2, 3].find(seat => !humanSeats.includes(seat) && !cpuSeats.includes(seat));
+  let availableSeat: number | undefined;
   
+  // Check if preferred seat is available
+  if (typeof preferredSeat === 'number' && preferredSeat >= 0 && preferredSeat <= 3) {
+    if (!humanSeats.includes(preferredSeat) && !cpuSeats.includes(preferredSeat)) {
+      availableSeat = preferredSeat;
+    } else if (!humanSeats.includes(preferredSeat) && cpuSeats.includes(preferredSeat)) {
+      // Replace CPU at preferred seat
+      room.cpuPlayers = room.cpuPlayers.filter(cpu => cpu.seatIndex !== preferredSeat);
+      availableSeat = preferredSeat;
+      log(`CPU removed from seat ${preferredSeat} to give player their preferred seat`, 'ws');
+    }
+  }
+  
+  // If preferred seat not available, find any available seat
+  if (availableSeat === undefined) {
+    availableSeat = [0, 1, 2, 3].find(seat => !humanSeats.includes(seat) && !cpuSeats.includes(seat));
+  }
+  
+  // If still no seat, try replacing a CPU
   if (availableSeat === undefined) {
     const cpuSeatToReplace = [0, 1, 2, 3].find(seat => !humanSeats.includes(seat) && cpuSeats.includes(seat));
     if (cpuSeatToReplace !== undefined) {

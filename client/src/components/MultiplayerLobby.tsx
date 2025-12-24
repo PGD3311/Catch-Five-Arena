@@ -20,7 +20,8 @@ interface MultiplayerLobbyProps {
   players: RoomPlayer[];
   error: string | null;
   onCreateRoom: (playerName: string, deckColor: DeckColor, targetScore: number) => void;
-  onJoinRoom: (roomCode: string, playerName: string) => void;
+  onJoinRoom: (roomCode: string, playerName: string, preferredSeat?: number) => void;
+  onPreviewRoom: (roomCode: string) => Promise<{ availableSeats: number[]; players: RoomPlayer[] } | null>;
   onStartGame: () => void;
   onLeaveRoom: () => void;
   onClose: () => void;
@@ -40,6 +41,7 @@ export function MultiplayerLobby({
   error,
   onCreateRoom,
   onJoinRoom,
+  onPreviewRoom,
   onStartGame,
   onLeaveRoom,
   onClose,
@@ -53,8 +55,13 @@ export function MultiplayerLobby({
   const [playerName, setPlayerName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [copied, setCopied] = useState(false);
-  const [mode, setMode] = useState<'menu' | 'create' | 'join'>('menu');
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [mode, setMode] = useState<'menu' | 'create' | 'join' | 'select-seat'>('menu');
   const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
+  const [availableSeats, setAvailableSeats] = useState<number[]>([]);
+  const [previewPlayers, setPreviewPlayers] = useState<RoomPlayer[]>([]);
+  const [preferredSeat, setPreferredSeat] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleCreateRoom = () => {
     if (playerName.trim()) {
@@ -62,9 +69,23 @@ export function MultiplayerLobby({
     }
   };
 
+  const handlePreviewRoom = async () => {
+    if (playerName.trim() && joinCode.trim()) {
+      setIsLoading(true);
+      const preview = await onPreviewRoom(joinCode.trim().toUpperCase());
+      setIsLoading(false);
+      if (preview) {
+        setAvailableSeats(preview.availableSeats);
+        setPreviewPlayers(preview.players);
+        setPreferredSeat(preview.availableSeats[0] ?? null);
+        setMode('select-seat');
+      }
+    }
+  };
+
   const handleJoinRoom = () => {
     if (playerName.trim() && joinCode.trim()) {
-      onJoinRoom(joinCode.trim().toUpperCase(), playerName.trim());
+      onJoinRoom(joinCode.trim().toUpperCase(), playerName.trim(), preferredSeat ?? undefined);
     }
   };
 
@@ -74,6 +95,14 @@ export function MultiplayerLobby({
       await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const copyCodeOnly = async () => {
+    if (roomCode) {
+      await navigator.clipboard.writeText(roomCode);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
     }
   };
 
@@ -100,8 +129,23 @@ export function MultiplayerLobby({
               <Users className="w-5 h-5" />
               Game Lobby
             </CardTitle>
-            <Badge variant="outline" className="text-sm font-mono">
-              {roomCode}
+            <Badge 
+              variant="outline" 
+              className="text-sm font-mono cursor-pointer hover-elevate"
+              onClick={copyCodeOnly}
+              data-testid="badge-room-code"
+            >
+              {codeCopied ? (
+                <>
+                  <Check className="w-3 h-3 mr-1" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3 h-3 mr-1" />
+                  {roomCode}
+                </>
+              )}
             </Badge>
           </div>
           <CardDescription>
@@ -381,15 +425,88 @@ export function MultiplayerLobby({
               data-testid="input-room-code"
             />
             <Button
-              onClick={handleJoinRoom}
-              disabled={!playerName.trim() || joinCode.length !== 6}
+              onClick={handlePreviewRoom}
+              disabled={!playerName.trim() || joinCode.length !== 6 || isLoading}
               className="w-full"
               data-testid="button-confirm-join"
+            >
+              {isLoading ? 'Loading...' : 'Next'}
+            </Button>
+            <Button
+              onClick={() => setMode('menu')}
+              variant="ghost"
+              className="w-full"
+            >
+              Back
+            </Button>
+          </div>
+        )}
+
+        {mode === 'select-seat' && connected && (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground text-center">
+              Choose your seat in the game
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {[0, 1, 2, 3].map((seat) => {
+                const player = previewPlayers.find(p => p.seatIndex === seat);
+                const isAvailable = availableSeats.includes(seat);
+                const isSelected = preferredSeat === seat;
+                
+                return (
+                  <div
+                    key={seat}
+                    onClick={() => isAvailable && setPreferredSeat(seat)}
+                    className={`p-3 rounded-md border transition-all ${
+                      player
+                        ? 'bg-muted/50 border-border opacity-60'
+                        : isSelected
+                        ? 'border-primary bg-primary/10 ring-2 ring-primary'
+                        : 'border-dashed border-muted-foreground/30 cursor-pointer hover:border-primary/50'
+                    }`}
+                    data-testid={`select-seat-${seat}`}
+                  >
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span className="text-xs text-muted-foreground">
+                        {getSeatLabel(seat)}
+                      </span>
+                      <Badge 
+                        variant="secondary" 
+                        className={`text-xs ${seat % 2 === 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}`}
+                      >
+                        {getTeamLabel(seat)}
+                      </Badge>
+                    </div>
+                    {player ? (
+                      <div className="flex items-center gap-2">
+                        {player.isCpu ? (
+                          <Bot className="w-3 h-3 text-muted-foreground" />
+                        ) : (
+                          <Wifi className="w-3 h-3 text-green-500" />
+                        )}
+                        <span className="text-sm font-medium truncate">
+                          {player.playerName}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className={`text-sm ${isSelected ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                        {isSelected ? 'Selected' : 'Available'}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <Button
+              onClick={handleJoinRoom}
+              disabled={preferredSeat === null}
+              className="w-full"
+              data-testid="button-join-with-seat"
             >
               Join Room
             </Button>
             <Button
-              onClick={() => setMode('menu')}
+              onClick={() => setMode('join')}
               variant="ghost"
               className="w-full"
             >
