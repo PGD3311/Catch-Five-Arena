@@ -104,6 +104,30 @@ export const TOTAL_TRICKS = 6;
 export const DEFAULT_TARGET_SCORE = 25;
 export const TOTAL_POINTS_PER_ROUND = 9;
 
+// Chat and emoji types
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  type: 'text' | 'emoji';
+  content: string;
+  timestamp: number;
+}
+
+// Quick emoji reactions for card games
+export const QUICK_EMOJIS = [
+  { id: 'thumbsup', icon: 'ThumbsUp', label: 'Nice!' },
+  { id: 'thumbsdown', icon: 'ThumbsDown', label: 'Oops' },
+  { id: 'laugh', icon: 'Laugh', label: 'Ha!' },
+  { id: 'angry', icon: 'Angry', label: 'Ugh' },
+  { id: 'heart', icon: 'Heart', label: 'Love it' },
+  { id: 'fire', icon: 'Flame', label: 'Hot!' },
+  { id: 'clap', icon: 'HandMetal', label: 'GG' },
+  { id: 'think', icon: 'Brain', label: 'Hmm...' },
+] as const;
+
+export type QuickEmojiId = typeof QUICK_EMOJIS[number]['id'];
+
 export function createDeck(): Card[] {
   const deck: Card[] = [];
   for (const suit of SUITS) {

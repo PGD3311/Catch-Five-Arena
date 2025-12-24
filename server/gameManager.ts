@@ -2,7 +2,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { randomUUID } from 'crypto';
 import { storage } from './storage';
 import { log } from './index';
-import type { GameState, Card, Suit, DeckColor } from '@shared/gameTypes';
+import type { GameState, Card, Suit, DeckColor, ChatMessage } from '@shared/gameTypes';
 import * as gameEngine from '@shared/gameEngine';
 
 interface ConnectedPlayer {
@@ -26,6 +26,7 @@ interface GameRoom {
   gameState: GameState | null;
   deckColor: DeckColor;
   targetScore: number;
+  chatMessages: ChatMessage[];
 }
 
 const rooms = new Map<string, GameRoom>();
@@ -128,6 +129,9 @@ async function handleMessage(ws: WebSocket, message: any) {
     case 'randomize_teams':
       await handleRandomizeTeams(ws);
       break;
+    case 'send_chat':
+      await handleSendChat(ws, message);
+      break;
     default:
       ws.send(JSON.stringify({ type: 'error', message: 'Unknown message type' }));
   }
@@ -152,6 +156,7 @@ async function handleCreateRoom(ws: WebSocket, message: any) {
     gameState: null,
     deckColor,
     targetScore,
+    chatMessages: [],
   };
 
   const connectedPlayer: ConnectedPlayer = {
@@ -215,6 +220,7 @@ async function handleJoinRoom(ws: WebSocket, message: any) {
         gameState: storedRoom.gameState as GameState | null,
         deckColor: (storedRoom.deckColor || 'blue') as DeckColor,
         targetScore: storedRoom.targetScore || 25,
+        chatMessages: [],
       };
       rooms.set(normalizedCode, room);
     }
@@ -745,6 +751,52 @@ function broadcastToRoom(room: GameRoom, message: any, excludeWs?: WebSocket) {
   for (const player of players) {
     if (player.ws !== excludeWs && player.ws.readyState === WebSocket.OPEN) {
       player.ws.send(JSON.stringify(message));
+    }
+  }
+}
+
+async function handleSendChat(ws: WebSocket, message: any) {
+  const player = playerConnections.get(ws);
+  if (!player) {
+    ws.send(JSON.stringify({ type: 'error', message: 'Not in a room' }));
+    return;
+  }
+
+  const room = rooms.get(player.roomId) || Array.from(rooms.values()).find(r => r.players.has(player.playerToken));
+  if (!room) {
+    ws.send(JSON.stringify({ type: 'error', message: 'Room not found' }));
+    return;
+  }
+
+  const { chatType, content } = message;
+  
+  if (!content || typeof content !== 'string') {
+    return;
+  }
+
+  const chatMessage: ChatMessage = {
+    id: randomUUID(),
+    senderId: `player${player.seatIndex + 1}`,
+    senderName: player.playerName,
+    type: chatType === 'emoji' ? 'emoji' : 'text',
+    content: content.slice(0, 200), // Limit message length
+    timestamp: Date.now(),
+  };
+
+  // Keep only last 50 messages
+  room.chatMessages.push(chatMessage);
+  if (room.chatMessages.length > 50) {
+    room.chatMessages = room.chatMessages.slice(-50);
+  }
+
+  // Broadcast to all players including sender
+  const players = Array.from(room.players.values());
+  for (const p of players) {
+    if (p.ws.readyState === WebSocket.OPEN) {
+      p.ws.send(JSON.stringify({
+        type: 'chat_message',
+        message: chatMessage,
+      }));
     }
   }
 }
