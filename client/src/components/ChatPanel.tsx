@@ -161,7 +161,7 @@ export function ChatPanel({
         size="icon"
         variant="outline"
         onClick={onToggle}
-        className="fixed bottom-20 right-4 z-50 rounded-full shadow-lg h-12 w-12"
+        className="fixed bottom-24 right-4 z-[100] rounded-full shadow-lg h-12 w-12"
         data-testid="button-open-chat"
       >
         <MessageCircle className="w-6 h-6" />
@@ -175,7 +175,7 @@ export function ChatPanel({
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-80 bg-card border rounded-lg shadow-xl flex flex-col" style={{ maxHeight: '400px' }}>
+    <div className="fixed bottom-4 right-4 z-[100] w-80 bg-card border rounded-lg shadow-xl flex flex-col" style={{ maxHeight: '400px' }}>
       <div className="flex items-center justify-between gap-2 p-3 border-b">
         <div className="flex items-center gap-2">
           <MessageCircle className="w-4 h-4 text-muted-foreground" />
