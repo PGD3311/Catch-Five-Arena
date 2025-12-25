@@ -506,8 +506,11 @@ async function handlePlayerAction(ws: WebSocket, message: any) {
 
   switch (action) {
     case 'finalize_dealer_draw':
-      newState = gameEngine.finalizeDealerDraw(newState);
-      newState = gameEngine.dealCards(newState);
+      // Only process if we're in dealer-draw phase (prevent duplicate calls)
+      if (newState.phase === 'dealer-draw') {
+        newState = gameEngine.finalizeDealerDraw(newState);
+        newState = gameEngine.dealCards(newState);
+      }
       break;
     case 'bid':
       newState = gameEngine.processBid(newState, data.amount);
@@ -522,15 +525,23 @@ async function handlePlayerAction(ws: WebSocket, message: any) {
       newState = gameEngine.discardTrumpCard(newState, data.card);
       break;
     case 'continue':
-      if (gameEngine.checkGameOver(newState)) {
-        newState = gameEngine.initializeGame(room.deckColor, room.targetScore);
-      } else {
-        newState = gameEngine.startNewRound(newState);
+      // Only process if we're in scoring or game-over phase (prevent duplicate calls)
+      if (newState.phase === 'scoring' || newState.phase === 'game-over') {
+        if (gameEngine.checkGameOver(newState)) {
+          newState = gameEngine.initializeGame(room.deckColor, room.targetScore);
+        } else {
+          newState = gameEngine.startNewRound(newState);
+        }
       }
       break;
     case 'purge_draw_complete':
-      newState = gameEngine.performPurgeAndDraw(newState);
-      log(`sleptCards after purge: ${newState.sleptCards?.length || 0} cards`, 'ws');
+      // Only process if we're actually in purge-draw phase (prevent duplicate calls)
+      if (newState.phase === 'purge-draw') {
+        newState = gameEngine.performPurgeAndDraw(newState);
+        log(`sleptCards after purge: ${newState.sleptCards?.length || 0} cards`, 'ws');
+      } else {
+        log(`Ignoring duplicate purge_draw_complete, phase is ${newState.phase}`, 'ws');
+      }
       break;
     case 'sort_hand': {
       const SUIT_ORDER: Record<string, number> = { 'Clubs': 0, 'Diamonds': 1, 'Hearts': 2, 'Spades': 3 };
