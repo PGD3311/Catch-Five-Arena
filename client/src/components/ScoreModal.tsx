@@ -159,7 +159,7 @@ export function ScoreModal({
                   { key: 'five', label: 'Five', points: 5 },
                   { key: 'game', label: 'Game', points: 1 },
                 ].map(({ key, label, points }) => {
-                  const winner = roundScoreDetails[key as keyof RoundScoreDetails] as { teamId: string; card?: any } | null;
+                  const winner = roundScoreDetails[key as keyof RoundScoreDetails] as { teamId: string; card?: any; points?: number } | null;
                   const winningTeam = winner ? teams.find(t => t.id === winner.teamId) : null;
                   const isTeam1 = winningTeam?.id === 'team1';
                   
@@ -196,6 +196,66 @@ export function ScoreModal({
                   );
                 })}
               </div>
+              
+              {/* Game Point Breakdown */}
+              {roundScoreDetails.gameBreakdown && (
+                <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border/50">
+                  <h4 className="text-sm font-medium text-center mb-2">Game Point Breakdown</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {teams.map((team) => {
+                      const breakdown = roundScoreDetails.gameBreakdown[team.id];
+                      const isTeam1 = team.id === 'team1';
+                      const isWinner = roundScoreDetails.game?.teamId === team.id;
+                      
+                      const formatBreakdown = () => {
+                        const parts: string[] = [];
+                        if (breakdown.aces > 0) parts.push(`${breakdown.aces} A`);
+                        if (breakdown.kings > 0) parts.push(`${breakdown.kings} K`);
+                        if (breakdown.queens > 0) parts.push(`${breakdown.queens} Q`);
+                        if (breakdown.jacks > 0) parts.push(`${breakdown.jacks} J`);
+                        if (breakdown.tens > 0) parts.push(`${breakdown.tens} 10`);
+                        return parts.length > 0 ? parts.join(', ') : 'None';
+                      };
+                      
+                      return (
+                        <div
+                          key={team.id}
+                          className={cn(
+                            'p-2 rounded-md text-center',
+                            isWinner 
+                              ? isTeam1 
+                                ? 'bg-blue-500/20 ring-1 ring-blue-500/50' 
+                                : 'bg-orange-500/20 ring-1 ring-orange-500/50'
+                              : 'bg-muted/20'
+                          )}
+                          data-testid={`game-breakdown-${team.id}`}
+                        >
+                          <div className={cn(
+                            'text-xs font-medium mb-1',
+                            isTeam1 ? 'text-blue-400' : 'text-orange-400'
+                          )}>
+                            {team.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatBreakdown()}
+                          </div>
+                          <div className={cn(
+                            'text-sm font-bold mt-1',
+                            isWinner && (isTeam1 ? 'text-blue-400' : 'text-orange-400')
+                          )}>
+                            = {breakdown.total} pts
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {!roundScoreDetails.game && (
+                    <div className="text-xs text-center text-muted-foreground mt-2">
+                      Tie - no Game point awarded
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

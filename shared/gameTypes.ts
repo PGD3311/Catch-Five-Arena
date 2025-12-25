@@ -193,12 +193,22 @@ export function determineTrickWinner(trick: TrickCard[], trumpSuit: Suit | null)
   return winner.playerId;
 }
 
+export interface GamePointBreakdown {
+  aces: number;
+  kings: number;
+  queens: number;
+  jacks: number;
+  tens: number;
+  total: number;
+}
+
 export interface RoundScoreDetails {
   high: { teamId: string; card: Card } | null;
   low: { teamId: string; card: Card } | null;
   jack: { teamId: string } | null;
   five: { teamId: string } | null;
   game: { teamId: string; points: number } | null;
+  gameBreakdown: Record<string, GamePointBreakdown>;
   teamPoints: Record<string, number>;
 }
 
@@ -209,9 +219,11 @@ export function calculateRoundScores(
 ): RoundScoreDetails {
   const allTrumps: { teamId: string; card: Card }[] = [];
   const gamePoints: Record<string, number> = {};
+  const gameBreakdown: Record<string, GamePointBreakdown> = {};
   
   for (const team of teams) {
     gamePoints[team.id] = 0;
+    gameBreakdown[team.id] = { aces: 0, kings: 0, queens: 0, jacks: 0, tens: 0, total: 0 };
   }
 
   for (const player of players) {
@@ -219,7 +231,16 @@ export function calculateRoundScores(
       if (card.suit === trumpSuit) {
         allTrumps.push({ teamId: player.teamId, card });
       }
-      gamePoints[player.teamId] += getCardValue(card);
+      const cardValue = getCardValue(card);
+      gamePoints[player.teamId] += cardValue;
+      gameBreakdown[player.teamId].total += cardValue;
+      
+      // Count cards by rank for breakdown
+      if (card.rank === 'A') gameBreakdown[player.teamId].aces++;
+      else if (card.rank === 'K') gameBreakdown[player.teamId].kings++;
+      else if (card.rank === 'Q') gameBreakdown[player.teamId].queens++;
+      else if (card.rank === 'J') gameBreakdown[player.teamId].jacks++;
+      else if (card.rank === '10') gameBreakdown[player.teamId].tens++;
     }
   }
 
@@ -229,6 +250,7 @@ export function calculateRoundScores(
     jack: null,
     five: null,
     game: null,
+    gameBreakdown,
     teamPoints: { team1: 0, team2: 0 },
   };
 
