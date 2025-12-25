@@ -587,20 +587,14 @@ export function GameBoard() {
           </div>
           {!showMultiplayerLobby ? (
             <>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" onClick={handleStartGame} className="px-8" data-testid="button-start-game">
-                  Deal Cards
-                </Button>
-                <Button size="lg" variant="outline" onClick={() => setShowMultiplayerLobby(true)} data-testid="button-online-play">
-                  Online Play
+              <div className="flex flex-col gap-4">
+                <Button size="lg" onClick={() => setShowMultiplayerLobby(true)} className="px-8" data-testid="button-play">
+                  Play
                 </Button>
               </div>
               <Button variant="ghost" onClick={() => setRulesOpen(true)} data-testid="button-how-to-play">
                 How to Play
               </Button>
-              <p className="text-xs text-muted-foreground">
-                Open Settings to configure players and deck colors
-              </p>
             </>
           ) : (
             <MultiplayerLobby
