@@ -707,8 +707,8 @@ export function performPurgeAndDraw(state: GameState): GameState {
     }
   }
 
-  // Slept cards are ALL cards not in play (stock + discardPile)
-  const sleptCards = [...stock, ...discardPile];
+  // Slept cards are ONLY the remaining undrawn stock cards
+  const sleptCards = [...stock];
 
   return {
     ...state,
@@ -788,8 +788,8 @@ export function discardTrumpCard(state: GameState, card: Card): GameState {
     }
   }
 
-  // Slept cards are ALL cards not in play (stock + discardPile)
-  const sleptCards = [...stock, ...discardPile];
+  // Slept cards are ONLY the remaining undrawn stock cards
+  const sleptCards = [...stock];
 
   return {
     ...state,

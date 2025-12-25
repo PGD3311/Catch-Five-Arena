@@ -14,7 +14,6 @@ import { ActionPrompt } from './ActionPrompt';
 import { TurnTimer } from './TurnTimer';
 import { MultiplayerLobby } from './MultiplayerLobby';
 import { LastTrickModal } from './LastTrickModal';
-import { SleptCardsModal } from './SleptCardsModal';
 import { ChatPanel, FloatingEmoji, initAudioContext } from './ChatPanel';
 import type { ChatMessage } from '@shared/gameTypes';
 import { Button } from '@/components/ui/button';
@@ -54,7 +53,6 @@ export function GameBoard() {
   const [showDealerDraw, setShowDealerDraw] = useState(false);
   const [showMultiplayerLobby, setShowMultiplayerLobby] = useState(false);
   const [showLastTrick, setShowLastTrick] = useState(false);
-  const [showSleptCards, setShowSleptCards] = useState(false);
   const [trickWinner, setTrickWinner] = useState<Player | null>(null);
   const [displayTrick, setDisplayTrick] = useState<TrickCard[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -575,7 +573,6 @@ export function GameBoard() {
         onShareClick={() => setShareOpen(true)}
         onRulesClick={() => setRulesOpen(true)}
         onLastTrickClick={() => setShowLastTrick(true)}
-        onSleptCardsClick={() => setShowSleptCards(true)}
       />
       {gameState.phase === 'setup' && (
         <div className="flex-1 flex flex-col items-center justify-center gap-10 p-8">
@@ -798,6 +795,8 @@ export function GameBoard() {
         onContinue={handleContinue}
         isGameOver={checkGameOver(gameState)}
         targetScore={gameState.targetScore}
+        sleptCards={gameState.sleptCards}
+        trumpSuit={gameState.trumpSuit}
       />
       <SettingsPanel
         open={settingsOpen}
@@ -833,12 +832,6 @@ export function GameBoard() {
         players={gameState.players}
         winnerId={gameState.lastTrickWinnerId || null}
         trumpSuit={gameState.trumpSuit}
-      />
-      <SleptCardsModal
-        open={showSleptCards}
-        onClose={() => setShowSleptCards(false)}
-        sleptCards={gameState.sleptCards || []}
-        deckColor={gameState.deckColor}
       />
       {isMultiplayerMode && gameState.phase !== 'setup' && gameState.players[mySeatIndex] && (
         <ChatPanel

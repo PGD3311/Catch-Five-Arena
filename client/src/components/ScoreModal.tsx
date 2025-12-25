@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Team, Player, RoundScoreDetails } from '@shared/gameTypes';
+import { Team, Player, RoundScoreDetails, Card, SUITS } from '@shared/gameTypes';
 import { cn } from '@/lib/utils';
 import { Trophy, TrendingDown, TrendingUp, Users, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -54,7 +54,23 @@ interface ScoreModalProps {
   onContinue: () => void;
   isGameOver?: boolean;
   targetScore: number;
+  sleptCards?: Card[];
+  trumpSuit?: string | null;
 }
+
+const suitSymbol: Record<string, string> = {
+  Hearts: '\u2665',
+  Diamonds: '\u2666',
+  Clubs: '\u2663',
+  Spades: '\u2660',
+};
+
+const suitColor: Record<string, string> = {
+  Hearts: 'text-red-500',
+  Diamonds: 'text-blue-500',
+  Clubs: 'text-emerald-500',
+  Spades: 'text-foreground',
+};
 
 export function ScoreModal({
   open,
@@ -67,6 +83,8 @@ export function ScoreModal({
   onContinue,
   isGameOver = false,
   targetScore,
+  sleptCards = [],
+  trumpSuit,
 }: ScoreModalProps) {
   const bidder = players.find(p => p.id === bidderId);
   const bidderTeam = teams.find(t => t.id === bidder?.teamId);
@@ -256,6 +274,35 @@ export function ScoreModal({
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Slept Cards */}
+          {sleptCards.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="font-semibold text-sm text-muted-foreground">
+                Slept Cards ({sleptCards.length})
+              </h3>
+              <div className="flex flex-wrap gap-1 p-2 rounded-lg bg-muted/30 border border-border/50">
+                {SUITS.map(suit => {
+                  const cardsOfSuit = sleptCards.filter(c => c.suit === suit);
+                  if (cardsOfSuit.length === 0) return null;
+                  const isTrump = suit === trumpSuit;
+                  return (
+                    <div key={suit} className={cn(
+                      "flex items-center gap-0.5 px-1.5 py-0.5 rounded",
+                      isTrump && "bg-amber-500/20 ring-1 ring-amber-500/50"
+                    )}>
+                      <span className={cn("text-sm", suitColor[suit])}>
+                        {suitSymbol[suit]}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {cardsOfSuit.map(c => c.rank).join(', ')}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

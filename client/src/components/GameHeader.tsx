@@ -1,7 +1,7 @@
 import { GameState, Suit, Team } from '@shared/gameTypes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Settings, Heart, Diamond, Club, Spade, Users, Share2, HelpCircle, History, Moon } from 'lucide-react';
+import { Settings, Heart, Diamond, Club, Spade, Users, Share2, HelpCircle, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -11,7 +11,6 @@ interface GameHeaderProps {
   onShareClick: () => void;
   onRulesClick: () => void;
   onLastTrickClick?: () => void;
-  onSleptCardsClick?: () => void;
 }
 
 const TrumpIcon = ({ suit }: { suit: Suit }) => {
@@ -78,7 +77,7 @@ const TeamScore = ({ team, isYourTeam, targetScore }: { team: Team; isYourTeam: 
   );
 };
 
-export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesClick, onLastTrickClick, onSleptCardsClick }: GameHeaderProps) {
+export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesClick, onLastTrickClick }: GameHeaderProps) {
   const phaseLabel = getPhaseLabel(gameState.phase, gameState.trickNumber);
   const yourTeam = gameState.teams.find(t => t.id === 'team1');
   const opponentTeam = gameState.teams.find(t => t.id === 'team2');
@@ -135,18 +134,6 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
             data-testid="button-last-trick-header"
           >
             <History className="w-4 h-4" />
-          </Button>
-        )}
-
-        {gameState.sleptCards && gameState.sleptCards.length > 0 && onSleptCardsClick && (
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={onSleptCardsClick}
-            data-testid="button-slept-cards"
-            title="View slept cards"
-          >
-            <Moon className="w-4 h-4" />
           </Button>
         )}
 
