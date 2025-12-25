@@ -762,6 +762,9 @@ export function discardTrumpCard(state: GameState, card: Card): GameState {
   let stock = [...state.stock];
   let discardPile = newDiscardPile;
   
+  // Create deep copies of all players to avoid mutating original state
+  const playersForDraw = newPlayers.map(p => ({ ...p, hand: [...p.hand] }));
+  
   const drawOrder = [
     bidderIndex,
     (bidderIndex + 1) % 4,
@@ -770,7 +773,7 @@ export function discardTrumpCard(state: GameState, card: Card): GameState {
   ];
 
   for (const pIndex of drawOrder) {
-    const p = newPlayers[pIndex];
+    const p = playersForDraw[pIndex];
     const cardsToDraw = FINAL_HAND_SIZE - p.hand.length;
 
     for (let i = 0; i < cardsToDraw; i++) {
@@ -788,7 +791,7 @@ export function discardTrumpCard(state: GameState, card: Card): GameState {
 
   return {
     ...state,
-    players: newPlayers,
+    players: playersForDraw,
     stock,
     discardPile,
     sleptCards,
