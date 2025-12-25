@@ -733,6 +733,37 @@ export function performPurgeAndDraw(state: GameState): GameState {
   // Slept cards are ONLY the remaining undrawn stock cards
   const sleptCards = [...stock];
 
+  // VALIDATION: Check for exactly 52 unique cards
+  const allCardIds = new Set<string>();
+  const duplicates: string[] = [];
+  
+  // Count all cards in hands
+  for (const p of newPlayers) {
+    for (const c of p.hand) {
+      if (allCardIds.has(c.id)) duplicates.push(c.id);
+      allCardIds.add(c.id);
+    }
+  }
+  // Count stock
+  for (const c of stock) {
+    if (allCardIds.has(c.id)) duplicates.push(c.id);
+    allCardIds.add(c.id);
+  }
+  // Count discardPile
+  for (const c of discardPile) {
+    if (allCardIds.has(c.id)) duplicates.push(c.id);
+    allCardIds.add(c.id);
+  }
+  
+  const handTotal = newPlayers.reduce((sum, p) => sum + p.hand.length, 0);
+  console.log(`[CARD VALIDATION] After purge/draw: ${allCardIds.size} unique cards, ${handTotal} in hands, ${stock.length} in stock, ${discardPile.length} in discard`);
+  if (duplicates.length > 0) {
+    console.error(`[CARD VALIDATION] DUPLICATES FOUND: ${duplicates.join(', ')}`);
+  }
+  if (allCardIds.size !== 52) {
+    console.error(`[CARD VALIDATION] Expected 52 cards, found ${allCardIds.size}`);
+  }
+
   return {
     ...state,
     players: newPlayers,
