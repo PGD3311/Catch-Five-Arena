@@ -702,6 +702,9 @@ export function performPurgeAndDraw(state: GameState): GameState {
   }
 
   let usedPurgedCards = false;
+  
+  // Track original stock cards - only these can become slept cards
+  const originalStockIds = new Set(stock.map(c => c.id));
 
   for (const playerIndex of drawOrder) {
     const player = newPlayers[playerIndex];
@@ -731,8 +734,9 @@ export function performPurgeAndDraw(state: GameState): GameState {
     }
   }
 
-  // Slept cards are ONLY the remaining undrawn stock cards
-  const sleptCards = [...stock];
+  // Slept cards are ONLY cards from the ORIGINAL stock that were never drawn
+  // Cards from reshuffled discard pile are NOT slept cards
+  const sleptCards = stock.filter(c => originalStockIds.has(c.id));
 
   // VALIDATION: Check for exactly 52 unique cards
   const allCardIds = new Set<string>();
@@ -838,6 +842,9 @@ export function discardTrumpCard(state: GameState, card: Card): GameState {
   }
 
   let usedPurgedCards = false;
+  
+  // Track original stock cards - only these can become slept cards
+  const originalStockIds = new Set(stock.map(c => c.id));
 
   for (const pIndex of drawOrder) {
     const p = playersForDraw[pIndex];
@@ -864,8 +871,9 @@ export function discardTrumpCard(state: GameState, card: Card): GameState {
     }
   }
 
-  // Slept cards are ONLY the remaining undrawn stock cards
-  const sleptCards = [...stock];
+  // Slept cards are ONLY cards from the ORIGINAL stock that were never drawn
+  // Cards from reshuffled discard pile are NOT slept cards
+  const sleptCards = stock.filter(c => originalStockIds.has(c.id));
 
   // VALIDATION: Check for exactly 52 unique cards after discard-trump draw
   const allCardIds = new Set<string>();
