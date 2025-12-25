@@ -934,30 +934,17 @@ export function playCard(state: GameState, card: Card): GameState {
 
     const newTrickNumber = state.trickNumber + 1;
 
-    const scoreDetails = calculateRoundScores(newPlayers, state.teams, state.trumpSuit!);
-    const bidderTeamId = newPlayers.find(p => p.id === state.bidderId)?.teamId;
-    
-    // Check for early game-over conditions:
-    // 1. Non-bidding team can win mid-round if they reach target (can't be set)
-    // 2. Bidding team can win mid-round if they reach target AND have made their bid
-    const nonBidderTeam = state.teams.find(t => t.id !== bidderTeamId);
-    const bidderTeam = state.teams.find(t => t.id === bidderTeamId);
-    const nonBidderPoints = scoreDetails.teamPoints[nonBidderTeam?.id || ''] || 0;
-    const bidderPoints = scoreDetails.teamPoints[bidderTeamId || ''] || 0;
-    const nonBidderCurrentScore = (nonBidderTeam?.score || 0) + nonBidderPoints;
-    const bidderCurrentScore = (bidderTeam?.score || 0) + bidderPoints;
-    const bidderMadeBid = bidderPoints >= state.highBid;
-    
-    // Early game-over if non-bidder hits 25+, or bidder hits 25+ AND made their bid
-    const earlyGameOver = nonBidderCurrentScore >= state.targetScore || 
-      (bidderCurrentScore >= state.targetScore && bidderMadeBid);
-    
-    if (newTrickNumber > TOTAL_TRICKS || earlyGameOver) {
+    // Only calculate scores and check game-over AFTER all tricks are complete
+    // High and Low can only be determined when all trumps have been played
+    if (newTrickNumber > TOTAL_TRICKS) {
+      const scoreDetails = calculateRoundScores(newPlayers, state.teams, state.trumpSuit!);
+      const bidderTeamId = newPlayers.find(p => p.id === state.bidderId)?.teamId;
+      
       const newTeams = state.teams.map(team => {
         let pointsToAdd = scoreDetails.teamPoints[team.id];
         
-        // Only apply set penalty at end of round, not for early game-over
-        if (!earlyGameOver && team.id === bidderTeamId && pointsToAdd < state.highBid) {
+        // Apply set penalty if bidder didn't make their bid
+        if (team.id === bidderTeamId && pointsToAdd < state.highBid) {
           pointsToAdd = -state.highBid;
         }
         
