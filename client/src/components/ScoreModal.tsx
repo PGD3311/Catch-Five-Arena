@@ -79,7 +79,7 @@ export function ScoreModal({
 
   return (
     <Dialog open={open}>
-      <DialogContent className="sm:max-w-xl overflow-hidden" onPointerDownOutside={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto" onPointerDownOutside={(e) => e.preventDefault()}>
         {isGameOver && isYourTeamWinning && <Confetti count={60} />}
         
         <DialogHeader className="relative">
