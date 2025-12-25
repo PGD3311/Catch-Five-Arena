@@ -14,6 +14,7 @@ import { ActionPrompt } from './ActionPrompt';
 import { TurnTimer } from './TurnTimer';
 import { MultiplayerLobby } from './MultiplayerLobby';
 import { LastTrickModal } from './LastTrickModal';
+import { SleptCardsModal } from './SleptCardsModal';
 import { ChatPanel, FloatingEmoji, initAudioContext } from './ChatPanel';
 import type { ChatMessage } from '@shared/gameTypes';
 import { Button } from '@/components/ui/button';
@@ -32,9 +33,11 @@ import {
   getCpuBid,
   getCpuTrumpChoice,
   getCpuCardToPlay,
+  getCpuTrumpToDiscard,
   startNewRound,
   checkGameOver,
   performPurgeAndDraw,
+  discardTrumpCard,
   startDealerDraw,
   finalizeDealerDraw,
   determineTrickWinner,
@@ -51,6 +54,7 @@ export function GameBoard() {
   const [showDealerDraw, setShowDealerDraw] = useState(false);
   const [showMultiplayerLobby, setShowMultiplayerLobby] = useState(false);
   const [showLastTrick, setShowLastTrick] = useState(false);
+  const [showSleptCards, setShowSleptCards] = useState(false);
   const [trickWinner, setTrickWinner] = useState<Player | null>(null);
   const [displayTrick, setDisplayTrick] = useState<TrickCard[]>([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -224,6 +228,14 @@ export function GameBoard() {
     }
   }, [isMultiplayerMode, multiplayer, toast, gameState.players, gameState.currentPlayerIndex, gameState.currentTrick, gameState.trumpSuit]);
 
+  const handleDiscardTrump = useCallback((card: CardType) => {
+    if (isMultiplayerMode) {
+      multiplayer.sendAction('discard_trump', { card });
+    } else {
+      setGameState(prev => discardTrumpCard(prev, card));
+    }
+  }, [isMultiplayerMode, multiplayer]);
+
   const handleContinue = useCallback(() => {
     if (isMultiplayerMode) {
       multiplayer.sendAction('continue', {});
@@ -389,6 +401,20 @@ export function GameBoard() {
 
   useEffect(() => {
     if (isMultiplayerMode) return;
+    if (gameState.phase !== 'discard-trump') return;
+    
+    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+    if (!currentPlayer.isHuman) {
+      const timer = setTimeout(() => {
+        const cardToDiscard = getCpuTrumpToDiscard(currentPlayer.hand, gameState.trumpSuit!);
+        setGameState(prev => discardTrumpCard(prev, cardToDiscard));
+      }, 1000 + Math.random() * 400);
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.phase, gameState.currentPlayerIndex, gameState.players, gameState.trumpSuit, isMultiplayerMode]);
+
+  useEffect(() => {
+    if (isMultiplayerMode) return;
     if (gameState.phase !== 'playing') return;
     // Don't process CPU turns while displaying a completed trick
     if (displayTrick.length > 0) return;
@@ -549,6 +575,7 @@ export function GameBoard() {
         onShareClick={() => setShareOpen(true)}
         onRulesClick={() => setRulesOpen(true)}
         onLastTrickClick={() => setShowLastTrick(true)}
+        onSleptCardsClick={() => setShowSleptCards(true)}
       />
       {gameState.phase === 'setup' && (
         <div className="flex-1 flex flex-col items-center justify-center gap-10 p-8">
@@ -712,6 +739,13 @@ export function GameBoard() {
                 onBid={handleBid}
               />
             )}
+            {gameState.phase === 'discard-trump' && isMyTurn && (
+              <div className="text-center mb-2 p-2 bg-destructive/10 border border-destructive/30 rounded-md">
+                <p className="text-sm font-medium text-destructive">
+                  You have {humanPlayer.hand.length} trump cards. Tap a card to discard down to 6.
+                </p>
+              </div>
+            )}
             <PlayerArea
               player={humanPlayer}
               team={getTeamForPlayer(humanPlayer)}
@@ -719,8 +753,20 @@ export function GameBoard() {
               isBidder={gameState.bidderId === humanPlayer.id}
               isDealer={gameState.dealerIndex === mySeatIndex}
               deckColor={gameState.deckColor}
-              onCardClick={isMyTurn && gameState.phase === 'playing' ? handleCardPlay : undefined}
-              canPlayCard={(card) => isMyTurn && canPlayCard(card, humanPlayer.hand, gameState.currentTrick, gameState.trumpSuit)}
+              onCardClick={
+                isMyTurn && gameState.phase === 'playing' 
+                  ? handleCardPlay 
+                  : isMyTurn && gameState.phase === 'discard-trump'
+                  ? handleDiscardTrump
+                  : undefined
+              }
+              canPlayCard={(card) => 
+                isMyTurn && gameState.phase === 'playing' 
+                  ? canPlayCard(card, humanPlayer.hand, gameState.currentTrick, gameState.trumpSuit)
+                  : isMyTurn && gameState.phase === 'discard-trump'
+                  ? true
+                  : false
+              }
               position="bottom"
               showCards
               showBidResult={showBidResults}
@@ -787,6 +833,12 @@ export function GameBoard() {
         players={gameState.players}
         winnerId={gameState.lastTrickWinnerId || null}
         trumpSuit={gameState.trumpSuit}
+      />
+      <SleptCardsModal
+        open={showSleptCards}
+        onClose={() => setShowSleptCards(false)}
+        sleptCards={gameState.sleptCards || []}
+        deckColor={gameState.deckColor}
       />
       {isMultiplayerMode && gameState.phase !== 'setup' && gameState.players[mySeatIndex] && (
         <ChatPanel

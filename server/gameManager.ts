@@ -518,6 +518,9 @@ async function handlePlayerAction(ws: WebSocket, message: any) {
     case 'play_card':
       newState = gameEngine.playCard(newState, data.card);
       break;
+    case 'discard_trump':
+      newState = gameEngine.discardTrumpCard(newState, data.card);
+      break;
     case 'continue':
       if (gameEngine.checkGameOver(newState)) {
         newState = gameEngine.initializeGame(room.deckColor, room.targetScore);
@@ -590,6 +593,9 @@ async function processCpuTurns(room: GameRoom) {
         state.players.filter(p => p.bid === 0).length === 3;
       const trumpSuit = gameEngine.getCpuTrumpChoice(currentPlayer.hand, wasForcedBid);
       state = gameEngine.selectTrump(state, trumpSuit);
+    } else if (state.phase === 'discard-trump') {
+      const cardToDiscard = gameEngine.getCpuTrumpToDiscard(currentPlayer.hand, state.trumpSuit!);
+      state = gameEngine.discardTrumpCard(state, cardToDiscard);
     } else if (state.phase === 'playing') {
       const card = gameEngine.getCpuCardToPlay(
         currentPlayer.hand, 

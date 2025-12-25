@@ -25,7 +25,7 @@ export interface Team {
   playerIds: string[];
 }
 
-export type GamePhase = 'setup' | 'dealer-draw' | 'dealing' | 'bidding' | 'trump-selection' | 'purge-draw' | 'playing' | 'scoring' | 'game-over';
+export type GamePhase = 'setup' | 'dealer-draw' | 'dealing' | 'bidding' | 'trump-selection' | 'purge-draw' | 'discard-trump' | 'playing' | 'scoring' | 'game-over';
 
 export interface DealerDrawCard {
   playerId: string;
@@ -59,6 +59,8 @@ export interface GameState {
   targetScore: number;
   dealerDrawCards?: DealerDrawCard[];
   autoClaimerId?: string | null;
+  playersNeedingDiscard?: number[];
+  sleptCards?: Card[];
 }
 
 export type DeckColor = 'red' | 'blue' | 'green' | 'purple' | 'gold' | 'black' | 'teal' | 'rose' | 'orange' | 'indigo' | 'crimson' | 'navy';

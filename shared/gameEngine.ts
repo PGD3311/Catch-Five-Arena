@@ -307,6 +307,23 @@ export function getCpuTrumpChoice(hand: Card[], forcedBid: boolean = false): Sui
   return Object.entries(suitScores).reduce((a, b) => (b[1] > a[1] ? b : a))[0] as Suit;
 }
 
+export function getCpuTrumpToDiscard(hand: Card[], trumpSuit: Suit): Card {
+  const trumpCards = hand.filter(c => c.suit === trumpSuit);
+  
+  const cardValue = (card: Card): number => {
+    if (card.rank === '5') return 100;
+    if (card.rank === 'J') return 50;
+    if (card.rank === 'A') return 40;
+    if (card.rank === '2') return 30;
+    if (card.rank === 'K') return 20;
+    if (card.rank === 'Q') return 15;
+    return RANK_ORDER[card.rank];
+  };
+  
+  const sorted = [...trumpCards].sort((a, b) => cardValue(a) - cardValue(b));
+  return sorted[0];
+}
+
 export function getCpuCardToPlay(
   hand: Card[],
   currentTrick: { playerId: string; card: Card }[],
@@ -636,24 +653,37 @@ export function performPurgeAndDraw(state: GameState): GameState {
   let discardPile = [...state.discardPile];
   const bidderIndex = state.players.findIndex(p => p.id === state.bidderId);
 
-  const newPlayers = state.players.map((player) => {
+  const playersNeedingDiscard: number[] = [];
+
+  const newPlayers = state.players.map((player, index) => {
     const trumpCards = player.hand.filter(c => c.suit === trumpSuit);
     const nonTrumpCards = player.hand.filter(c => c.suit !== trumpSuit);
 
     discardPile = [...discardPile, ...nonTrumpCards];
 
     let keptCards: Card[];
-    if (trumpCards.length >= INITIAL_HAND_SIZE) {
-      keptCards = trumpCards
-        .sort((a, b) => RANK_ORDER[b.rank] - RANK_ORDER[a.rank])
-        .slice(0, FINAL_HAND_SIZE);
-      discardPile = [...discardPile, ...trumpCards.slice(FINAL_HAND_SIZE)];
+    if (trumpCards.length > FINAL_HAND_SIZE) {
+      playersNeedingDiscard.push(index);
+      keptCards = trumpCards;
     } else {
       keptCards = trumpCards;
     }
 
     return { ...player, hand: keptCards };
   });
+
+  if (playersNeedingDiscard.length > 0) {
+    const firstPlayerToDiscard = playersNeedingDiscard[0];
+    return {
+      ...state,
+      players: newPlayers,
+      stock,
+      discardPile,
+      phase: 'discard-trump',
+      playersNeedingDiscard,
+      currentPlayerIndex: firstPlayerToDiscard,
+    };
+  }
 
   const drawOrder = [
     bidderIndex,
@@ -677,11 +707,92 @@ export function performPurgeAndDraw(state: GameState): GameState {
     }
   }
 
+  const sleptCards = [...stock];
+
   return {
     ...state,
     players: newPlayers,
     stock,
     discardPile,
+    sleptCards,
+    phase: 'playing',
+    currentPlayerIndex: bidderIndex,
+    leadPlayerIndex: bidderIndex,
+  };
+}
+
+export function discardTrumpCard(state: GameState, card: Card): GameState {
+  const playerIndex = state.currentPlayerIndex;
+  const player = state.players[playerIndex];
+  
+  const cardInHand = player.hand.find(c => c.id === card.id);
+  if (!cardInHand) {
+    return state;
+  }
+  
+  if (cardInHand.suit !== state.trumpSuit) {
+    return state;
+  }
+  
+  const newHand = player.hand.filter(c => c.id !== card.id);
+  const newPlayers = [...state.players];
+  newPlayers[playerIndex] = { ...player, hand: newHand };
+  
+  const newDiscardPile = [...state.discardPile, card];
+  
+  const remainingPlayersNeedingDiscard = (state.playersNeedingDiscard || []).filter(idx => {
+    if (idx === playerIndex) {
+      return newHand.length > FINAL_HAND_SIZE;
+    }
+    return newPlayers[idx].hand.length > FINAL_HAND_SIZE;
+  });
+  
+  if (remainingPlayersNeedingDiscard.length > 0) {
+    const nextPlayerToDiscard = remainingPlayersNeedingDiscard[0];
+    return {
+      ...state,
+      players: newPlayers,
+      discardPile: newDiscardPile,
+      playersNeedingDiscard: remainingPlayersNeedingDiscard,
+      currentPlayerIndex: nextPlayerToDiscard,
+    };
+  }
+  
+  const bidderIndex = state.players.findIndex(p => p.id === state.bidderId);
+  let stock = [...state.stock];
+  let discardPile = newDiscardPile;
+  
+  const drawOrder = [
+    bidderIndex,
+    (bidderIndex + 1) % 4,
+    (bidderIndex + 2) % 4,
+    (bidderIndex + 3) % 4,
+  ];
+
+  for (const pIndex of drawOrder) {
+    const p = newPlayers[pIndex];
+    const cardsToDraw = FINAL_HAND_SIZE - p.hand.length;
+
+    for (let i = 0; i < cardsToDraw; i++) {
+      if (stock.length === 0 && discardPile.length > 0) {
+        stock = shuffleDeck(discardPile);
+        discardPile = [];
+      }
+      if (stock.length > 0) {
+        p.hand.push(stock.pop()!);
+      }
+    }
+  }
+
+  const sleptCards = [...stock];
+
+  return {
+    ...state,
+    players: newPlayers,
+    stock,
+    discardPile,
+    sleptCards,
+    playersNeedingDiscard: [],
     phase: 'playing',
     currentPlayerIndex: bidderIndex,
     leadPlayerIndex: bidderIndex,
