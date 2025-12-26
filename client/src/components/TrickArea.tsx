@@ -60,10 +60,10 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0 }:
   };
 
   return (
-    <div className="relative w-full h-32 sm:h-48 md:h-56" data-testid="trick-area">
-      {/* Minimal table surface */}
+    <div className="relative w-full h-36 sm:h-48 md:h-56" data-testid="trick-area">
+      {/* Minimal table surface - slightly larger on mobile */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-40 h-24 sm:w-56 sm:h-36 md:w-72 md:h-44 rounded-xl bg-emerald-900/30 border border-emerald-500/20">
+        <div className="w-44 h-28 sm:w-56 sm:h-36 md:w-72 md:h-44 rounded-xl bg-emerald-900/30 border border-emerald-500/20">
           <div className="absolute inset-0 rounded-xl bg-[radial-gradient(ellipse_at_center,_rgba(16,185,129,0.05)_0%,_transparent_70%)]" />
         </div>
       </div>
