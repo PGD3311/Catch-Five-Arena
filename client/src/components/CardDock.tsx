@@ -35,19 +35,22 @@ export function CardDock({ cards, onCardClick, canPlayCard, isCurrentPlayer, tru
   }, [mouseX]);
 
   return (
-    <div className="relative w-full pb-2">
+    <div className="relative w-full pb-2" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0.5rem)' }}>
       <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none" />
       
       <div 
         ref={containerRef}
         className="relative z-10 overflow-x-auto overflow-y-visible scrollbar-hide"
-        style={{ paddingLeft: 'max(env(safe-area-inset-left), 2rem)', paddingRight: 'max(env(safe-area-inset-right), 2rem)' }}
+        style={{ 
+          paddingLeft: 'max(env(safe-area-inset-left), 1rem)', 
+          paddingRight: 'max(env(safe-area-inset-right), 1rem)' 
+        }}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleMouseLeave}
       >
-        <div className="flex items-end justify-center gap-0 px-2 py-2">
+        <div className="flex items-end justify-center gap-0 px-1 sm:px-2 py-2">
           <AnimatePresence mode="popLayout">
             {cards.map((card, index) => (
               <DockCard
@@ -93,10 +96,12 @@ function DockCard({ card, index, mouseX, containerRef, onClick, disabled, trumpS
     return Math.abs(val - cardCenterX);
   });
 
-  // Adaptive sizing based on card count - larger for fewer cards
-  const baseWidth = totalCards <= 5 ? 56 : totalCards <= 7 ? 48 : 44;
-  const maxWidth = totalCards <= 5 ? 72 : totalCards <= 7 ? 64 : 56;
-  const magnificationRange = 70;
+  // Adaptive sizing based on card count - larger for fewer cards, bigger on mobile for touch
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  const mobileBoost = isMobile ? 4 : 0;
+  const baseWidth = (totalCards <= 5 ? 56 : totalCards <= 7 ? 48 : 44) + mobileBoost;
+  const maxWidth = (totalCards <= 5 ? 72 : totalCards <= 7 ? 64 : 56) + mobileBoost;
+  const magnificationRange = isMobile ? 60 : 70;
   
   const widthSync = useTransform(distance, [0, magnificationRange], [maxWidth, baseWidth]);
   const width = useSpring(widthSync, { stiffness: 400, damping: 30, mass: 0.5 });

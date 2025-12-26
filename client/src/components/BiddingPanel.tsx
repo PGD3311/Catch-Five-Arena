@@ -48,8 +48,8 @@ export function BiddingPanel({ open, highBid, playerName, isDealer, allOthersPas
         )}
       </div>
 
-      {/* Bid buttons */}
-      <div className="flex items-center gap-2 flex-wrap justify-center">
+      {/* Bid buttons - larger touch targets on mobile */}
+      <div className="flex items-center gap-2 sm:gap-2 flex-wrap justify-center">
         {bidOptions.map((bid) => {
           const canDealerTakeNine = isDealer && highBid === MAX_BID && bid === MAX_BID;
           const isValid = bid > highBid || canDealerTakeNine;
@@ -60,7 +60,8 @@ export function BiddingPanel({ open, highBid, playerName, isDealer, allOthersPas
               disabled={!isValid}
               onClick={() => onBid(bid)}
               className={cn(
-                'h-10 w-10 text-lg font-bold rounded-lg',
+                'h-12 w-12 sm:h-11 sm:w-11 text-xl sm:text-lg font-bold rounded-xl sm:rounded-lg',
+                'active:scale-95 transition-transform',
                 isValid && 'bg-emerald-600 hover:bg-emerald-500 text-white',
                 canDealerTakeNine && 'ring-2 ring-amber-400',
                 !isValid && 'opacity-25'
@@ -76,7 +77,7 @@ export function BiddingPanel({ open, highBid, playerName, isDealer, allOthersPas
           <Button
             variant="outline"
             onClick={() => onBid(0)}
-            className="h-10 px-6 text-sm font-semibold rounded-lg"
+            className="h-12 sm:h-11 px-6 sm:px-5 text-base sm:text-sm font-semibold rounded-xl sm:rounded-lg active:scale-95 transition-transform"
             data-testid="button-pass"
           >
             Pass
