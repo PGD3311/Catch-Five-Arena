@@ -60,19 +60,22 @@ const TeamScore = ({ team, isYourTeam, targetScore }: { team: Team; isYourTeam: 
   return (
     <div 
       className={cn(
-        'flex items-center gap-2 px-3 py-1.5 rounded-full border',
+        'flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border',
         isYourTeam 
           ? 'bg-blue-500/10 border-blue-500/30' 
           : 'bg-rose-500/10 border-rose-500/30'
       )}
       data-testid={`team-score-${team.id}`}
     >
-      <Users className={cn('w-3.5 h-3.5', isYourTeam ? 'text-blue-400' : 'text-rose-400')} />
-      <span className="text-[10px] uppercase tracking-wide text-muted-foreground hidden sm:inline">
-        {isYourTeam ? 'YOUR TEAM' : 'OPPONENTS'}
+      <span className={cn(
+        'w-2 h-2 rounded-full',
+        isYourTeam ? 'bg-blue-500' : 'bg-rose-500'
+      )} />
+      <span className="text-[9px] sm:text-[10px] uppercase tracking-wide text-muted-foreground hidden sm:inline">
+        {isYourTeam ? 'YOU' : 'OPP'}
       </span>
-      <span className="font-semibold text-sm">{team.score}</span>
-      <span className="text-xs text-muted-foreground">/{targetScore}</span>
+      <span className="font-bold text-sm sm:text-base">{team.score}</span>
+      <span className="text-[10px] sm:text-xs text-muted-foreground">/{targetScore}</span>
     </div>
   );
 };
@@ -105,32 +108,35 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
         )}
       </div>
 
-      {/* Center: Team scores */}
-      <div className="flex items-center gap-2">
+      {/* Center: Team scores - stack vertically on very small screens */}
+      <div className="flex items-center gap-1 sm:gap-2">
         {yourTeam && gameState.phase !== 'setup' && (
           <TeamScore team={yourTeam} isYourTeam targetScore={gameState.targetScore} />
         )}
+        <span className="text-muted-foreground/50 text-xs hidden xs:inline">vs</span>
         {opponentTeam && gameState.phase !== 'setup' && (
           <TeamScore team={opponentTeam} isYourTeam={false} targetScore={gameState.targetScore} />
         )}
       </div>
 
-      {/* Right: Trump and actions */}
-      <div className="flex items-center gap-1.5">
+      {/* Right: Trump and actions - compact on mobile */}
+      <div className="flex items-center gap-0.5 sm:gap-1.5">
         {gameState.trumpSuit && (
           <div 
-            className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20"
+            className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20"
             data-testid="display-trump-suit"
           >
             <TrumpIcon suit={gameState.trumpSuit} />
           </div>
         )}
 
+        {/* Hide less important buttons on very small screens */}
         {gameState.lastTrick && gameState.lastTrick.length > 0 && onLastTrickClick && (
           <Button
             size="icon"
             variant="ghost"
             onClick={onLastTrickClick}
+            className="hidden sm:flex"
             data-testid="button-last-trick-header"
           >
             <History className="w-4 h-4" />
@@ -141,6 +147,7 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
           size="icon"
           variant="ghost"
           onClick={onShareClick}
+          className="hidden sm:flex"
           data-testid="button-share"
         >
           <Share2 className="w-3.5 h-3.5" />
@@ -149,6 +156,7 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
           size="icon"
           variant="ghost"
           onClick={onRulesClick}
+          className="hidden xs:flex"
           data-testid="button-rules"
         >
           <HelpCircle className="w-4 h-4" />
