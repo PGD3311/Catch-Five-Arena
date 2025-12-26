@@ -185,50 +185,70 @@ function evaluateSuitStrength(hand: Card[], suit: Suit): {
   const hasKing = suitCards.some(c => c.rank === 'K');
   const hasQueen = suitCards.some(c => c.rank === 'Q');
   
+  // Calculate guaranteed points in hand
   let pointsAvailable = 0;
   if (hasFive) pointsAvailable += 5;
   if (hasJack) pointsAvailable += 1;
-  if (hasDeuce) pointsAvailable += 1;
-  if (hasAce) pointsAvailable += 1;
+  if (hasDeuce) pointsAvailable += 1; // Low point guaranteed
+  if (hasAce) pointsAvailable += 1;   // High point guaranteed
   
   let estimatedBid = 0;
   
+  // Five is vulnerable if we can't protect it with Ace or enough trumps
   const fiveIsVulnerable = hasFive && !hasAce && trumpCount <= 2;
+  
+  // Conservative bidding: base bid on what we can reasonably expect to make
+  // High bids (8-9) require strong trump control
   
   if (trumpCount === 0) {
     estimatedBid = 0;
   } else if (trumpCount === 1) {
+    // Single trump - only bid if it's the Ace
     if (hasAce) estimatedBid = 5;
     else estimatedBid = 0;
   } else if (trumpCount === 2) {
-    if (hasAce && hasKing) estimatedBid = 6;
+    if (hasAce && hasFive) estimatedBid = 6;
+    else if (hasAce && hasKing) estimatedBid = 5;
+    else if (hasAce) estimatedBid = 5;
+    else estimatedBid = 0; // Don't bid without Ace on 2 trumps
+  } else if (trumpCount === 3) {
+    if (hasAce && hasFive && hasJack) estimatedBid = 7;
     else if (hasAce && hasFive) estimatedBid = 6;
+    else if (hasAce && hasKing) estimatedBid = 6;
     else if (hasAce) estimatedBid = 5;
     else if (hasKing && hasFive) estimatedBid = 5;
-    else estimatedBid = 0;
-  } else if (trumpCount === 3) {
-    if (hasAce && hasFive) estimatedBid = 7;
-    else if (hasAce && hasKing) estimatedBid = 7;
-    else if (hasAce) estimatedBid = 6;
-    else if (hasKing && hasFive) estimatedBid = 6;
-    else if (hasFive) estimatedBid = 5;
-    else estimatedBid = 5;
+    else estimatedBid = 0; // Need some high cards to bid
   } else if (trumpCount >= 4) {
-    if (hasAce && hasFive) estimatedBid = 8;
-    else if (hasAce && hasKing) estimatedBid = 8;
-    else if (hasAce) estimatedBid = 7;
-    else if (hasFive) estimatedBid = 7;
-    else estimatedBid = 6;
+    // 4+ trumps - but still need control cards
+    if (hasAce && hasFive && hasJack) estimatedBid = 7;
+    else if (hasAce && hasFive) estimatedBid = 7;
+    else if (hasAce && hasKing) estimatedBid = 6;
+    else if (hasAce) estimatedBid = 6;
+    else if (hasFive && hasKing) estimatedBid = 5;
+    else estimatedBid = 5;
   }
   
-  if ((hasJack || hasDeuce) && estimatedBid > 0) {
-    estimatedBid = Math.min(9, estimatedBid + 1);
+  // Bid of 8 requires: Ace + Five + 4+ trumps
+  // Bid of 9 requires: Ace + Five + Jack + 5+ trumps
+  if (hasAce && hasFive && trumpCount >= 4) {
+    if (hasJack && trumpCount >= 5) {
+      estimatedBid = 9;
+    } else if (hasJack || hasDeuce || trumpCount >= 5) {
+      estimatedBid = 8;
+    }
   }
   
-  if (!hasAce && estimatedBid >= 8) {
+  // Cap at 7 without Ace - can't guarantee High point
+  if (!hasAce && estimatedBid > 7) {
     estimatedBid = 7;
   }
   
+  // Cap at 6 without Five - missing big points
+  if (!hasFive && estimatedBid > 6) {
+    estimatedBid = 6;
+  }
+  
+  // Vulnerable Five caps the bid - likely to lose it
   if (fiveIsVulnerable && estimatedBid > 5) {
     estimatedBid = 5;
   }
@@ -253,25 +273,36 @@ export function getCpuBid(hand: Card[], highBid: number, isDealer: boolean, allP
   
   const myBidStrength = bestSuitStrength.estimatedBid;
   
-  if (myBidStrength === 0) {
+  // Pass if hand isn't worth bidding
+  if (myBidStrength === 0 || myBidStrength < MIN_BID) {
     return 0;
   }
+  
+  // Need to beat current high bid
+  const minBidToMake = Math.max(MIN_BID, highBid + 1);
   
   if (isDealer) {
-    if (highBid === MAX_BID && myBidStrength >= MAX_BID) {
-      return MAX_BID;
-    }
-    if (myBidStrength > highBid) {
-      return highBid + 1;
+    // Dealer bids conservatively - only outbid by 1 if strength allows
+    if (myBidStrength >= minBidToMake) {
+      return minBidToMake;
     }
     return 0;
   }
   
-  if (myBidStrength > highBid) {
-    const bidConfidence = (myBidStrength - highBid) / 4;
-    if (Math.random() < 0.5 + bidConfidence) {
-      return myBidStrength;
+  // Non-dealer: bid incrementally, not jumping to max
+  // Only bid if we can beat the current high bid
+  if (myBidStrength >= minBidToMake) {
+    // Bid just enough to win, with some randomness
+    // Strong hands might bid slightly higher to discourage competition
+    const advantage = myBidStrength - minBidToMake;
+    
+    if (advantage >= 2 && Math.random() < 0.3) {
+      // Sometimes bid 1 higher to show strength
+      return Math.min(minBidToMake + 1, myBidStrength);
     }
+    
+    // Usually just bid the minimum to win
+    return minBidToMake;
   }
   
   return 0;
