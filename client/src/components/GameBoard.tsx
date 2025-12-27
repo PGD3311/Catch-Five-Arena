@@ -609,6 +609,7 @@ export function GameBoard() {
         onShareClick={() => setShareOpen(true)}
         onRulesClick={() => setRulesOpen(true)}
         onLastTrickClick={() => setShowLastTrick(true)}
+        onExitGame={handleExitGame}
       />
       {gameState.phase === 'setup' && (
         <div className="flex-1 flex flex-col items-center justify-center gap-10 p-8">
