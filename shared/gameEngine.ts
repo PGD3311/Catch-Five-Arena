@@ -60,9 +60,9 @@ export function validateNoDuplicates(state: GameState, context: string): void {
     addCard(play.card.id, 'currentTrick');
   }
   
-  for (const play of state.lastTrick || []) {
-    addCard(play.card.id, 'lastTrick');
-  }
+  // Note: lastTrick cards are intentionally NOT counted here
+  // because they are also stored in the winner's tricksWon for scoring.
+  // lastTrick is only kept for display/replay purposes.
   
   if (duplicates.length > 0) {
     console.error(`[DUPLICATE CARDS DETECTED] Context: ${context}`);
