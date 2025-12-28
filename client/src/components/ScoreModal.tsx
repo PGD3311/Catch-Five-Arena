@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -86,6 +87,29 @@ export function ScoreModal({
   sleptCards = [],
   trumpSuit,
 }: ScoreModalProps) {
+  const [canContinue, setCanContinue] = useState(false);
+  const [countdown, setCountdown] = useState(5);
+
+  useEffect(() => {
+    if (open) {
+      setCanContinue(false);
+      setCountdown(5);
+      
+      const interval = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setCanContinue(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [open]);
+
   const bidder = players.find(p => p.id === bidderId);
   const bidderTeam = teams.find(t => t.id === bidder?.teamId);
   const bidderTeamScore = bidderTeam ? roundScores[bidderTeam.id] || 0 : 0;
@@ -424,9 +448,13 @@ export function ScoreModal({
             onClick={onContinue}
             className="w-full"
             size="lg"
+            disabled={!canContinue}
             data-testid="button-continue"
           >
-            {isGameOver ? 'New Game' : 'Continue to Next Round'}
+            {canContinue 
+              ? (isGameOver ? 'New Game' : 'Continue to Next Round')
+              : `Review scores... (${countdown})`
+            }
           </Button>
         </DialogFooter>
       </DialogContent>
