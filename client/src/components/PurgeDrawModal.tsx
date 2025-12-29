@@ -65,6 +65,13 @@ export function PurgeDrawModal({ open, players, trumpSuit, onComplete }: PurgeDr
     }
   };
 
+  const getTrumpCount = (player: Player) => {
+    if (player.trumpCount !== undefined) {
+      return player.trumpCount;
+    }
+    return player.hand.filter(c => c.suit === trumpSuit).length;
+  };
+
   return (
     <Dialog open={open}>
       <DialogContent className="sm:max-w-lg" onPointerDownOutside={(e) => e.preventDefault()}>
@@ -99,6 +106,7 @@ export function PurgeDrawModal({ open, players, trumpSuit, onComplete }: PurgeDr
             {players.map((player, index) => {
               const isActive = index === currentPlayerIndex;
               const isPast = index < currentPlayerIndex;
+              const trumpCount = getTrumpCount(player);
               const status = step === 'purge' 
                 ? (isPast ? 'Discarded non-trumps' : isActive ? 'Discarding...' : '')
                 : step === 'draw'
@@ -117,6 +125,13 @@ export function PurgeDrawModal({ open, players, trumpSuit, onComplete }: PurgeDr
                 >
                   <div className="flex items-center gap-3">
                     <span className="font-medium">{player.name}</span>
+                    <span className={cn(
+                      'text-sm font-bold px-2 py-0.5 rounded-full',
+                      getSuitColor(trumpSuit),
+                      'bg-muted'
+                    )} data-testid={`trump-count-${player.id}`}>
+                      {trumpCount} {getSuitIcon(trumpSuit)}
+                    </span>
                   </div>
                   <span className={cn(
                     'text-sm',
