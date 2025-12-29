@@ -115,6 +115,8 @@ export function PurgeDrawModal({ open, players, trumpSuit, onComplete, localPlay
                 : 'Ready!';
 
               const isLocalPlayer = player.id === localPlayerId || player.isHuman;
+              // Only show trump count during purge phase to avoid revealing post-draw counts
+              const showTrumpCount = isLocalPlayer && step === 'purge';
               
               return (
                 <div
@@ -128,7 +130,7 @@ export function PurgeDrawModal({ open, players, trumpSuit, onComplete, localPlay
                 >
                   <div className="flex items-center gap-3">
                     <span className="font-medium">{player.name}</span>
-                    {isLocalPlayer && (
+                    {showTrumpCount && (
                       <span className={cn(
                         'text-sm font-bold px-2 py-0.5 rounded-full',
                         getSuitColor(trumpSuit),
