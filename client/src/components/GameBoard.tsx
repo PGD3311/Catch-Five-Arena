@@ -815,6 +815,7 @@ export function GameBoard() {
         players={gameState.players}
         trumpSuit={gameState.trumpSuit || 'Hearts'}
         onComplete={handlePurgeDrawComplete}
+        localPlayerId={gameState.players[mySeatIndex]?.id}
       />
       <ScoreModal
         open={showScoreModal}

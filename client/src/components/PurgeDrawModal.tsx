@@ -10,9 +10,10 @@ interface PurgeDrawModalProps {
   players: Player[];
   trumpSuit: Suit;
   onComplete: () => void;
+  localPlayerId?: string;
 }
 
-export function PurgeDrawModal({ open, players, trumpSuit, onComplete }: PurgeDrawModalProps) {
+export function PurgeDrawModal({ open, players, trumpSuit, onComplete, localPlayerId }: PurgeDrawModalProps) {
   const [step, setStep] = useState<'purge' | 'draw' | 'done'>('purge');
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
 
@@ -113,6 +114,8 @@ export function PurgeDrawModal({ open, players, trumpSuit, onComplete }: PurgeDr
                 ? (isPast ? 'Drew to 6 cards' : isActive ? 'Drawing...' : '')
                 : 'Ready!';
 
+              const isLocalPlayer = player.id === localPlayerId || player.isHuman;
+              
               return (
                 <div
                   key={player.id}
@@ -125,13 +128,15 @@ export function PurgeDrawModal({ open, players, trumpSuit, onComplete }: PurgeDr
                 >
                   <div className="flex items-center gap-3">
                     <span className="font-medium">{player.name}</span>
-                    <span className={cn(
-                      'text-sm font-bold px-2 py-0.5 rounded-full',
-                      getSuitColor(trumpSuit),
-                      'bg-muted'
-                    )} data-testid={`trump-count-${player.id}`}>
-                      {trumpCount} {getSuitIcon(trumpSuit)}
-                    </span>
+                    {isLocalPlayer && (
+                      <span className={cn(
+                        'text-sm font-bold px-2 py-0.5 rounded-full',
+                        getSuitColor(trumpSuit),
+                        'bg-muted'
+                      )} data-testid={`trump-count-${player.id}`}>
+                        {trumpCount} {getSuitIcon(trumpSuit)}
+                      </span>
+                    )}
                   </div>
                   <span className={cn(
                     'text-sm',
