@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Trophy, Target, TrendingUp, Award, Percent, Zap } from "lucide-react";
+import { ArrowLeft, Trophy, Target, TrendingUp, Award, Percent, Zap, Medal } from "lucide-react";
 import { Link } from "wouter";
 import type { UserStats } from "@shared/schema";
 import type { User } from "@shared/models/auth";
@@ -51,7 +51,7 @@ export default function Stats() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold">Player Statistics</h1>
+          <h1 className="text-2xl font-bold" data-testid="text-stats-title">Player Statistics</h1>
         </div>
 
         {isAuthenticated && user && (
@@ -64,10 +64,10 @@ export default function Stats() {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <CardTitle className="text-xl">
+                <CardTitle className="text-xl" data-testid="text-user-name">
                   {user.firstName} {user.lastName}
                 </CardTitle>
-                <p className="text-muted-foreground text-sm">{user.email}</p>
+                <p className="text-muted-foreground text-sm" data-testid="text-user-email">{user.email}</p>
               </div>
             </CardHeader>
             <CardContent>
@@ -84,36 +84,42 @@ export default function Stats() {
                     label="Games Won"
                     value={stats.gamesWon}
                     subtext={`${stats.gamesPlayed} played`}
+                    testId="stat-games-won"
                   />
                   <StatCard
                     icon={<Percent className="w-5 h-5 text-blue-500" />}
                     label="Win Rate"
                     value={`${winRate}%`}
+                    testId="stat-win-rate"
                   />
                   <StatCard
                     icon={<Target className="w-5 h-5 text-green-500" />}
                     label="Bid Success"
                     value={`${bidSuccessRate}%`}
                     subtext={`${stats.bidsSucceeded}/${stats.bidsMade}`}
+                    testId="stat-bid-success"
                   />
                   <StatCard
                     icon={<TrendingUp className="w-5 h-5 text-purple-500" />}
                     label="Total Points"
                     value={stats.totalPointsScored}
+                    testId="stat-total-points"
                   />
                   <StatCard
                     icon={<Award className="w-5 h-5 text-amber-600" />}
                     label="Highest Bid Made"
                     value={stats.highestBidMade}
+                    testId="stat-highest-bid"
                   />
                   <StatCard
                     icon={<Zap className="w-5 h-5 text-red-500" />}
                     label="Times Set"
                     value={stats.timesSet}
+                    testId="stat-times-set"
                   />
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">
+                <p className="text-muted-foreground text-center py-8" data-testid="text-no-stats">
                   No stats yet. Play some games to see your statistics!
                 </p>
               )}
@@ -124,7 +130,7 @@ export default function Stats() {
         {!isAuthenticated && (
           <Card className="mb-6">
             <CardContent className="py-8 text-center">
-              <p className="text-muted-foreground mb-4">
+              <p className="text-muted-foreground mb-4" data-testid="text-login-prompt">
                 Log in to track your personal statistics
               </p>
               <Button asChild data-testid="button-login-stats">
@@ -158,11 +164,11 @@ export default function Stats() {
                   >
                     <div className="w-8 h-8 flex items-center justify-center">
                       {index === 0 ? (
-                        <span className="text-2xl">🥇</span>
+                        <Medal className="w-6 h-6 text-amber-500" />
                       ) : index === 1 ? (
-                        <span className="text-2xl">🥈</span>
+                        <Medal className="w-6 h-6 text-slate-400" />
                       ) : index === 2 ? (
-                        <span className="text-2xl">🥉</span>
+                        <Medal className="w-6 h-6 text-amber-700" />
                       ) : (
                         <span className="text-muted-foreground font-medium">{index + 1}</span>
                       )}
@@ -174,21 +180,21 @@ export default function Stats() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-medium">
+                      <p className="font-medium" data-testid={`leaderboard-name-${index}`}>
                         {entry.user?.firstName || "Unknown"} {entry.user?.lastName || ""}
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground" data-testid={`leaderboard-games-${index}`}>
                         {entry.gamesPlayed} games played
                       </p>
                     </div>
-                    <Badge variant="secondary" className="text-sm">
+                    <Badge variant="secondary" className="text-sm" data-testid={`leaderboard-wins-${index}`}>
                       {entry.gamesWon} wins
                     </Badge>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-center py-8">
+              <p className="text-muted-foreground text-center py-8" data-testid="text-empty-leaderboard">
                 No players on the leaderboard yet. Be the first!
               </p>
             )}
@@ -203,18 +209,20 @@ function StatCard({
   icon, 
   label, 
   value, 
-  subtext 
+  subtext,
+  testId
 }: { 
   icon: React.ReactNode; 
   label: string; 
   value: string | number;
   subtext?: string;
+  testId?: string;
 }) {
   return (
-    <div className="p-4 rounded-lg bg-muted/50 text-center">
+    <div className="p-4 rounded-lg bg-muted/50 text-center" data-testid={testId}>
       <div className="flex justify-center mb-2">{icon}</div>
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-2xl font-bold" data-testid={testId ? `${testId}-value` : undefined}>{value}</p>
+      <p className="text-xs text-muted-foreground" data-testid={testId ? `${testId}-label` : undefined}>{label}</p>
       {subtext && <p className="text-xs text-muted-foreground mt-1">{subtext}</p>}
     </div>
   );

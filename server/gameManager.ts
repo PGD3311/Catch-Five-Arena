@@ -11,10 +11,44 @@ async function trackPlayerStats(room: GameRoom, previousPhase: string) {
   
   const state = room.gameState;
   const newPhase = state.phase;
+  const currentRound = state.roundNumber;
+  const gameInstance = room.gameInstanceId || 0;
+  
+  // Use separate dedup for scoring vs game-over (both can occur in same round)
+  const isScoring = newPhase === 'scoring';
+  const isGameOver = newPhase === 'game-over';
+  
+  // Check for duplicate round processing (for scoring phase)
+  const isScoringAlreadyProcessed = isScoring && 
+    room.lastProcessedRound === currentRound &&
+    room.lastProcessedGame === gameInstance;
+  
+  // Check for duplicate game-over processing (separate from round processing)
+  const isGameOverAlreadyProcessed = isGameOver && 
+    room.lastProcessedGameOver === gameInstance;
+  
+  // Prevent duplicate stats updates
+  if (isScoringAlreadyProcessed) {
+    log(`Skipping duplicate scoring stats update for round ${currentRound}, game ${gameInstance}`, 'stats');
+    return;
+  }
+  if (isGameOverAlreadyProcessed) {
+    log(`Skipping duplicate game-over stats update for game ${gameInstance}`, 'stats');
+    return;
+  }
   
   // Only track stats when transitioning to scoring or game-over
   if ((previousPhase !== 'scoring' && previousPhase !== 'game-over') &&
       (newPhase === 'scoring' || newPhase === 'game-over')) {
+    
+    // Mark this round/game as processed based on phase type
+    if (isScoring) {
+      room.lastProcessedRound = currentRound;
+      room.lastProcessedGame = gameInstance;
+    }
+    if (isGameOver) {
+      room.lastProcessedGameOver = gameInstance;
+    }
     
     // Find the bidder
     const bidder = state.players.find(p => p.id === state.bidderId);
@@ -102,6 +136,10 @@ interface GameRoom {
   deckColor: DeckColor;
   targetScore: number;
   chatMessages: ChatMessage[];
+  lastProcessedRound?: number; // Prevent duplicate round stats updates
+  lastProcessedGame?: number; // Prevent duplicate game stats updates
+  lastProcessedGameOver?: number; // Prevent duplicate game-over stats updates
+  gameInstanceId?: number; // Track unique game instances
 }
 
 const rooms = new Map<string, GameRoom>();
@@ -539,6 +577,11 @@ async function handleStartGame(ws: WebSocket) {
 
   let state = gameEngine.initializeGame(room.deckColor, room.targetScore);
   
+  // Increment game instance ID for dedup tracking
+  room.gameInstanceId = (room.gameInstanceId || 0) + 1;
+  room.lastProcessedRound = undefined;
+  room.lastProcessedGame = room.gameInstanceId;
+  
   const connectedPlayers = Array.from(room.players.values());
   state.players = state.players.map((p, index) => {
     const connectedPlayer = connectedPlayers.find(cp => cp.seatIndex === index);
@@ -640,6 +683,10 @@ async function handlePlayerAction(ws: WebSocket, message: any) {
       if (newState.phase === 'scoring' || newState.phase === 'game-over') {
         if (gameEngine.checkGameOver(newState)) {
           newState = gameEngine.initializeGame(room.deckColor, room.targetScore);
+          // Increment game instance ID for dedup tracking
+          room.gameInstanceId = (room.gameInstanceId || 0) + 1;
+          room.lastProcessedRound = undefined;
+          room.lastProcessedGame = room.gameInstanceId;
         } else {
           newState = gameEngine.startNewRound(newState);
         }
