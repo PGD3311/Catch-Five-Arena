@@ -205,27 +205,27 @@ function CardContent({ card }: { card: CardType }) {
   const suitColor = getSuitColor(card.suit);
   
   return (
-    <div className="absolute inset-0 flex flex-col">
+    <div className="absolute inset-0 flex flex-col p-[8%]">
       {/* Card face gradient for depth */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white via-slate-50/80 to-slate-100/60 dark:from-slate-700 dark:via-slate-800/90 dark:to-slate-900 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-white via-slate-50/80 to-slate-100/60 dark:from-slate-700 dark:via-slate-800/90 dark:to-slate-900 pointer-events-none rounded-lg" />
       {/* Rim light effect */}
       <div className="absolute inset-0 rounded-lg ring-1 ring-inset ring-white/60 dark:ring-white/10 pointer-events-none" />
 
-      {/* Top-left rank/suit */}
-      <div className={cn('absolute top-1 left-1.5 flex flex-col items-center z-10', suitColor)}>
-        <span className="text-[10px] sm:text-xs font-bold leading-none drop-shadow-sm">{card.rank}</span>
-        <SuitIcon suit={card.suit} className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
+      {/* Top-left rank/suit - uses percentage-based sizing */}
+      <div className={cn('relative z-10 flex items-center gap-[4%]', suitColor)}>
+        <span className="text-[0.65rem] font-bold leading-none drop-shadow-sm">{card.rank}</span>
+        <SuitIcon suit={card.suit} size="small" />
       </div>
 
-      {/* Center suit icon - larger */}
+      {/* Center suit icon - fills available space */}
       <div className={cn('flex-1 flex items-center justify-center', suitColor)}>
-        <SuitIcon suit={card.suit} className="w-6 h-6 sm:w-7 sm:h-7 drop-shadow-md" />
+        <SuitIcon suit={card.suit} size="large" />
       </div>
 
-      {/* Bottom-right rank/suit (rotated) */}
-      <div className={cn('absolute bottom-1 right-1.5 flex flex-col items-center rotate-180 z-10', suitColor)}>
-        <span className="text-[10px] sm:text-xs font-bold leading-none drop-shadow-sm">{card.rank}</span>
-        <SuitIcon suit={card.suit} className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
+      {/* Bottom-right rank/suit */}
+      <div className={cn('relative z-10 flex items-center justify-end gap-[4%]', suitColor)}>
+        <SuitIcon suit={card.suit} size="small" />
+        <span className="text-[0.65rem] font-bold leading-none drop-shadow-sm">{card.rank}</span>
       </div>
     </div>
   );
@@ -233,8 +233,13 @@ function CardContent({ card }: { card: CardType }) {
 
 import { Heart, Diamond, Club, Spade } from 'lucide-react';
 
-function SuitIcon({ suit, className }: { suit: CardType['suit']; className?: string }) {
-  const iconClass = cn('drop-shadow-sm', className);
+function SuitIcon({ suit, size = 'large' }: { suit: CardType['suit']; size?: 'small' | 'large' }) {
+  // Use relative sizing that scales with card
+  const sizeClass = size === 'large' 
+    ? 'w-[45%] h-[45%] max-w-8 max-h-8' 
+    : 'w-[0.5rem] h-[0.5rem]';
+  const iconClass = cn('drop-shadow-sm shrink-0', sizeClass);
+  
   switch (suit) {
     case 'Hearts':
       return <Heart className={iconClass} fill="currentColor" />;
