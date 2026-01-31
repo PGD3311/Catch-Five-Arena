@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Card as CardType, Suit } from '@shared/gameTypes';
 import { PlayingCard } from './PlayingCard';
 import { cn } from '@/lib/utils';
@@ -34,9 +34,41 @@ export function CardDock({ cards, onCardClick, canPlayCard, isCurrentPlayer, tru
     }
   }, [mouseX]);
 
+  // Detect if scrollable for edge fade hints
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  
+  const checkScroll = useCallback(() => {
+    if (containerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = containerRef.current;
+      setCanScrollLeft(scrollLeft > 5);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5);
+    }
+  }, []);
+
+  // Check scroll on mount and when cards change
+  useEffect(() => {
+    checkScroll();
+    // Small delay to ensure layout is complete
+    const timer = setTimeout(checkScroll, 100);
+    return () => clearTimeout(timer);
+  }, [cards.length, checkScroll]);
+
   return (
     <div className="relative w-full pb-2" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0.5rem)' }}>
       <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none" />
+      
+      {/* Left edge fade - scroll hint */}
+      <div className={cn(
+        "absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-background to-transparent pointer-events-none z-20 transition-opacity duration-200",
+        canScrollLeft ? "opacity-100" : "opacity-0"
+      )} />
+      
+      {/* Right edge fade - scroll hint */}
+      <div className={cn(
+        "absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none z-20 transition-opacity duration-200",
+        canScrollRight ? "opacity-100" : "opacity-0"
+      )} />
       
       <div 
         ref={containerRef}
@@ -49,6 +81,8 @@ export function CardDock({ cards, onCardClick, canPlayCard, isCurrentPlayer, tru
         onMouseLeave={handleMouseLeave}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleMouseLeave}
+        onScroll={checkScroll}
+        onLoad={checkScroll}
       >
         <div className="flex items-end justify-center px-6 sm:px-4 py-2 min-w-fit mx-auto" style={{ gap: cards.length > 6 ? '-8px' : '-4px' }}>
           <AnimatePresence mode="popLayout">
@@ -117,6 +151,16 @@ function DockCard({ card, index, mouseX, containerRef, onClick, disabled, trumpS
   // Z-index increases toward center and on hover for proper stacking
   const zIndexSync = useTransform(distance, [0, magnificationRange], [30, 10]);
   const baseZIndex = 10 + index; // Cards stack left-to-right
+  
+  // Natural fan tilt - cards at edges tilt outward slightly
+  const centerIndex = (totalCards - 1) / 2;
+  const offsetFromCenter = index - centerIndex;
+  const maxTilt = totalCards <= 4 ? 3 : totalCards <= 6 ? 4 : 5; // More tilt with more cards
+  const baseTilt = (offsetFromCenter / Math.max(centerIndex, 1)) * maxTilt;
+  
+  // Reduce tilt on hover for focused card
+  const tiltSync = useTransform(distance, [0, magnificationRange], [0, baseTilt]);
+  const tilt = useSpring(tiltSync, springConfig);
 
   const isTrump = trumpSuit && card.suit === trumpSuit;
 
@@ -124,12 +168,12 @@ function DockCard({ card, index, mouseX, containerRef, onClick, disabled, trumpS
     <motion.div
       ref={ref}
       layout
-      initial={{ opacity: 0, scale: 0.8, y: 20 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, scale: 0.8, y: 20, rotate: baseTilt }}
+      animate={{ opacity: 1, scale: 1, rotate: baseTilt }}
       exit={{ opacity: 0, scale: 0.5, y: -30 }}
-      style={{ width, height, y, zIndex: baseZIndex }}
-      whileHover={{ zIndex: 40 }}
-      className="relative flex-shrink-0"
+      style={{ width, height, y, zIndex: baseZIndex, rotate: tilt }}
+      whileHover={{ zIndex: 40, rotate: 0 }}
+      className="relative flex-shrink-0 origin-bottom"
     >
       <motion.button
         onClick={onClick}
@@ -138,14 +182,14 @@ function DockCard({ card, index, mouseX, containerRef, onClick, disabled, trumpS
         transition={{ type: "spring", stiffness: 500, damping: 25 }}
         className={cn(
           'w-full h-full rounded-lg relative overflow-hidden',
-          'shadow-[0_6px_16px_rgba(0,0,0,0.2),0_3px_6px_rgba(0,0,0,0.12)]',
-          'dark:shadow-[0_8px_20px_rgba(0,0,0,0.5),0_4px_8px_rgba(0,0,0,0.3)]',
+          'shadow-[0_4px_12px_rgba(0,0,0,0.15),0_2px_4px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)]',
+          'dark:shadow-[0_6px_16px_rgba(0,0,0,0.4),0_3px_6px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.05)]',
           'bg-gradient-to-br from-white via-slate-50 to-slate-100',
           'dark:from-slate-800 dark:via-slate-850 dark:to-slate-900',
-          'transform-gpu transition-shadow duration-150',
+          'transform-gpu transition-all duration-150',
           !disabled && 'cursor-pointer',
-          !disabled && 'hover:shadow-[0_10px_24px_rgba(0,0,0,0.28),0_6px_10px_rgba(0,0,0,0.18)] hover:brightness-105',
-          !disabled && 'active:shadow-[0_16px_32px_rgba(0,0,0,0.35),0_8px_16px_rgba(0,0,0,0.22)]',
+          !disabled && 'hover:shadow-[0_12px_28px_rgba(0,0,0,0.25),0_8px_12px_rgba(0,0,0,0.15)] hover:brightness-105',
+          !disabled && 'active:shadow-[0_18px_36px_rgba(0,0,0,0.3),0_10px_18px_rgba(0,0,0,0.2)]',
           disabled && 'opacity-40 cursor-not-allowed grayscale-[30%]',
           isTrump && 'ring-2 ring-amber-400 dark:ring-amber-500 ring-offset-1 ring-offset-background'
         )}
