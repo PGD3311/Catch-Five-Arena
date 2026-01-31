@@ -84,7 +84,7 @@ export function CardDock({ cards, onCardClick, canPlayCard, isCurrentPlayer, tru
         onScroll={checkScroll}
         onLoad={checkScroll}
       >
-        <div className="flex items-end justify-center px-6 sm:px-4 py-2 min-w-fit mx-auto" style={{ gap: cards.length > 8 ? '-4px' : '2px' }}>
+        <div className="flex items-end justify-center px-8 sm:px-6 py-2 min-w-fit mx-auto" style={{ gap: cards.length > 7 ? '-6px' : cards.length > 5 ? '-2px' : '4px' }}>
           <AnimatePresence mode="popLayout">
             {cards.map((card, index) => (
               <DockCard
@@ -130,12 +130,13 @@ function DockCard({ card, index, mouseX, containerRef, onClick, disabled, trumpS
     return Math.abs(val - cardCenterX);
   });
 
-  // Adaptive sizing based on card count - larger for fewer cards, bigger on mobile for touch
+  // Adaptive sizing - bigger cards for better readability
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-  const mobileBoost = isMobile ? 6 : 0;
-  const baseWidth = (totalCards <= 4 ? 58 : totalCards <= 6 ? 52 : totalCards <= 8 ? 46 : 42) + mobileBoost;
-  const maxWidth = (totalCards <= 4 ? 72 : totalCards <= 6 ? 66 : totalCards <= 8 ? 58 : 52) + mobileBoost;
-  const magnificationRange = isMobile ? 70 : 80;
+  const mobileBoost = isMobile ? 10 : 0;
+  // Larger base sizes for all card counts
+  const baseWidth = (totalCards <= 4 ? 64 : totalCards <= 6 ? 56 : totalCards <= 8 ? 50 : 46) + mobileBoost;
+  const maxWidth = (totalCards <= 4 ? 80 : totalCards <= 6 ? 72 : totalCards <= 8 ? 64 : 58) + mobileBoost;
+  const magnificationRange = isMobile ? 60 : 70;
   
   const springConfig = { stiffness: 350, damping: 28, mass: 0.4 }; // Smoother spring
   
@@ -205,27 +206,25 @@ function CardContent({ card }: { card: CardType }) {
   const suitColor = getSuitColor(card.suit);
   
   return (
-    <div className="absolute inset-0 flex flex-col p-[8%]">
+    <div className="absolute inset-0 flex flex-col">
       {/* Card face gradient for depth */}
       <div className="absolute inset-0 bg-gradient-to-br from-white via-slate-50/80 to-slate-100/60 dark:from-slate-700 dark:via-slate-800/90 dark:to-slate-900 pointer-events-none rounded-lg" />
       {/* Rim light effect */}
       <div className="absolute inset-0 rounded-lg ring-1 ring-inset ring-white/60 dark:ring-white/10 pointer-events-none" />
 
-      {/* Top-left rank/suit - uses percentage-based sizing */}
-      <div className={cn('relative z-10 flex items-center gap-[4%]', suitColor)}>
-        <span className="text-[0.65rem] font-bold leading-none drop-shadow-sm">{card.rank}</span>
-        <SuitIcon suit={card.suit} size="small" />
+      {/* Top-left: rank only */}
+      <div className={cn('absolute top-[6%] left-[10%] z-10', suitColor)}>
+        <span className="text-[0.7rem] sm:text-xs font-black leading-none drop-shadow-sm">{card.rank}</span>
       </div>
 
-      {/* Center suit icon - fills available space */}
-      <div className={cn('flex-1 flex items-center justify-center', suitColor)}>
-        <SuitIcon suit={card.suit} size="large" />
+      {/* Center: large suit icon */}
+      <div className={cn('absolute inset-0 flex items-center justify-center', suitColor)}>
+        <SuitIcon suit={card.suit} />
       </div>
 
-      {/* Bottom-right rank/suit */}
-      <div className={cn('relative z-10 flex items-center justify-end gap-[4%]', suitColor)}>
-        <SuitIcon suit={card.suit} size="small" />
-        <span className="text-[0.65rem] font-bold leading-none drop-shadow-sm">{card.rank}</span>
+      {/* Bottom-right: rank only (rotated) */}
+      <div className={cn('absolute bottom-[6%] right-[10%] rotate-180 z-10', suitColor)}>
+        <span className="text-[0.7rem] sm:text-xs font-black leading-none drop-shadow-sm">{card.rank}</span>
       </div>
     </div>
   );
@@ -233,12 +232,9 @@ function CardContent({ card }: { card: CardType }) {
 
 import { Heart, Diamond, Club, Spade } from 'lucide-react';
 
-function SuitIcon({ suit, size = 'large' }: { suit: CardType['suit']; size?: 'small' | 'large' }) {
-  // Use relative sizing that scales with card
-  const sizeClass = size === 'large' 
-    ? 'w-[45%] h-[45%] max-w-8 max-h-8' 
-    : 'w-[0.5rem] h-[0.5rem]';
-  const iconClass = cn('drop-shadow-sm shrink-0', sizeClass);
+function SuitIcon({ suit }: { suit: CardType['suit'] }) {
+  // Large centered icon - 50% of card size
+  const iconClass = 'w-[50%] h-[50%] max-w-10 max-h-10 drop-shadow-md';
   
   switch (suit) {
     case 'Hearts':
