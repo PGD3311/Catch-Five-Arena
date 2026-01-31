@@ -625,15 +625,19 @@ async function handleStartGame(ws: WebSocket) {
 async function handlePlayerAction(ws: WebSocket, message: any) {
   const player = playerConnections.get(ws);
   if (!player) {
+    log(`[Action] Error: Player not in a room`, 'game');
     ws.send(JSON.stringify({ type: 'error', message: 'Not connected to a room' }));
     return;
   }
 
   const room = Array.from(rooms.values()).find(r => r.id === player.roomId);
   if (!room || !room.gameState) {
+    log(`[Action] Error: Game not found for room ${player.roomId}`, 'game');
     ws.send(JSON.stringify({ type: 'error', message: 'Game not found' }));
     return;
   }
+  
+  log(`[Action] Room ${room.code} | Seat ${player.seatIndex} | Action: ${message.action} | Phase: ${room.gameState.phase}`, 'game');
 
   const phase = room.gameState.phase;
   const isAnyPlayerPhase = phase === 'dealer-draw' || phase === 'purge-draw' || phase === 'scoring' || phase === 'game-over';
@@ -685,16 +689,22 @@ async function handlePlayerAction(ws: WebSocket, message: any) {
       break;
     case 'continue':
       // Only process if we're in scoring or game-over phase (prevent duplicate calls)
+      log(`[Continue] Room ${room.code} | Current phase: ${newState.phase} | GameOver: ${gameEngine.checkGameOver(newState)}`, 'game');
       if (newState.phase === 'scoring' || newState.phase === 'game-over') {
         if (gameEngine.checkGameOver(newState)) {
+          log(`[Continue] Room ${room.code} | Starting new game`, 'game');
           newState = gameEngine.initializeGame(room.deckColor, room.targetScore);
           // Increment game instance ID for dedup tracking
           room.gameInstanceId = (room.gameInstanceId || 0) + 1;
           room.lastProcessedRoundSignature = undefined;
           room.lastProcessedGame = room.gameInstanceId;
         } else {
+          log(`[Continue] Room ${room.code} | Starting new round`, 'game');
           newState = gameEngine.startNewRound(newState);
         }
+        log(`[Continue] Room ${room.code} | New phase: ${newState.phase}`, 'game');
+      } else {
+        log(`[Continue] Room ${room.code} | Ignored - not in scoring/game-over phase`, 'game');
       }
       break;
     case 'purge_draw_complete':

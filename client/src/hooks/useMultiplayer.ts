@@ -10,6 +10,7 @@ interface RoomPlayer {
 
 interface MultiplayerState {
   connected: boolean;
+  reconnecting: boolean;
   roomCode: string | null;
   playerToken: string | null;
   seatIndex: number | null;
@@ -17,11 +18,14 @@ interface MultiplayerState {
   gameState: GameState | null;
   error: string | null;
   chatMessages: ChatMessage[];
+  roomUnavailable: boolean;
+  lastDisconnectTime: number | null;
 }
 
 export function useMultiplayer() {
   const [state, setState] = useState<MultiplayerState>({
     connected: false,
+    reconnecting: false,
     roomCode: null,
     playerToken: null,
     seatIndex: null,
@@ -29,30 +33,51 @@ export function useMultiplayer() {
     gameState: null,
     error: null,
     chatMessages: [],
+    roomUnavailable: false,
+    lastDisconnectTime: null,
   });
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const intentionalDisconnectRef = useRef(false);
+  const isConnectingRef = useRef(false);
 
   const connect = useCallback(() => {
+    // Guard against parallel connections
+    if (isConnectingRef.current || (wsRef.current && wsRef.current.readyState === WebSocket.OPEN)) {
+      console.log('[WS] Already connected or connecting, skipping');
+      return;
+    }
+    
+    // Clear any pending reconnect timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    
+    isConnectingRef.current = true;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      setState(prev => ({ ...prev, connected: true, error: null }));
+      console.log('[WS] Connected to server');
+      isConnectingRef.current = false;
+      setState(prev => ({ ...prev, connected: true, reconnecting: false, error: null, roomUnavailable: false }));
       reconnectAttempts.current = 0;
 
       const savedToken = sessionStorage.getItem('playerToken');
       const savedRoom = sessionStorage.getItem('roomCode');
       const savedName = sessionStorage.getItem('playerName');
       if (savedToken && savedRoom) {
+        console.log('[WS] Attempting to rejoin room:', savedRoom);
         ws.send(JSON.stringify({
           type: 'join_room',
           roomCode: savedRoom,
           playerToken: savedToken,
-          playerName: savedName || '', // Send saved name for fallback if token is invalid
+          playerName: savedName || '',
         }));
       }
       
@@ -72,17 +97,40 @@ export function useMultiplayer() {
     };
 
     ws.onclose = () => {
+      console.log('[WS] Connection closed, attempt:', reconnectAttempts.current);
+      isConnectingRef.current = false;
       if ((ws as any).pingInterval) {
         clearInterval((ws as any).pingInterval);
       }
-      setState(prev => ({ ...prev, connected: false }));
+      
+      // Don't reconnect if intentionally disconnected
+      if (intentionalDisconnectRef.current) {
+        console.log('[WS] Intentional disconnect, not reconnecting');
+        intentionalDisconnectRef.current = false;
+        setState(prev => ({ ...prev, connected: false, reconnecting: false }));
+        return;
+      }
+      
+      setState(prev => ({ 
+        ...prev, 
+        connected: false,
+        lastDisconnectTime: Date.now(),
+        reconnecting: reconnectAttempts.current < maxReconnectAttempts,
+      }));
       if (reconnectAttempts.current < maxReconnectAttempts) {
         reconnectAttempts.current++;
-        setTimeout(connect, 1000 * Math.pow(2, reconnectAttempts.current));
+        const delay = 1000 * Math.pow(2, reconnectAttempts.current);
+        console.log(`[WS] Reconnecting in ${delay}ms...`);
+        reconnectTimeoutRef.current = setTimeout(connect, delay);
+      } else {
+        console.log('[WS] Max reconnect attempts reached');
+        setState(prev => ({ ...prev, reconnecting: false, error: 'Connection lost. Please refresh the page.' }));
       }
     };
 
-    ws.onerror = () => {
+    ws.onerror = (e) => {
+      console.error('[WS] WebSocket error:', e);
+      isConnectingRef.current = false;
       setState(prev => ({ ...prev, error: 'Connection error' }));
     };
   }, []);
@@ -111,10 +159,12 @@ export function useMultiplayer() {
           seatIndex: message.seatIndex,
           players: message.players,
           error: null,
+          roomUnavailable: false,
         }));
         break;
 
       case 'rejoined':
+        console.log('[useMultiplayer] Rejoined room:', message.roomCode);
         // Update saved player name on rejoin
         const rejoiningPlayer = message.players?.find((p: any) => p.seatIndex === message.seatIndex);
         if (rejoiningPlayer?.playerName) {
@@ -129,6 +179,7 @@ export function useMultiplayer() {
           gameState: message.gameState,
           chatMessages: message.chatMessages || prev.chatMessages,
           error: null,
+          roomUnavailable: false,
         }));
         break;
 
@@ -166,10 +217,12 @@ export function useMultiplayer() {
         break;
 
       case 'left':
+        console.log('[WS] Left room');
         sessionStorage.removeItem('playerToken');
         sessionStorage.removeItem('roomCode');
         setState({
           connected: true,
+          reconnecting: false,
           roomCode: null,
           playerToken: null,
           seatIndex: null,
@@ -177,17 +230,51 @@ export function useMultiplayer() {
           gameState: null,
           error: null,
           chatMessages: [],
+          roomUnavailable: false,
+          lastDisconnectTime: null,
         });
+        break;
+      
+      case 'room_unavailable':
+        console.log('[WS] Room is no longer available');
+        sessionStorage.removeItem('playerToken');
+        sessionStorage.removeItem('roomCode');
+        sessionStorage.removeItem('playerName');
+        setState(prev => ({
+          ...prev,
+          roomCode: null,
+          playerToken: null,
+          seatIndex: null,
+          players: [],
+          gameState: null,
+          roomUnavailable: true,
+          error: message.message || 'This room is no longer available',
+        }));
         break;
 
       case 'error':
+        console.log('[WS] Error received:', message.message);
         // If the error indicates session is invalid, clear stored session data
         if (message.clearSession) {
           sessionStorage.removeItem('playerToken');
           sessionStorage.removeItem('roomCode');
           sessionStorage.removeItem('playerName');
         }
-        setState(prev => ({ ...prev, error: message.message }));
+        // Check if this is a room unavailable error
+        if (message.message?.includes('Room not found') || message.message?.includes('no longer exists')) {
+          setState(prev => ({
+            ...prev,
+            roomCode: null,
+            playerToken: null,
+            seatIndex: null,
+            players: [],
+            gameState: null,
+            roomUnavailable: true,
+            error: message.message,
+          }));
+        } else {
+          setState(prev => ({ ...prev, error: message.message }));
+        }
         break;
 
       case 'kicked':
@@ -221,6 +308,12 @@ export function useMultiplayer() {
   useEffect(() => {
     connect();
     return () => {
+      // Clear any pending reconnect timeout on unmount
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      intentionalDisconnectRef.current = true;
       if (wsRef.current) {
         wsRef.current.close();
       }

@@ -13,6 +13,7 @@ import { DealerDrawModal } from './DealerDrawModal';
 import { ActionPrompt } from './ActionPrompt';
 import { TurnTimer } from './TurnTimer';
 import { MultiplayerLobby } from './MultiplayerLobby';
+import { ConnectionStatus } from './ConnectionStatus';
 import { LastTrickModal } from './LastTrickModal';
 import { ChatPanel, FloatingEmoji, initAudioContext } from './ChatPanel';
 import type { ChatMessage } from '@shared/gameTypes';
@@ -591,8 +592,23 @@ export function GameBoard() {
     return <FloatingEmoji key={emoji.id} emoji={emoji} senderPosition={position} onComplete={removeFloatingEmoji} />;
   };
 
+  const handleReturnToLobby = useCallback(() => {
+    multiplayer.leaveRoom();
+    setGameState(initializeGame());
+  }, [multiplayer]);
+
   return (
     <div className="flex flex-col min-h-screen bg-background game-table" data-testid="game-board">
+      {isMultiplayerMode && (
+        <ConnectionStatus
+          connected={multiplayer.connected}
+          reconnecting={multiplayer.reconnecting}
+          roomUnavailable={multiplayer.roomUnavailable}
+          error={multiplayer.error}
+          inRoom={!!multiplayer.roomCode}
+          onReturnToLobby={handleReturnToLobby}
+        />
+      )}
       <GameHeader 
         gameState={gameState} 
         onSettingsClick={() => setSettingsOpen(true)}
