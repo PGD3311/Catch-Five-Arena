@@ -84,7 +84,7 @@ export function CardDock({ cards, onCardClick, canPlayCard, isCurrentPlayer, tru
         onScroll={checkScroll}
         onLoad={checkScroll}
       >
-        <div className="flex items-end justify-center px-6 sm:px-4 py-2 min-w-fit mx-auto" style={{ gap: cards.length > 6 ? '-8px' : '-4px' }}>
+        <div className="flex items-end justify-center px-6 sm:px-4 py-2 min-w-fit mx-auto" style={{ gap: cards.length > 8 ? '-4px' : '2px' }}>
           <AnimatePresence mode="popLayout">
             {cards.map((card, index) => (
               <DockCard
@@ -132,10 +132,10 @@ function DockCard({ card, index, mouseX, containerRef, onClick, disabled, trumpS
 
   // Adaptive sizing based on card count - larger for fewer cards, bigger on mobile for touch
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-  const mobileBoost = isMobile ? 8 : 0; // Increased for better touch targets
-  const baseWidth = (totalCards <= 4 ? 64 : totalCards <= 6 ? 54 : totalCards <= 8 ? 48 : 44) + mobileBoost;
-  const maxWidth = (totalCards <= 4 ? 80 : totalCards <= 6 ? 70 : totalCards <= 8 ? 62 : 56) + mobileBoost;
-  const magnificationRange = isMobile ? 80 : 90; // Wider range for smoother effect
+  const mobileBoost = isMobile ? 6 : 0;
+  const baseWidth = (totalCards <= 4 ? 58 : totalCards <= 6 ? 52 : totalCards <= 8 ? 46 : 42) + mobileBoost;
+  const maxWidth = (totalCards <= 4 ? 72 : totalCards <= 6 ? 66 : totalCards <= 8 ? 58 : 52) + mobileBoost;
+  const magnificationRange = isMobile ? 70 : 80;
   
   const springConfig = { stiffness: 350, damping: 28, mass: 0.4 }; // Smoother spring
   
@@ -152,10 +152,10 @@ function DockCard({ card, index, mouseX, containerRef, onClick, disabled, trumpS
   const zIndexSync = useTransform(distance, [0, magnificationRange], [30, 10]);
   const baseZIndex = 10 + index; // Cards stack left-to-right
   
-  // Natural fan tilt - cards at edges tilt outward slightly
+  // Subtle fan tilt - just a hint of natural hand feel
   const centerIndex = (totalCards - 1) / 2;
   const offsetFromCenter = index - centerIndex;
-  const maxTilt = totalCards <= 4 ? 3 : totalCards <= 6 ? 4 : 5; // More tilt with more cards
+  const maxTilt = 2; // Very subtle tilt
   const baseTilt = (offsetFromCenter / Math.max(centerIndex, 1)) * maxTilt;
   
   // Reduce tilt on hover for focused card
@@ -211,21 +211,21 @@ function CardContent({ card }: { card: CardType }) {
       {/* Rim light effect */}
       <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/60 dark:ring-white/10 pointer-events-none" />
 
-      {/* Top-left rank/suit - LARGER rank for better legibility */}
-      <div className={cn('absolute top-0.5 left-1 flex flex-col items-center z-10', suitColor)}>
-        <span className="text-sm sm:text-base font-black leading-none drop-shadow-sm">{card.rank}</span>
-        <SuitIcon suit={card.suit} className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-90" />
+      {/* Top-left rank/suit */}
+      <div className={cn('absolute top-1 left-1.5 flex flex-col items-center z-10', suitColor)}>
+        <span className="text-xs sm:text-sm font-bold leading-none drop-shadow-sm">{card.rank}</span>
+        <SuitIcon suit={card.suit} className="w-2 h-2 sm:w-2.5 sm:h-2.5 opacity-90" />
       </div>
 
       {/* Center suit icon */}
       <div className={cn('flex-1 flex items-center justify-center', suitColor)}>
-        <SuitIcon suit={card.suit} className="w-6 h-6 sm:w-8 sm:h-8 drop-shadow-md" />
+        <SuitIcon suit={card.suit} className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-md" />
       </div>
 
       {/* Bottom-right rank/suit (rotated) */}
-      <div className={cn('absolute bottom-0.5 right-1 flex flex-col items-center rotate-180 z-10', suitColor)}>
-        <span className="text-sm sm:text-base font-black leading-none drop-shadow-sm">{card.rank}</span>
-        <SuitIcon suit={card.suit} className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-90" />
+      <div className={cn('absolute bottom-1 right-1.5 flex flex-col items-center rotate-180 z-10', suitColor)}>
+        <span className="text-xs sm:text-sm font-bold leading-none drop-shadow-sm">{card.rank}</span>
+        <SuitIcon suit={card.suit} className="w-2 h-2 sm:w-2.5 sm:h-2.5 opacity-90" />
       </div>
     </div>
   );
