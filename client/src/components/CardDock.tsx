@@ -205,46 +205,37 @@ function CardContent({ card }: { card: CardType }) {
   const suitColor = getSuitColor(card.suit);
   
   return (
-    <div className="absolute inset-0 flex flex-col">
+    <div className="absolute inset-0 flex flex-col items-center justify-center">
       {/* Card face gradient for depth */}
       <div className="absolute inset-0 bg-gradient-to-br from-white via-slate-50/80 to-slate-100/60 dark:from-slate-700 dark:via-slate-800/90 dark:to-slate-900 pointer-events-none" />
       {/* Rim light effect */}
-      <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/60 dark:ring-white/10 pointer-events-none" />
+      <div className="absolute inset-0 rounded-lg ring-1 ring-inset ring-white/60 dark:ring-white/10 pointer-events-none" />
 
-      {/* Top-left rank/suit */}
-      <div className={cn('absolute top-1 left-1.5 flex flex-col items-center z-10', suitColor)}>
-        <span className="text-xs sm:text-sm font-bold leading-none drop-shadow-sm">{card.rank}</span>
-        <SuitIcon suit={card.suit} className="w-2 h-2 sm:w-2.5 sm:h-2.5 opacity-90" />
-      </div>
-
-      {/* Center suit icon */}
-      <div className={cn('flex-1 flex items-center justify-center', suitColor)}>
-        <SuitIcon suit={card.suit} className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-md" />
-      </div>
-
-      {/* Bottom-right rank/suit (rotated) */}
-      <div className={cn('absolute bottom-1 right-1.5 flex flex-col items-center rotate-180 z-10', suitColor)}>
-        <span className="text-xs sm:text-sm font-bold leading-none drop-shadow-sm">{card.rank}</span>
-        <SuitIcon suit={card.suit} className="w-2 h-2 sm:w-2.5 sm:h-2.5 opacity-90" />
+      {/* Clean centered layout: rank on top, big suit icon below */}
+      <div className={cn('relative z-10 flex flex-col items-center', suitColor)}>
+        <span className="text-sm sm:text-base font-black leading-none drop-shadow-sm">{card.rank}</span>
+        <span className="text-2xl sm:text-3xl leading-none drop-shadow-md">{getSuitSymbol(card.suit)}</span>
       </div>
     </div>
   );
 }
 
-import { Heart, Diamond, Club, Spade } from 'lucide-react';
-
 function SuitIcon({ suit, className }: { suit: CardType['suit']; className?: string }) {
-  const iconClass = cn('drop-shadow-sm', className);
-  switch (suit) {
-    case 'Hearts':
-      return <Heart className={iconClass} fill="currentColor" />;
-    case 'Diamonds':
-      return <Diamond className={iconClass} fill="currentColor" />;
-    case 'Clubs':
-      return <Club className={iconClass} fill="currentColor" />;
-    case 'Spades':
-      return <Spade className={iconClass} fill="currentColor" />;
-  }
+  const baseClass = cn('drop-shadow-sm flex items-center justify-center', className);
+  
+  // Use traditional Unicode suit symbols for cleaner look
+  const suitSymbols: Record<string, string> = {
+    Hearts: '♥',
+    Diamonds: '♦',
+    Clubs: '♣',
+    Spades: '♠',
+  };
+  
+  return (
+    <span className={baseClass} style={{ fontSize: 'inherit', lineHeight: 1 }}>
+      {suitSymbols[suit]}
+    </span>
+  );
 }
 
 function getSuitColor(suit: CardType['suit']): string {
@@ -257,5 +248,14 @@ function getSuitColor(suit: CardType['suit']): string {
       return 'text-emerald-600 dark:text-emerald-400';
     case 'Spades':
       return 'text-slate-800 dark:text-slate-100';
+  }
+}
+
+function getSuitSymbol(suit: CardType['suit']): string {
+  switch (suit) {
+    case 'Hearts': return '♥';
+    case 'Diamonds': return '♦';
+    case 'Clubs': return '♣';
+    case 'Spades': return '♠';
   }
 }
