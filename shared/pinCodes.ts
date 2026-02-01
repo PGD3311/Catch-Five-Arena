@@ -3,6 +3,7 @@ export const PIN_CODES: Record<string, string> = {
   "2476": "zach",
   "5378": "greeno",
   "0245": "pgd",
+  "1271": "dave",
 };
 
 export function getPlayerNameFromPin(pin: string): string | null {
