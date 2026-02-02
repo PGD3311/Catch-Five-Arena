@@ -73,6 +73,10 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
   const phaseLabel = getPhaseLabel(gameState.phase, gameState.trickNumber);
   const yourTeam = gameState.teams.find(t => t.id === 'team1');
   const opponentTeam = gameState.teams.find(t => t.id === 'team2');
+  
+  // Find which team is bidding based on the bidderId
+  const bidder = gameState.players.find(p => p.id === gameState.bidderId);
+  const biddingTeamId = bidder?.teamId;
 
   return (
     <header
@@ -103,7 +107,7 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
             team={yourTeam} 
             isYourTeam 
             trumpSuit={gameState.trumpSuit}
-            isBiddingTeam={gameState.biddingTeamId === 'team1'}
+            isBiddingTeam={biddingTeamId === 'team1'}
           />
         )}
         <span className="text-muted-foreground/30 text-[10px] font-medium hidden xs:inline">vs</span>
@@ -112,7 +116,7 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
             team={opponentTeam} 
             isYourTeam={false}
             trumpSuit={gameState.trumpSuit}
-            isBiddingTeam={gameState.biddingTeamId === 'team2'}
+            isBiddingTeam={biddingTeamId === 'team2'}
           />
         )}
       </div>
