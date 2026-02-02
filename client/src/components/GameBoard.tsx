@@ -15,6 +15,7 @@ import { TurnTimer } from './TurnTimer';
 import { MultiplayerLobby } from './MultiplayerLobby';
 import { ConnectionStatus } from './ConnectionStatus';
 import { LastTrickModal } from './LastTrickModal';
+import { HomeScreen } from './HomeScreen';
 import { ChatPanel, FloatingEmoji, initAudioContext } from './ChatPanel';
 import type { ChatMessage } from '@shared/gameTypes';
 import { Button } from '@/components/ui/button';
@@ -539,27 +540,12 @@ export function GameBoard() {
         onExitGame={handleExitGame}
       />
       {gameState.phase === 'setup' && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-10 p-8">
-          <div className="text-center space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-6xl font-bold tracking-tight gold-text dark:gold-text">
-                Catch 5
-              </h1>
-              <p className="text-sm uppercase tracking-widest text-muted-foreground">Grab a pahtnah </p>
-            </div>
-            
-          </div>
+        <div className="flex-1 flex flex-col items-center justify-center p-8">
           {!showMultiplayerLobby ? (
-            <>
-              <div className="flex flex-col gap-4">
-                <Button size="lg" onClick={() => setShowMultiplayerLobby(true)} className="px-8" data-testid="button-play">
-                  Play
-                </Button>
-              </div>
-              <Button variant="ghost" onClick={() => setRulesOpen(true)} data-testid="button-how-to-play">
-                How to Play
-              </Button>
-            </>
+            <HomeScreen
+              onPlay={() => setShowMultiplayerLobby(true)}
+              onRules={() => setRulesOpen(true)}
+            />
           ) : (
             <MultiplayerLobby
               connected={multiplayer.connected}
