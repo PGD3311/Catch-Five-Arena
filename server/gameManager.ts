@@ -132,11 +132,19 @@ interface CpuPlayer {
   playerName: string;
 }
 
+interface ConnectedSpectator {
+  ws: WebSocket;
+  roomCode: string;
+  spectatorId: string;
+  displayName: string;
+}
+
 interface GameRoom {
   id: string;
   code: string;
   players: Map<string, ConnectedPlayer>;
   cpuPlayers: CpuPlayer[];
+  spectators: Map<string, ConnectedSpectator>;
   gameState: GameState | null;
   deckColor: DeckColor;
   targetScore: number;
@@ -149,6 +157,7 @@ interface GameRoom {
 
 const rooms = new Map<string, GameRoom>();
 const playerConnections = new Map<WebSocket, ConnectedPlayer>();
+const spectatorConnections = new Map<WebSocket, ConnectedSpectator>();
 const turnTimers = new Map<string, NodeJS.Timeout>();
 const turnTimerPlayerIndex = new Map<string, number>(); // Track which player the timer is for
 
@@ -214,6 +223,10 @@ export function initializeWebSocket(server: any): WebSocketServer {
         handlePlayerDisconnect(player);
         playerConnections.delete(ws);
       }
+      const spectator = spectatorConnections.get(ws);
+      if (spectator) {
+        handleSpectatorDisconnect(spectator);
+      }
       log('WebSocket client disconnected', 'ws');
     });
   });
@@ -230,6 +243,10 @@ export function initializeWebSocket(server: any): WebSocketServer {
           if (player) {
             handlePlayerDisconnect(player);
             playerConnections.delete(ws);
+          }
+          const spectator = spectatorConnections.get(ws);
+          if (spectator) {
+            handleSpectatorDisconnect(spectator);
           }
           return ws.terminate();
         }
@@ -286,6 +303,15 @@ async function handleMessage(ws: WebSocket, message: any) {
     case 'preview_room':
       handlePreviewRoom(ws, message);
       break;
+    case 'spectate_room':
+      handleSpectateRoom(ws, message);
+      break;
+    case 'leave_spectate':
+      handleLeaveSpectate(ws);
+      break;
+    case 'list_active_games':
+      handleListActiveGames(ws);
+      break;
     default:
       ws.send(JSON.stringify({ type: 'error', message: 'Unknown message type' }));
   }
@@ -341,6 +367,7 @@ async function handleCreateRoom(ws: WebSocket, message: any) {
     code,
     players: new Map(),
     cpuPlayers: [],
+    spectators: new Map(),
     gameState: null,
     deckColor,
     targetScore,
@@ -415,6 +442,7 @@ async function handleJoinRoom(ws: WebSocket, message: any) {
         code: storedRoom.code,
         players: new Map(),
         cpuPlayers: [],
+        spectators: new Map(),
         gameState: storedRoom.gameState as GameState | null,
         deckColor: (storedRoom.deckColor || 'blue') as DeckColor,
         targetScore: storedRoom.targetScore || 25,
@@ -1281,7 +1309,15 @@ function handlePlayerDisconnect(player: ConnectedPlayer) {
         const stillConnected = Array.from(currentRoom.players.values()).filter(p => p.ws !== null);
         if (stillConnected.length === 0) {
           log(`Cleaning up room ${room.code} after 1 hour of inactivity`, 'ws');
-          
+
+          // Disconnect all spectators
+          const roomSpectators = Array.from(currentRoom.spectators.values());
+          for (const spectator of roomSpectators) {
+            safeSend(spectator.ws, JSON.stringify({ type: 'room_unavailable', message: 'The game has ended' }));
+            spectatorConnections.delete(spectator.ws);
+          }
+          currentRoom.spectators.clear();
+
           // Reset room state but keep it in memory for a bit longer
           if (currentRoom.gameState) {
             currentRoom.gameState = null;
@@ -1289,13 +1325,13 @@ function handlePlayerDisconnect(player: ConnectedPlayer) {
           }
           currentRoom.cpuPlayers = [];
           currentRoom.players.clear();
-          
+
           // Update database
-          storage.updateRoom(currentRoom.id, { 
-            gameState: null, 
-            status: 'waiting' 
+          storage.updateRoom(currentRoom.id, {
+            gameState: null,
+            status: 'waiting'
           }).catch(err => log(`Failed to reset room in DB: ${err}`, 'ws'));
-          
+
           // Remove from memory
           rooms.delete(room.code);
           roomCleanupTimers.delete(room.code);
@@ -1524,9 +1560,19 @@ function broadcastGameState(room: GameRoom, preserveExistingTimer = false) {
       gameState: filteredState,
     }));
   }
+
+  // Send spectator-filtered state to all spectators
+  if (room.spectators.size > 0) {
+    const spectatorState = filterGameStateForSpectator(room.gameState);
+    const spectatorData = JSON.stringify({ type: 'game_state', gameState: spectatorState });
+    const spectators = Array.from(room.spectators.values());
+    for (const spectator of spectators) {
+      safeSend(spectator.ws, spectatorData);
+    }
+  }
 }
 
-function broadcastToRoom(room: GameRoom, message: any, excludeWs?: WebSocket) {
+function broadcastToRoom(room: GameRoom, message: any, excludeWs?: WebSocket, includeSpectators = true) {
   const data = JSON.stringify(message);
   const players = Array.from(room.players.values());
   for (const player of players) {
@@ -1534,23 +1580,46 @@ function broadcastToRoom(room: GameRoom, message: any, excludeWs?: WebSocket) {
       safeSend(player.ws, data);
     }
   }
+  if (includeSpectators) {
+    const spectators = Array.from(room.spectators.values());
+    for (const spectator of spectators) {
+      if (spectator.ws !== excludeWs) {
+        safeSend(spectator.ws, data);
+      }
+    }
+  }
 }
 
 async function handleSendChat(ws: WebSocket, message: any) {
   const player = playerConnections.get(ws);
-  if (!player) {
+  const spectator = spectatorConnections.get(ws);
+
+  if (!player && !spectator) {
     ws.send(JSON.stringify({ type: 'error', message: 'Not in a room' }));
     return;
   }
 
-  const room = rooms.get(player.roomId) || Array.from(rooms.values()).find(r => r.players.has(player.playerToken));
+  let room: GameRoom | undefined;
+  let senderId: string;
+  let senderName: string;
+
+  if (player) {
+    room = rooms.get(player.roomId) || Array.from(rooms.values()).find(r => r.players.has(player.playerToken));
+    senderId = `player${player.seatIndex + 1}`;
+    senderName = player.playerName;
+  } else {
+    room = rooms.get(spectator!.roomCode);
+    senderId = `spectator_${spectator!.spectatorId}`;
+    senderName = spectator!.displayName;
+  }
+
   if (!room) {
     ws.send(JSON.stringify({ type: 'error', message: 'Room not found' }));
     return;
   }
 
   const { chatType, content } = message;
-  
+
   if (!content || typeof content !== 'string') {
     return;
   }
@@ -1560,13 +1629,13 @@ async function handleSendChat(ws: WebSocket, message: any) {
   if (!trimmedContent) {
     return; // Reject empty or whitespace-only messages
   }
-  
+
   const sanitizedContent = trimmedContent.slice(0, 200);
 
   const chatMessage: ChatMessage = {
     id: randomUUID(),
-    senderId: `player${player.seatIndex + 1}`,
-    senderName: player.playerName,
+    senderId,
+    senderName,
     type: chatType === 'emoji' ? 'emoji' : 'text',
     content: sanitizedContent,
     timestamp: Date.now(),
@@ -1578,11 +1647,139 @@ async function handleSendChat(ws: WebSocket, message: any) {
     room.chatMessages = room.chatMessages.slice(-50);
   }
 
-  // Broadcast to all players including sender
+  // Broadcast to all players and spectators including sender
   const chatData = JSON.stringify({ type: 'chat_message', message: chatMessage });
-  const players = Array.from(room.players.values());
-  for (const p of players) {
+  const allPlayers = Array.from(room.players.values());
+  for (const p of allPlayers) {
     safeSend(p.ws, chatData);
+  }
+  const allSpectators = Array.from(room.spectators.values());
+  for (const s of allSpectators) {
+    safeSend(s.ws, chatData);
+  }
+}
+
+// ── Spectator Functions ──
+
+function filterGameStateForSpectator(state: GameState): GameState {
+  return {
+    ...state,
+    players: state.players.map((p) => {
+      const trumpCount = state.trumpSuit ? p.hand.filter(c => c.suit === state.trumpSuit).length : 0;
+      return {
+        ...p,
+        hand: p.hand.map(() => ({ rank: '2', suit: 'Spades', id: 'hidden' } as Card)),
+        trumpCount,
+      };
+    }),
+    stock: [],
+    discardPile: [],
+  };
+}
+
+function handleSpectateRoom(ws: WebSocket, message: any) {
+  const { roomCode, displayName } = message;
+  const trimmedName = displayName?.trim?.() || 'Spectator';
+  const normalizedCode = roomCode?.toUpperCase?.() || '';
+
+  const room = rooms.get(normalizedCode);
+  if (!room) {
+    ws.send(JSON.stringify({ type: 'error', message: 'Room not found' }));
+    return;
+  }
+
+  if (!room.gameState) {
+    ws.send(JSON.stringify({ type: 'error', message: 'No active game to watch' }));
+    return;
+  }
+
+  const spectatorId = randomUUID();
+  const spectator: ConnectedSpectator = {
+    ws,
+    roomCode: normalizedCode,
+    spectatorId,
+    displayName: trimmedName,
+  };
+
+  room.spectators.set(spectatorId, spectator);
+  spectatorConnections.set(ws, spectator);
+
+  const filteredState = filterGameStateForSpectator(room.gameState);
+
+  ws.send(JSON.stringify({
+    type: 'spectating',
+    roomCode: normalizedCode,
+    spectatorId,
+    players: getPlayerList(room),
+    gameState: filteredState,
+    chatMessages: room.chatMessages,
+    spectatorCount: room.spectators.size,
+  }));
+
+  // Notify players and other spectators of updated count
+  broadcastSpectatorCount(room);
+
+  log(`Spectator ${trimmedName} started watching room ${normalizedCode}`, 'ws');
+}
+
+function handleLeaveSpectate(ws: WebSocket) {
+  const spectator = spectatorConnections.get(ws);
+  if (!spectator) return;
+
+  const room = rooms.get(spectator.roomCode);
+  if (room) {
+    room.spectators.delete(spectator.spectatorId);
+    broadcastSpectatorCount(room);
+  }
+
+  spectatorConnections.delete(ws);
+  ws.send(JSON.stringify({ type: 'left' }));
+  log(`Spectator ${spectator.displayName} stopped watching room ${spectator.roomCode}`, 'ws');
+}
+
+function handleSpectatorDisconnect(spectator: ConnectedSpectator) {
+  const room = rooms.get(spectator.roomCode);
+  if (room) {
+    room.spectators.delete(spectator.spectatorId);
+    broadcastSpectatorCount(room);
+  }
+  spectatorConnections.delete(spectator.ws);
+  log(`Spectator ${spectator.displayName} disconnected from room ${spectator.roomCode}`, 'ws');
+}
+
+function handleListActiveGames(ws: WebSocket) {
+  const games: { roomCode: string; playerNames: string[]; phase: string; spectatorCount: number }[] = [];
+
+  const allRooms = Array.from(rooms.entries());
+  for (const [code, room] of allRooms) {
+    if (room.gameState && room.gameState.phase !== 'setup') {
+      games.push({
+        roomCode: code,
+        playerNames: room.gameState.players.map(p => p.name),
+        phase: room.gameState.phase,
+        spectatorCount: room.spectators.size,
+      });
+    }
+  }
+
+  ws.send(JSON.stringify({
+    type: 'active_games',
+    games,
+  }));
+}
+
+function broadcastSpectatorCount(room: GameRoom) {
+  const countMsg = JSON.stringify({ type: 'spectator_count_updated', count: room.spectators.size });
+
+  // Send to players
+  const players = Array.from(room.players.values());
+  for (const player of players) {
+    safeSend(player.ws, countMsg);
+  }
+  // Send to spectators
+  const spectators = Array.from(room.spectators.values());
+  for (const spectator of spectators) {
+    safeSend(spectator.ws, countMsg);
   }
 }
 

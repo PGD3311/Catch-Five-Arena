@@ -26,7 +26,7 @@ import { useMultiplayer } from '@/hooks/useMultiplayer';
 import { useCpuTurns } from '@/hooks/useCpuTurns';
 import { useToast } from '@/hooks/use-toast';
 import { useSound } from '@/hooks/useSoundEffects';
-import { History } from 'lucide-react';
+import { History, Eye } from 'lucide-react';
 import {
   initializeGame,
   dealCards,
@@ -65,8 +65,9 @@ export function GameBoard() {
   const multiplayer = useMultiplayer();
   const { playSound } = useSound();
   const isMultiplayerMode = !!multiplayer.roomCode;
+  const isSpectating = multiplayer.isSpectating;
   const gameState = isMultiplayerMode && multiplayer.gameState ? multiplayer.gameState : localGameState;
-  const mySeatIndex = isMultiplayerMode ? (multiplayer.seatIndex ?? 0) : 0;
+  const mySeatIndex = isSpectating ? 0 : (isMultiplayerMode ? (multiplayer.seatIndex ?? 0) : 0);
   
   // Track unread chat messages and floating emojis
   useEffect(() => {
@@ -236,6 +237,7 @@ export function GameBoard() {
   }, [isMultiplayerMode, multiplayer]);
 
   const handleContinue = useCallback(() => {
+    if (isSpectating) return; // Spectators cannot advance the game
     if (isMultiplayerMode) {
       multiplayer.sendAction('continue', {});
     } else {
@@ -246,7 +248,7 @@ export function GameBoard() {
         return startNewRound(prev);
       });
     }
-  }, [isMultiplayerMode, multiplayer]);
+  }, [isMultiplayerMode, isSpectating, multiplayer]);
 
   const handleNewGame = useCallback(() => {
     setGameState(prev => initializeGame(prev.deckColor, prev.targetScore));
@@ -254,13 +256,15 @@ export function GameBoard() {
   }, []);
 
   const handleExitGame = useCallback(() => {
-    if (isMultiplayerMode) {
+    if (isSpectating) {
+      multiplayer.leaveSpectate();
+    } else if (isMultiplayerMode) {
       multiplayer.leaveRoom();
     }
     setGameState(prev => initializeGame(prev.deckColor, prev.targetScore));
     setSettingsOpen(false);
     setShowMultiplayerLobby(true);
-  }, [isMultiplayerMode, multiplayer]);
+  }, [isMultiplayerMode, isSpectating, multiplayer]);
 
   const handleSortHand = useCallback(() => {
     if (isMultiplayerMode) {
@@ -417,9 +421,11 @@ export function GameBoard() {
   const opponent2 = gameState.players[getRotatedIndex(3)];
   
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-  const isMyTurn = isMultiplayerMode 
-    ? gameState.currentPlayerIndex === mySeatIndex 
-    : currentPlayer?.isHuman;
+  const isMyTurn = isSpectating
+    ? false
+    : isMultiplayerMode
+      ? gameState.currentPlayerIndex === mySeatIndex
+      : currentPlayer?.isHuman;
   
   const passedCount = gameState.players.filter(p => p.bid === 0).length;
   const isDealer = gameState.currentPlayerIndex === gameState.dealerIndex;
@@ -465,9 +471,9 @@ export function GameBoard() {
     }
   }, [isMyTurn, isMultiplayerMode, gameState.phase, gameState.players, gameState.currentTrick, gameState.trumpSuit, mySeatIndex, multiplayer, toast]);
   
-  const showBiddingModal = gameState.phase === 'bidding' && isMyTurn;
-  const amIBidder = gameState.bidderId === gameState.players[mySeatIndex]?.id;
-  const showTrumpSelector = gameState.phase === 'trump-selection' && 
+  const showBiddingModal = !isSpectating && gameState.phase === 'bidding' && isMyTurn;
+  const amIBidder = !isSpectating && gameState.bidderId === gameState.players[mySeatIndex]?.id;
+  const showTrumpSelector = !isSpectating && gameState.phase === 'trump-selection' &&
     (isMultiplayerMode ? amIBidder : gameState.players.find(p => p.id === gameState.bidderId)?.isHuman);
   // Delay score modal if we're still showing the final trick
   const showScoreModal = (gameState.phase === 'scoring' || gameState.phase === 'game-over') && displayTrick.length === 0;
@@ -508,9 +514,13 @@ export function GameBoard() {
   };
 
   const handleReturnToLobby = useCallback(() => {
-    multiplayer.leaveRoom();
+    if (isSpectating) {
+      multiplayer.leaveSpectate();
+    } else {
+      multiplayer.leaveRoom();
+    }
     setGameState(initializeGame());
-  }, [multiplayer]);
+  }, [multiplayer, isSpectating]);
 
   return (
     <div
@@ -574,17 +584,41 @@ export function GameBoard() {
               onRandomizeTeams={multiplayer.randomizeTeams}
               deckColor={localGameState.deckColor}
               targetScore={localGameState.targetScore}
+              spectatorCount={multiplayer.spectatorCount}
+              activeGames={multiplayer.activeGames}
+              onSpectateRoom={multiplayer.spectateRoom}
+              onListActiveGames={multiplayer.listActiveGames}
             />
           )}
         </div>
       )}
       {gameState.phase !== 'setup' && gameState.phase !== 'dealer-draw' && (
-        isMultiplayerMode && multiplayer.seatIndex === null ? (
+        isMultiplayerMode && !isSpectating && multiplayer.seatIndex === null ? (
           <div className="flex-1 flex items-center justify-center">
             <p className="text-muted-foreground">Connecting to game...</p>
           </div>
         ) : (
         <div className="flex-1 flex flex-col p-2 sm:p-4 md:p-6 gap-2 sm:gap-4 overflow-hidden">
+          {isSpectating && (
+            <div className="flex items-center justify-center gap-3 px-3 py-1.5 bg-[hsl(var(--gold)/0.08)] border border-[hsl(var(--gold)/0.2)] rounded-lg mx-auto">
+              <div className="flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5 text-[hsl(var(--gold))]" />
+                <span className="text-xs text-[hsl(var(--gold))] font-medium" style={{ fontFamily: 'var(--font-display)' }}>
+                  Watching{multiplayer.spectatorCount > 0 ? ` \u2014 ${multiplayer.spectatorCount} spectator${multiplayer.spectatorCount !== 1 ? 's' : ''}` : ''}
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  multiplayer.leaveSpectate();
+                  setShowMultiplayerLobby(true);
+                }}
+                className="text-[10px] tracking-[0.1em] uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                Leave
+              </button>
+            </div>
+          )}
           <div className="flex justify-center relative">
             {getFloatingEmojiForPlayer(partnerPlayer.id, 'top')}
             <PlayerArea
@@ -689,7 +723,7 @@ export function GameBoard() {
                 />
               </div>
             )}
-            {gameState.phase === 'discard-trump' && isMyTurn && (
+            {!isSpectating && gameState.phase === 'discard-trump' && isMyTurn && (
               <div className="text-center mb-2 p-2 bg-destructive/10 border border-destructive/30 rounded-md">
                 <p className="text-sm font-medium text-destructive">
                   You have {humanPlayer.hand.length} trump cards. Tap a card to discard down to 6.
@@ -704,24 +738,24 @@ export function GameBoard() {
               isDealer={gameState.dealerIndex === mySeatIndex}
               deckColor={gameState.deckColor}
               onCardClick={
-                isMyTurn && gameState.phase === 'playing' 
-                  ? handleCardPlay 
-                  : isMyTurn && gameState.phase === 'discard-trump'
+                !isSpectating && isMyTurn && gameState.phase === 'playing'
+                  ? handleCardPlay
+                  : !isSpectating && isMyTurn && gameState.phase === 'discard-trump'
                   ? handleDiscardTrump
                   : undefined
               }
-              canPlayCard={(card) => 
-                isMyTurn && gameState.phase === 'playing' 
+              canPlayCard={(card) =>
+                !isSpectating && isMyTurn && gameState.phase === 'playing'
                   ? canPlayCard(card, humanPlayer.hand, gameState.currentTrick, gameState.trumpSuit)
-                  : isMyTurn && gameState.phase === 'discard-trump'
+                  : !isSpectating && isMyTurn && gameState.phase === 'discard-trump'
                   ? true
                   : false
               }
               position="bottom"
-              showCards
+              showCards={!isSpectating}
               showBidResult={showBidResults}
               trumpSuit={gameState.trumpSuit}
-              onSortHand={handleSortHand}
+              onSortHand={!isSpectating ? handleSortHand : undefined}
             />
           </div>
         </div>
@@ -732,7 +766,7 @@ export function GameBoard() {
         onSelect={handleTrumpSelect}
       />
       <PurgeDrawModal
-        open={showPurgeDraw}
+        open={!isSpectating && showPurgeDraw}
         players={gameState.players}
         trumpSuit={gameState.trumpSuit || 'Hearts'}
         onComplete={handlePurgeDrawComplete}
@@ -745,7 +779,7 @@ export function GameBoard() {
         roundScoreDetails={gameState.roundScoreDetails}
         bidderId={gameState.bidderId}
         highBid={gameState.highBid}
-        onContinue={handleContinue}
+        onContinue={isSpectating ? () => {} : handleContinue}
         isGameOver={checkGameOver(gameState)}
         targetScore={gameState.targetScore}
         sleptCards={gameState.sleptCards}
@@ -774,7 +808,7 @@ export function GameBoard() {
       />
       <RulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
       <DealerDrawModal
-        open={isMultiplayerMode ? gameState.phase === 'dealer-draw' : showDealerDraw}
+        open={!isSpectating && (isMultiplayerMode ? gameState.phase === 'dealer-draw' : showDealerDraw)}
         players={gameState.players}
         dealerDrawCards={gameState.dealerDrawCards || []}
         onComplete={handleDealerDrawComplete}
@@ -788,11 +822,11 @@ export function GameBoard() {
         winnerId={gameState.lastTrickWinnerId || null}
         trumpSuit={gameState.trumpSuit}
       />
-      {isMultiplayerMode && gameState.phase !== 'setup' && gameState.players[mySeatIndex] && (
+      {(isMultiplayerMode || isSpectating) && gameState.phase !== 'setup' && (gameState.players[mySeatIndex] || isSpectating) && (
         <ChatPanel
           messages={multiplayer.chatMessages}
           onSendMessage={handleSendChat}
-          currentPlayerId={gameState.players[mySeatIndex].id}
+          currentPlayerId={isSpectating ? `spectator_${multiplayer.spectatorId}` : gameState.players[mySeatIndex].id}
           isOpen={isChatOpen}
           onToggle={handleChatToggle}
           unreadCount={unreadCount}

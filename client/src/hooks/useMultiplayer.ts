@@ -8,6 +8,13 @@ interface RoomPlayer {
   isCpu?: boolean;
 }
 
+interface ActiveGame {
+  roomCode: string;
+  playerNames: string[];
+  phase: string;
+  spectatorCount: number;
+}
+
 interface MultiplayerState {
   connected: boolean;
   reconnecting: boolean;
@@ -20,6 +27,10 @@ interface MultiplayerState {
   chatMessages: ChatMessage[];
   roomUnavailable: boolean;
   lastDisconnectTime: number | null;
+  isSpectating: boolean;
+  spectatorId: string | null;
+  spectatorCount: number;
+  activeGames: ActiveGame[];
 }
 
 export function useMultiplayer() {
@@ -35,6 +46,10 @@ export function useMultiplayer() {
     chatMessages: [],
     roomUnavailable: false,
     lastDisconnectTime: null,
+    isSpectating: false,
+    spectatorId: null,
+    spectatorCount: 0,
+    activeGames: [],
   });
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -71,6 +86,8 @@ export function useMultiplayer() {
       const savedToken = sessionStorage.getItem('playerToken');
       const savedRoom = sessionStorage.getItem('roomCode');
       const savedName = sessionStorage.getItem('playerName');
+      const savedSpectatorRoom = sessionStorage.getItem('spectatorRoomCode');
+      const savedSpectatorName = sessionStorage.getItem('spectatorDisplayName');
       if (savedToken && savedRoom) {
         console.log('[WS] Attempting to rejoin room:', savedRoom);
         ws.send(JSON.stringify({
@@ -78,6 +95,13 @@ export function useMultiplayer() {
           roomCode: savedRoom,
           playerToken: savedToken,
           playerName: savedName || '',
+        }));
+      } else if (savedSpectatorRoom) {
+        console.log('[WS] Attempting to re-spectate room:', savedSpectatorRoom);
+        ws.send(JSON.stringify({
+          type: 'spectate_room',
+          roomCode: savedSpectatorRoom,
+          displayName: savedSpectatorName || 'Spectator',
         }));
       }
       
@@ -220,6 +244,8 @@ export function useMultiplayer() {
         console.log('[WS] Left room');
         sessionStorage.removeItem('playerToken');
         sessionStorage.removeItem('roomCode');
+        sessionStorage.removeItem('spectatorRoomCode');
+        sessionStorage.removeItem('spectatorDisplayName');
         setState({
           connected: true,
           reconnecting: false,
@@ -232,6 +258,10 @@ export function useMultiplayer() {
           chatMessages: [],
           roomUnavailable: false,
           lastDisconnectTime: null,
+          isSpectating: false,
+          spectatorId: null,
+          spectatorCount: 0,
+          activeGames: [],
         });
         break;
       
@@ -240,6 +270,8 @@ export function useMultiplayer() {
         sessionStorage.removeItem('playerToken');
         sessionStorage.removeItem('roomCode');
         sessionStorage.removeItem('playerName');
+        sessionStorage.removeItem('spectatorRoomCode');
+        sessionStorage.removeItem('spectatorDisplayName');
         setState(prev => ({
           ...prev,
           roomCode: null,
@@ -248,6 +280,9 @@ export function useMultiplayer() {
           players: [],
           gameState: null,
           roomUnavailable: true,
+          isSpectating: false,
+          spectatorId: null,
+          spectatorCount: 0,
           error: message.message || 'This room is no longer available',
         }));
         break;
@@ -294,6 +329,8 @@ export function useMultiplayer() {
         sessionStorage.removeItem('playerToken');
         sessionStorage.removeItem('roomCode');
         sessionStorage.removeItem('playerName');
+        sessionStorage.removeItem('spectatorRoomCode');
+        sessionStorage.removeItem('spectatorDisplayName');
         setState(prev => ({
           ...prev,
           roomCode: null,
@@ -301,6 +338,9 @@ export function useMultiplayer() {
           seatIndex: null,
           players: [],
           gameState: null,
+          isSpectating: false,
+          spectatorId: null,
+          spectatorCount: 0,
           error: message.message || 'You have been removed from the room',
         }));
         break;
@@ -312,6 +352,38 @@ export function useMultiplayer() {
         setState(prev => ({
           ...prev,
           chatMessages: [...prev.chatMessages.slice(-49), message.message],
+        }));
+        break;
+
+      case 'spectating':
+        console.log('[WS] Now spectating room:', message.roomCode);
+        sessionStorage.setItem('spectatorRoomCode', message.roomCode);
+        sessionStorage.setItem('spectatorDisplayName', message.spectatorId);
+        setState(prev => ({
+          ...prev,
+          isSpectating: true,
+          spectatorId: message.spectatorId,
+          roomCode: message.roomCode,
+          players: message.players,
+          gameState: message.gameState,
+          chatMessages: message.chatMessages || [],
+          spectatorCount: message.spectatorCount || 0,
+          error: null,
+          roomUnavailable: false,
+        }));
+        break;
+
+      case 'spectator_count_updated':
+        setState(prev => ({
+          ...prev,
+          spectatorCount: message.count,
+        }));
+        break;
+
+      case 'active_games':
+        setState(prev => ({
+          ...prev,
+          activeGames: message.games || [],
         }));
         break;
     }
@@ -460,6 +532,35 @@ export function useMultiplayer() {
     }
   }, []);
 
+  const spectateRoom = useCallback((roomCode: string, displayName: string) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      // Clear any existing player session
+      sessionStorage.removeItem('playerToken');
+      sessionStorage.removeItem('roomCode');
+      sessionStorage.removeItem('playerName');
+
+      wsRef.current.send(JSON.stringify({
+        type: 'spectate_room',
+        roomCode,
+        displayName,
+      }));
+    }
+  }, []);
+
+  const leaveSpectate = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'leave_spectate' }));
+    }
+    sessionStorage.removeItem('spectatorRoomCode');
+    sessionStorage.removeItem('spectatorDisplayName');
+  }, []);
+
+  const listActiveGames = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'list_active_games' }));
+    }
+  }, []);
+
   return {
     ...state,
     createRoom,
@@ -474,5 +575,8 @@ export function useMultiplayer() {
     randomizeTeams,
     kickPlayer,
     sendChat,
+    spectateRoom,
+    leaveSpectate,
+    listActiveGames,
   };
 }

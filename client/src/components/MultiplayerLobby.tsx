@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Users, Copy, Check, Play, LogOut, Wifi, WifiOff, Bot, UserPlus, Shuffle, ArrowLeftRight, KeyRound, Heart, Spade, Diamond, Club } from 'lucide-react';
+import { Users, Copy, Check, Play, LogOut, Wifi, WifiOff, Bot, UserPlus, Shuffle, ArrowLeftRight, KeyRound, Heart, Spade, Diamond, Club, Eye, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { DeckColor } from '@shared/gameTypes';
@@ -34,6 +34,13 @@ interface RoomPlayer {
   isCpu?: boolean;
 }
 
+interface ActiveGame {
+  roomCode: string;
+  playerNames: string[];
+  phase: string;
+  spectatorCount: number;
+}
+
 interface MultiplayerLobbyProps {
   connected: boolean;
   roomCode: string | null;
@@ -54,6 +61,10 @@ interface MultiplayerLobbyProps {
   onRandomizeTeams: () => void;
   deckColor: DeckColor;
   targetScore: number;
+  spectatorCount?: number;
+  activeGames?: ActiveGame[];
+  onSpectateRoom?: (roomCode: string, displayName: string) => void;
+  onListActiveGames?: () => void;
 }
 
 const teamColor = (seat: number) =>
@@ -166,12 +177,16 @@ export function MultiplayerLobby({
   deckColor,
   targetScore,
   userId,
+  spectatorCount,
+  activeGames = [],
+  onSpectateRoom,
+  onListActiveGames,
 }: MultiplayerLobbyProps) {
   const [playerName, setPlayerName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [copied, setCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
-  const [mode, setMode] = useState<'menu' | 'create' | 'join' | 'select-seat'>('menu');
+  const [mode, setMode] = useState<'menu' | 'create' | 'join' | 'select-seat' | 'watch'>('menu');
   const [selectedSeat, setSelectedSeat] = useState<number | null>(null);
   const [availableSeats, setAvailableSeats] = useState<number[]>([]);
   const [previewPlayers, setPreviewPlayers] = useState<RoomPlayer[]>([]);
@@ -311,9 +326,16 @@ export function MultiplayerLobby({
           {/* Players grid */}
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-medium text-muted-foreground/60" style={{ fontFamily: 'var(--font-display)' }}>
-                Players ({players.length}/4)
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-medium text-muted-foreground/60" style={{ fontFamily: 'var(--font-display)' }}>
+                  Players ({players.length}/4)
+                </p>
+                {(spectatorCount ?? 0) > 0 && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold))]">
+                    <Eye className="w-3 h-3 mr-0.5" /> {spectatorCount}
+                  </Badge>
+                )}
+              </div>
               {isHost && players.length >= 2 && (
                 <Button
                   size="sm"
@@ -509,6 +531,19 @@ export function MultiplayerLobby({
                     <Users className="w-4 h-4 mr-2" /> Join Existing Room
                   </Button>
                 </motion.div>
+                {onSpectateRoom && (
+                  <motion.div variants={staggerChild}>
+                    <Button
+                      onClick={() => { setMode('watch'); onListActiveGames?.(); }}
+                      variant="outline"
+                      className="w-full border-[hsl(var(--gold-dim)/0.2)] text-muted-foreground/70"
+                      style={{ fontFamily: 'var(--font-display)' }}
+                      data-testid="button-watch-game"
+                    >
+                      <Eye className="w-4 h-4 mr-2" /> Watch a Game
+                    </Button>
+                  </motion.div>
+                )}
                 <motion.div variants={staggerChild}>
                   <button
                     onClick={onClose}
@@ -751,6 +786,100 @@ export function MultiplayerLobby({
                   Back
                 </button>
               </div>
+            </motion.div>
+          )}
+
+          {mode === 'watch' && connected && (
+            <motion.div key="watch" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+              <motion.div className="space-y-3" variants={staggerContainer} initial="initial" animate="animate">
+                <motion.div variants={staggerChild}>
+                  <Input
+                    placeholder="Your name (shown in chat)"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    className={inputClass}
+                    data-testid="input-spectator-name"
+                  />
+                </motion.div>
+                <motion.div variants={staggerChild} className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground/60" style={{ fontFamily: 'var(--font-display)' }}>
+                    Active Games ({activeGames.length})
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onListActiveGames?.()}
+                    className="h-7 text-[11px] text-muted-foreground/50 hover:text-muted-foreground"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    <RefreshCw className="w-3 h-3 mr-1" /> Refresh
+                  </Button>
+                </motion.div>
+                {activeGames.length === 0 ? (
+                  <motion.div variants={staggerChild} className="text-center py-6">
+                    <Eye className="w-8 h-8 mx-auto mb-2 text-muted-foreground/20" />
+                    <p className="text-sm text-muted-foreground/40" style={{ fontFamily: 'var(--font-display)' }}>
+                      No active games right now
+                    </p>
+                    <p className="text-[11px] text-muted-foreground/30 mt-1" style={{ fontFamily: 'var(--font-display)' }}>
+                      Check back when someone starts playing
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.div variants={staggerChild} className="space-y-2 max-h-60 overflow-y-auto">
+                    {activeGames.map((game) => (
+                      <motion.div
+                        key={game.roomCode}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-3 rounded-xl bg-card/60 border border-border/40 hover:border-[hsl(var(--gold-dim)/0.3)] transition-all"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-mono text-muted-foreground/50">{game.roomCode}</span>
+                              <Badge variant="secondary" className="text-[9px] px-1 py-0 capitalize">
+                                {game.phase}
+                              </Badge>
+                            </div>
+                            <p className="text-sm font-medium truncate" style={{ fontFamily: 'var(--font-display)' }}>
+                              {game.playerNames.join(' vs ')}
+                            </p>
+                            {game.spectatorCount > 0 && (
+                              <p className="text-[10px] text-muted-foreground/40 mt-0.5">
+                                <Eye className="w-3 h-3 inline mr-0.5" />{game.spectatorCount} watching
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              if (onSpectateRoom) {
+                                onSpectateRoom(game.roomCode, playerName.trim() || 'Spectator');
+                              }
+                            }}
+                            disabled={!playerName.trim()}
+                            className="shrink-0 h-8 text-xs"
+                            style={{ fontFamily: 'var(--font-display)' }}
+                            data-testid={`button-watch-${game.roomCode}`}
+                          >
+                            <Eye className="w-3 h-3 mr-1" /> Watch
+                          </Button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                )}
+                <motion.div variants={staggerChild}>
+                  <button
+                    onClick={() => setMode('menu')}
+                    className="w-full py-2 text-muted-foreground/40 hover:text-muted-foreground/70 text-xs tracking-[0.15em] uppercase transition-colors"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    Back
+                  </button>
+                </motion.div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
