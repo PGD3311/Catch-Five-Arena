@@ -1,9 +1,8 @@
 import { GameState, Suit, Team } from '@shared/gameTypes';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Settings, Heart, Diamond, Club, Spade, Share2, HelpCircle, History, LogOut, Trophy } from 'lucide-react';
+import { Settings, Share2, HelpCircle, History, LogOut, Trophy } from 'lucide-react';
+import { SuitIcon } from '@/components/ui/suit-utils';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
 import { Link } from 'wouter';
 
 interface GameHeaderProps {
@@ -15,44 +14,26 @@ interface GameHeaderProps {
   onExitGame?: () => void;
 }
 
-const TrumpIcon = ({ suit }: { suit: Suit }) => {
-  const Icon = {
-    Hearts: Heart,
-    Diamonds: Diamond,
-    Clubs: Club,
-    Spades: Spade,
-  }[suit];
-
-  const colors = {
-    Hearts: 'text-red-500',
-    Diamonds: 'text-blue-500',
-    Clubs: 'text-emerald-500',
-    Spades: 'text-slate-400',
-  };
-
-  return <Icon className={cn('w-4 h-4', colors[suit])} fill="currentColor" />;
-};
-
 const getPhaseLabel = (phase: GameState['phase'], trickNumber: number): string => {
   switch (phase) {
     case 'setup':
-      return 'Ready';
+      return 'READY';
     case 'dealer-draw':
-      return 'Drawing';
+      return 'DRAW';
     case 'dealing':
-      return 'Dealing';
+      return 'DEAL';
     case 'bidding':
-      return 'Bidding Phase';
+      return 'BID';
     case 'trump-selection':
-      return 'Select Trump';
+      return 'TRUMP';
     case 'purge-draw':
-      return 'Purge & Draw';
+      return 'PURGE';
     case 'playing':
-      return `Trick ${Math.min(trickNumber, 6)}/6`;
+      return `TRICK ${Math.min(trickNumber, 6)}/6`;
     case 'scoring':
-      return 'Round End';
+      return 'SCORE';
     case 'game-over':
-      return 'Game Over';
+      return 'FINAL';
     default:
       return '';
   }
@@ -60,24 +41,28 @@ const getPhaseLabel = (phase: GameState['phase'], trickNumber: number): string =
 
 const TeamScore = ({ team, isYourTeam, targetScore }: { team: Team; isYourTeam: boolean; targetScore: number }) => {
   return (
-    <div 
+    <div
       className={cn(
-        'flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border',
-        isYourTeam 
-          ? 'bg-blue-500/10 border-blue-500/30' 
-          : 'bg-rose-500/10 border-rose-500/30'
+        'flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg',
+        'border backdrop-blur-sm transition-all',
+        isYourTeam
+          ? 'bg-[hsl(var(--team-blue)/0.12)] border-[hsl(var(--team-blue)/0.25)]'
+          : 'bg-[hsl(var(--team-red)/0.12)] border-[hsl(var(--team-red)/0.25)]'
       )}
       data-testid={`team-score-${team.id}`}
     >
       <span className={cn(
-        'w-2 h-2 rounded-full',
-        isYourTeam ? 'bg-blue-500' : 'bg-rose-500'
+        'w-1.5 h-1.5 rounded-full',
+        isYourTeam ? 'bg-[hsl(var(--team-blue))]' : 'bg-[hsl(var(--team-red))]'
       )} />
-      <span className="text-[9px] sm:text-[10px] uppercase tracking-wide text-muted-foreground hidden sm:inline">
+      <span className={cn(
+        'text-[9px] sm:text-[10px] font-semibold uppercase tracking-widest',
+        isYourTeam ? 'text-[hsl(var(--team-blue))]' : 'text-[hsl(var(--team-red))]'
+      )}>
         {isYourTeam ? 'YOU' : 'OPP'}
       </span>
-      <span className="font-bold text-sm sm:text-base">{team.score}</span>
-      <span className="text-[10px] sm:text-xs text-muted-foreground">/{targetScore}</span>
+      <span className="font-bold text-sm sm:text-base tabular-nums">{team.score}</span>
+      <span className="text-[10px] sm:text-xs text-muted-foreground/50 tabular-nums">/{targetScore}</span>
     </div>
   );
 };
@@ -88,60 +73,58 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
   const opponentTeam = gameState.teams.find(t => t.id === 'team2');
 
   return (
-    <header className="flex items-center justify-between gap-2 px-2 py-1.5 sm:px-3 sm:py-2 border-b bg-background/80 backdrop-blur-sm" data-testid="game-header">
-      {/* Left: Phase and bid info */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <Badge 
-          variant="secondary" 
-          className="text-[11px] font-medium px-2 py-0.5"
-          data-testid="badge-phase"
-        >
-          {phaseLabel}
-        </Badge>
+    <header
+      className="flex items-center justify-between gap-2 px-2 py-1.5 sm:px-4 sm:py-2 border-b border-border/50 bg-background/60 backdrop-blur-md"
+      data-testid="game-header"
+    >
+      {/* Left: Phase + bid */}
+      <div className="flex items-center gap-2">
+        <div className="px-2 py-0.5 rounded bg-muted/50 border border-border/50">
+          <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.15em] text-muted-foreground" style={{ fontFamily: 'var(--font-display)' }}>
+            {phaseLabel}
+          </span>
+        </div>
 
         {gameState.highBid > 0 && (
-          <Badge 
-            variant="outline" 
-            className="text-[11px] px-2 py-0.5 border-amber-500/40 text-amber-400" 
-            data-testid="badge-high-bid"
-          >
-            Bid: {gameState.highBid}
-          </Badge>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[hsl(var(--gold)/0.08)] border border-[hsl(var(--gold)/0.2)]">
+            <span className="text-[10px] font-medium text-[hsl(var(--gold))]">
+              BID {gameState.highBid}
+            </span>
+          </div>
         )}
       </div>
 
-      {/* Center: Team scores - stack vertically on very small screens */}
-      <div className="flex items-center gap-1 sm:gap-2">
+      {/* Center: Scores */}
+      <div className="flex items-center gap-1.5 sm:gap-2">
         {yourTeam && gameState.phase !== 'setup' && (
           <TeamScore team={yourTeam} isYourTeam targetScore={gameState.targetScore} />
         )}
-        <span className="text-muted-foreground/50 text-xs hidden xs:inline">vs</span>
+        <span className="text-muted-foreground/30 text-[10px] font-medium hidden xs:inline">vs</span>
         {opponentTeam && gameState.phase !== 'setup' && (
           <TeamScore team={opponentTeam} isYourTeam={false} targetScore={gameState.targetScore} />
         )}
       </div>
 
-      {/* Right: Trump and actions - compact on mobile */}
-      <div className="flex items-center gap-0.5 sm:gap-1.5">
+      {/* Right: Actions */}
+      <div className="flex items-center gap-0.5 sm:gap-1">
         {gameState.trumpSuit && (
-          <div 
-            className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20"
+          <div
+            className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg bg-[hsl(var(--gold)/0.1)] border border-[hsl(var(--gold)/0.2)]"
             data-testid="display-trump-suit"
           >
-            <TrumpIcon suit={gameState.trumpSuit} />
+            <SuitIcon suit={gameState.trumpSuit} className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
         )}
 
-        {/* Hide less important buttons on very small screens */}
         {gameState.lastTrick && gameState.lastTrick.length > 0 && onLastTrickClick && (
           <Button
             size="icon"
             variant="ghost"
             onClick={onLastTrickClick}
-            className="hidden sm:flex"
+            className="hidden sm:flex h-8 w-8 text-muted-foreground/60 hover:text-foreground"
             data-testid="button-last-trick-header"
           >
-            <History className="w-4 h-4" />
+            <History className="w-3.5 h-3.5" />
           </Button>
         )}
 
@@ -149,7 +132,7 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
           size="icon"
           variant="ghost"
           onClick={onShareClick}
-          className="hidden sm:flex"
+          className="hidden sm:flex h-8 w-8 text-muted-foreground/60 hover:text-foreground"
           data-testid="button-share"
         >
           <Share2 className="w-3.5 h-3.5" />
@@ -158,39 +141,41 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
           size="icon"
           variant="ghost"
           onClick={onRulesClick}
-          className="hidden xs:flex"
+          className="hidden xs:flex h-8 w-8 text-muted-foreground/60 hover:text-foreground"
           data-testid="button-rules"
         >
-          <HelpCircle className="w-4 h-4" />
+          <HelpCircle className="w-3.5 h-3.5" />
         </Button>
         <Button
           size="icon"
           variant="ghost"
           onClick={onSettingsClick}
+          className="h-8 w-8 text-muted-foreground/60 hover:text-foreground"
           data-testid="button-settings"
         >
-          <Settings className="w-4 h-4" />
+          <Settings className="w-3.5 h-3.5" />
         </Button>
-        
+
         <Link href="/stats">
           <Button
             size="icon"
             variant="ghost"
+            className="h-8 w-8 text-muted-foreground/60 hover:text-foreground"
             data-testid="button-stats"
           >
-            <Trophy className="w-4 h-4" />
+            <Trophy className="w-3.5 h-3.5" />
           </Button>
         </Link>
-        
+
         {onExitGame && gameState.phase !== 'setup' && (
           <Button
             size="icon"
             variant="ghost"
             onClick={onExitGame}
-            className="text-destructive hover:text-destructive"
+            className="h-8 w-8 text-destructive/70 hover:text-destructive"
             data-testid="button-exit-game"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-3.5 h-3.5" />
           </Button>
         )}
       </div>

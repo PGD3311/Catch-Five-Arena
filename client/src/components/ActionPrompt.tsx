@@ -10,21 +10,21 @@ interface ActionPromptProps {
 export function ActionPrompt({ gameState }: ActionPromptProps) {
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   const bidder = gameState.players.find(p => p.id === gameState.bidderId);
-  
+
   const getMessage = (): { text: string; isWaiting: boolean } => {
     switch (gameState.phase) {
       case 'bidding':
         if (currentPlayer.isHuman) {
-          return { 
-            text: gameState.highBid > 0 ? `Beat ${gameState.highBid} or pass` : 'Open bidding', 
+          return {
+            text: gameState.highBid > 0 ? `Beat ${gameState.highBid} or pass` : 'Open bidding',
             isWaiting: false
           };
         }
         return { text: `${currentPlayer.name} thinking...`, isWaiting: true };
-      
+
       case 'trump-selection':
         return { text: 'Choose trump', isWaiting: false };
-      
+
       case 'playing':
         if (currentPlayer.isHuman) {
           if (gameState.currentTrick.length === 0) {
@@ -33,7 +33,7 @@ export function ActionPrompt({ gameState }: ActionPromptProps) {
           return { text: 'Your turn', isWaiting: false };
         }
         return { text: `${currentPlayer.name}...`, isWaiting: true };
-      
+
       default:
         return { text: '', isWaiting: false };
     }
@@ -45,21 +45,24 @@ export function ActionPrompt({ gameState }: ActionPromptProps) {
 
   return (
     <AnimatePresence mode="wait">
-      <motion.div 
+      <motion.div
         key={text}
-        initial={{ opacity: 0, y: 5 }}
+        initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -5 }}
+        exit={{ opacity: 0, y: -4 }}
         transition={{ duration: 0.2 }}
         className="text-center"
         data-testid="action-prompt"
         aria-live="polite"
         role="status"
       >
-        <span className={cn(
-          'text-xs font-medium tracking-wide',
-          isWaiting ? 'text-muted-foreground/60' : 'text-foreground/80'
-        )}>
+        <span
+          className={cn(
+            'text-[11px] font-semibold tracking-[0.1em] uppercase',
+            isWaiting ? 'text-muted-foreground/40' : 'text-foreground/70'
+          )}
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
           {text}
         </span>
         {isWaiting && (
@@ -78,11 +81,11 @@ interface BidAnnouncementProps {
 
 export function BidAnnouncement({ player, bid, isDealer }: BidAnnouncementProps) {
   if (bid === null) return null;
-  
+
   const message = bid === 0 ? 'Pass' : `Bid ${bid}`;
-  
+
   return (
-    <Badge 
+    <Badge
       variant={bid > 0 ? 'default' : 'secondary'}
       className="text-xs"
       data-testid={`bid-announcement-${player.id}`}

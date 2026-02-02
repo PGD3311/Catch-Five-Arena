@@ -193,7 +193,7 @@ function DockCard({ card, index, mouseX, containerRef, onClick, disabled, trumpS
           !disabled && 'hover:shadow-[0_12px_28px_rgba(0,0,0,0.25),0_8px_12px_rgba(0,0,0,0.15)] hover:brightness-105',
           !disabled && 'active:shadow-[0_18px_36px_rgba(0,0,0,0.3),0_10px_18px_rgba(0,0,0,0.2)]',
           disabled && 'opacity-40 cursor-not-allowed grayscale-[30%]',
-          isTrump && 'ring-2 ring-amber-400 dark:ring-amber-500 ring-offset-1 ring-offset-background'
+          isTrump && 'ring-2 ring-[hsl(var(--gold)/0.6)] ring-offset-1 ring-offset-background shadow-[0_0_12px_hsl(var(--gold)/0.12)]'
         )}
         data-testid={`card-${card.rank}-${card.suit}`}
       >

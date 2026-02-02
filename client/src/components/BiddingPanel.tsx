@@ -20,56 +20,60 @@ export function BiddingPanel({ open, highBid, playerName, isDealer, allOthersPas
   if (!open) return null;
 
   return (
-    <motion.div 
-      initial={{ y: 20, opacity: 0, scale: 0.95 }}
+    <motion.div
+      initial={{ y: 16, opacity: 0, scale: 0.96 }}
       animate={{ y: 0, opacity: 1, scale: 1 }}
-      exit={{ y: 20, opacity: 0, scale: 0.95 }}
+      exit={{ y: 16, opacity: 0, scale: 0.96 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className={cn(
-        'bg-card/80 backdrop-blur-xl rounded-2xl border border-white/10',
-        'shadow-[0_8px_32px_rgba(0,0,0,0.3)] p-3'
+        'bg-card/90 backdrop-blur-xl rounded-2xl',
+        'border border-border/50',
+        'shadow-[0_8px_40px_rgba(0,0,0,0.4)] p-3'
       )}
       data-testid="bidding-panel"
     >
       {/* Header */}
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex flex-col">
-          <span className="font-semibold text-sm">Place Your Bid</span>
+          <span className="font-semibold text-sm" style={{ fontFamily: 'var(--font-display)' }}>Place Your Bid</span>
           {highBid > 0 && (
-            <span className="text-xs text-muted-foreground">Current high: {highBid}</span>
+            <span className="text-[11px] text-muted-foreground/60">Current high: {highBid}</span>
           )}
         </div>
-        
+
         {mustBid && (
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30">
-            <AlertCircle className="w-3 h-3 text-amber-400" />
-            <span className="text-[10px] font-medium text-amber-400">Must bid</span>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[hsl(var(--gold)/0.1)] border border-[hsl(var(--gold)/0.25)]">
+            <AlertCircle className="w-3 h-3 text-[hsl(var(--gold))]" />
+            <span className="text-[10px] font-semibold text-[hsl(var(--gold))]">Must bid</span>
           </div>
         )}
       </div>
 
-      {/* Bid buttons - larger touch targets on mobile */}
+      {/* Bid buttons */}
       <div className="flex items-center gap-2 sm:gap-2 flex-wrap justify-center">
         {bidOptions.map((bid) => {
           const canDealerTakeNine = isDealer && highBid === MAX_BID && bid === MAX_BID;
           const isValid = bid > highBid || canDealerTakeNine;
           return (
-            <Button
+            <button
               key={bid}
-              variant={isValid ? 'default' : 'secondary'}
               disabled={!isValid}
               onClick={() => onBid(bid)}
               className={cn(
-                'h-12 w-12 sm:h-11 sm:w-11 text-xl sm:text-lg font-bold rounded-xl sm:rounded-lg',
-                'active:scale-95 transition-transform',
-                isValid && 'bg-emerald-600 hover:bg-emerald-500 text-white',
-                canDealerTakeNine && 'ring-2 ring-amber-400',
-                !isValid && 'opacity-25'
+                'h-12 w-12 sm:h-11 sm:w-11 rounded-xl sm:rounded-lg',
+                'text-xl sm:text-lg font-bold',
+                'transition-all duration-150',
+                'active:scale-95',
+                isValid && 'bg-[hsl(var(--felt-glow))] hover:bg-[hsl(150_45%_30%)] text-white shadow-md',
+                isValid && 'hover:shadow-lg hover:shadow-[hsl(var(--felt-glow)/0.2)]',
+                canDealerTakeNine && 'ring-2 ring-[hsl(var(--gold))] shadow-[0_0_12px_hsl(var(--gold)/0.2)]',
+                !isValid && 'bg-muted/30 text-muted-foreground/20 cursor-not-allowed'
               )}
+              style={{ fontFamily: 'var(--font-display)' }}
               data-testid={`button-bid-${bid}`}
             >
               {bid}
-            </Button>
+            </button>
           );
         })}
 
@@ -77,7 +81,8 @@ export function BiddingPanel({ open, highBid, playerName, isDealer, allOthersPas
           <Button
             variant="outline"
             onClick={() => onBid(0)}
-            className="h-12 sm:h-11 px-6 sm:px-5 text-base sm:text-sm font-semibold rounded-xl sm:rounded-lg active:scale-95 transition-transform"
+            className="h-12 sm:h-11 px-6 sm:px-5 text-base sm:text-sm font-semibold rounded-xl sm:rounded-lg active:scale-95 transition-all border-border/50"
+            style={{ fontFamily: 'var(--font-display)' }}
             data-testid="button-pass"
           >
             Pass

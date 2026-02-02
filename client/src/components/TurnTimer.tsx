@@ -10,9 +10,9 @@ interface TurnTimerProps {
   serverStartTime?: number;
 }
 
-export function TurnTimer({ 
-  isActive, 
-  duration = 20, 
+export function TurnTimer({
+  isActive,
+  duration = 20,
   onTimeout,
   playerName,
   isCurrentPlayer = false,
@@ -23,7 +23,7 @@ export function TurnTimer({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasTimedOut = useRef(false);
   const onTimeoutRef = useRef(onTimeout);
-  
+
   useEffect(() => {
     onTimeoutRef.current = onTimeout;
   }, [onTimeout]);
@@ -31,8 +31,7 @@ export function TurnTimer({
   useEffect(() => {
     if (isActive) {
       hasTimedOut.current = false;
-      
-      // Calculate initial time based on server timestamp
+
       const calculateTimeLeft = () => {
         if (serverStartTime) {
           const elapsed = Math.floor((Date.now() - serverStartTime) / 1000);
@@ -40,26 +39,24 @@ export function TurnTimer({
         }
         return duration;
       };
-      
-      // Set initial time
+
       const initialTime = calculateTimeLeft();
       setTimeLeft(initialTime);
       setIsWarning(initialTime <= 5);
-      
+
       intervalRef.current = setInterval(() => {
         const newTime = calculateTimeLeft();
         setTimeLeft(newTime);
-        
+
         if (newTime <= 5) {
           setIsWarning(true);
         }
-        
-        // Only trigger timeout callback for the current player
+
         if (newTime <= 0 && !hasTimedOut.current && isCurrentPlayer) {
           hasTimedOut.current = true;
           onTimeoutRef.current?.();
         }
-      }, 250); // Update more frequently for accuracy
+      }, 250);
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -77,52 +74,54 @@ export function TurnTimer({
   if (!isActive) return null;
 
   const percentage = (timeLeft / duration) * 100;
-  const circumference = 2 * Math.PI * 18;
+  const circumference = 2 * Math.PI * 16;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
     <div className="flex items-center gap-2" data-testid="turn-timer">
-      <div className="relative w-10 h-10">
-        <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
+      <div className="relative w-9 h-9">
+        <svg className="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
+          {/* Track */}
           <circle
-            cx="20"
-            cy="20"
-            r="18"
+            cx="18"
+            cy="18"
+            r="16"
             fill="none"
             stroke="currentColor"
-            strokeWidth="3"
-            className="text-muted-foreground/20"
+            strokeWidth="2.5"
+            className="text-muted/40"
           />
+          {/* Progress */}
           <circle
-            cx="20"
-            cy="20"
-            r="18"
+            cx="18"
+            cy="18"
+            r="16"
             fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
+            strokeWidth="2.5"
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
             className={cn(
               "transition-all duration-1000 ease-linear",
-              isWarning ? "text-destructive" : "text-primary"
+              isWarning ? "stroke-[hsl(var(--team-red))]" : "stroke-[hsl(var(--gold))]"
             )}
           />
         </svg>
-        <span 
+        <span
           className={cn(
-            "absolute inset-0 flex items-center justify-center text-sm font-bold",
-            isWarning ? "text-destructive animate-pulse" : "text-foreground"
+            "absolute inset-0 flex items-center justify-center text-xs font-bold tabular-nums",
+            isWarning ? "text-[hsl(var(--team-red))] timer-urgent" : "text-foreground/80"
           )}
+          style={{ fontFamily: 'var(--font-display)' }}
         >
           {timeLeft}
         </span>
       </div>
       {playerName && (
         <span className={cn(
-          "text-sm font-medium",
-          isCurrentPlayer ? "text-primary" : "text-muted-foreground"
-        )}>
+          "text-xs font-medium tracking-wide",
+          isCurrentPlayer ? "text-[hsl(var(--gold))]" : "text-muted-foreground/60"
+        )} style={{ fontFamily: 'var(--font-display)' }}>
           {isCurrentPlayer ? "Your turn" : `${playerName}'s turn`}
         </span>
       )}

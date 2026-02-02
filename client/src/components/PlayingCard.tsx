@@ -40,27 +40,27 @@ export function PlayingCard({
         className={cn(
           baseSize,
           'rounded-xl relative overflow-hidden',
-          'shadow-[0_4px_12px_rgba(0,0,0,0.25),0_2px_4px_rgba(0,0,0,0.15)]',
+          'shadow-[0_4px_12px_rgba(0,0,0,0.3),0_2px_4px_rgba(0,0,0,0.2)]',
           'dark:shadow-[0_4px_16px_rgba(0,0,0,0.5),0_2px_6px_rgba(0,0,0,0.3)]',
           'transform-gpu transition-transform duration-200',
           className
         )}
       >
-        <div 
+        <div
           className="absolute inset-0"
           style={{ background: cssGradient }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-black/20" />
-        <div className="absolute inset-[3px] rounded-lg border border-white/30 dark:border-white/20 flex items-center justify-center">
-          <div className="w-3/4 h-3/4 rounded-md border border-white/20 bg-white/5 flex items-center justify-center backdrop-blur-[1px]">
+        <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-black/20" />
+        <div className="absolute inset-[3px] rounded-lg border border-white/20 dark:border-white/15 flex items-center justify-center">
+          <div className="w-3/4 h-3/4 rounded-md border border-white/15 bg-white/5 flex items-center justify-center">
             <div className="grid grid-cols-3 gap-1">
               {[...Array(9)].map((_, i) => (
-                <div key={i} className="w-1.5 h-1.5 bg-white/50 rounded-full shadow-sm" />
+                <div key={i} className="w-1.5 h-1.5 bg-white/40 rounded-full" />
               ))}
             </div>
           </div>
         </div>
-        <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/10" />
+        <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/[0.08]" />
       </div>
     );
   }
@@ -75,28 +75,32 @@ export function PlayingCard({
       disabled={disabled}
       className={cn(
         baseSize,
-        'rounded-xl relative overflow-hidden group',
-        'shadow-[0_4px_12px_rgba(0,0,0,0.15),0_2px_4px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.8)]',
-        'dark:shadow-[0_4px_16px_rgba(0,0,0,0.4),0_2px_6px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1)]',
+        'rounded-xl relative overflow-hidden group card-shimmer',
+        'shadow-[0_4px_12px_rgba(0,0,0,0.2),0_2px_4px_rgba(0,0,0,0.1)]',
+        'dark:shadow-[0_4px_16px_rgba(0,0,0,0.45),0_2px_6px_rgba(0,0,0,0.25)]',
         'bg-gradient-to-br from-white via-slate-50 to-slate-100',
-        'dark:from-slate-800 dark:via-slate-850 dark:to-slate-900',
+        'dark:from-[hsl(150_15%_14%)] dark:via-[hsl(150_12%_12%)] dark:to-[hsl(150_10%_10%)]',
         'flex flex-col',
         'transform-gpu transition-all duration-200 ease-out',
         !disabled && 'cursor-pointer',
-        !disabled && 'hover:-translate-y-3 hover:scale-[1.02] hover:shadow-[0_12px_28px_rgba(0,0,0,0.25),0_6px_12px_rgba(0,0,0,0.15)]',
+        !disabled && 'hover:-translate-y-3 hover:scale-[1.02]',
+        !disabled && 'hover:shadow-[0_12px_28px_rgba(0,0,0,0.3),0_6px_12px_rgba(0,0,0,0.2)]',
         !disabled && 'dark:hover:shadow-[0_12px_36px_rgba(0,0,0,0.6),0_6px_16px_rgba(0,0,0,0.35)]',
-        !disabled && 'active:translate-y-0 active:scale-[0.98] active:shadow-[0_2px_8px_rgba(0,0,0,0.2)]',
-        disabled && 'opacity-40 cursor-not-allowed grayscale-[30%]',
-        selected && '-translate-y-5 scale-[1.05] ring-2 ring-primary ring-offset-2 ring-offset-background shadow-[0_16px_40px_rgba(0,0,0,0.3)]',
-        isTrump && !selected && 'ring-2 ring-amber-400 dark:ring-amber-500 ring-offset-2 ring-offset-background shadow-[0_0_20px_rgba(251,191,36,0.3)]',
+        !disabled && 'active:translate-y-0 active:scale-[0.98]',
+        disabled && 'opacity-35 cursor-not-allowed grayscale-[30%]',
+        selected && '-translate-y-5 scale-[1.05] ring-2 ring-[hsl(var(--gold))] ring-offset-2 ring-offset-background shadow-[0_0_24px_rgba(214,170,54,0.3)]',
+        isTrump && !selected && 'ring-2 ring-[hsl(var(--gold)/0.6)] ring-offset-1 ring-offset-background shadow-[0_0_16px_hsl(var(--gold)/0.15)]',
         className
       )}
       data-testid={`card-${card.rank}-${card.suit}`}
     >
-      <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-black/5 dark:from-white/10 dark:to-black/20 pointer-events-none" />
-      
-      <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-slate-200/80 dark:ring-slate-600/50 pointer-events-none" />
+      {/* Face gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-black/5 dark:from-white/[0.06] dark:to-black/15 pointer-events-none" />
 
+      {/* Inner rim */}
+      <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-slate-200/60 dark:ring-white/[0.06] pointer-events-none" />
+
+      {/* Top-left rank + suit */}
       <div className={cn(
         'absolute top-1.5 left-2 flex flex-col items-center z-10',
         suitColor
@@ -104,13 +108,14 @@ export function PlayingCard({
         <span className={cn(
           'font-bold leading-none tracking-tight',
           fontSize,
-          'drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]'
+          'drop-shadow-[0_1px_1px_rgba(0,0,0,0.08)]'
         )}>
           {card.rank}
         </span>
         <SuitIcon suit={card.suit} className={iconSize} />
       </div>
 
+      {/* Center suit icon */}
       <div className={cn(
         'absolute inset-0 flex items-center justify-center z-10',
         suitColor
@@ -121,15 +126,16 @@ export function PlayingCard({
         )}>
           <SuitIcon suit={card.suit} className={cn(centerIconSize, 'drop-shadow-md')} />
           <div className={cn(
-            'absolute inset-0 blur-md opacity-30',
+            'absolute inset-0 blur-lg opacity-20',
             card.suit === 'Hearts' && 'bg-red-500',
             card.suit === 'Diamonds' && 'bg-blue-500',
             card.suit === 'Clubs' && 'bg-emerald-500',
-            card.suit === 'Spades' && 'bg-slate-600 dark:bg-slate-300'
+            card.suit === 'Spades' && 'bg-slate-500 dark:bg-slate-300'
           )} />
         </div>
       </div>
 
+      {/* Bottom-right rank + suit (rotated) */}
       <div className={cn(
         'absolute bottom-1.5 right-2 flex flex-col items-center rotate-180 z-10',
         suitColor
@@ -137,14 +143,15 @@ export function PlayingCard({
         <span className={cn(
           'font-bold leading-none tracking-tight',
           fontSize,
-          'drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]'
+          'drop-shadow-[0_1px_1px_rgba(0,0,0,0.08)]'
         )}>
           {card.rank}
         </span>
         <SuitIcon suit={card.suit} className={iconSize} />
       </div>
 
-      <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-white/30 to-transparent dark:from-white/5 pointer-events-none rounded-t-xl" />
+      {/* Top highlight */}
+      <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-white/20 to-transparent dark:from-white/[0.04] pointer-events-none rounded-t-xl" />
     </button>
   );
 }

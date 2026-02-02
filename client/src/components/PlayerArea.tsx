@@ -1,11 +1,9 @@
 import { Player, DeckColor, Card as CardType, Team, Suit } from '@shared/gameTypes';
-import { PlayingCard } from './PlayingCard';
 import { CardDock } from './CardDock';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { User, Bot, Crown, ArrowUpDown } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 interface PlayerAreaProps {
   player: Player;
@@ -42,11 +40,10 @@ export function PlayerArea({
   const isTop = position === 'top';
   const isSide = position === 'left' || position === 'right';
   const isYourTeam = team.id === 'team1';
-  
-  // Team colors: Team 1 = Blue, Team 2 = Red/Orange
-  const teamColorClasses = team.id === 'team1' 
-    ? { text: 'text-blue-400', bg: 'bg-blue-500/20', border: 'border-blue-500/40', dot: 'bg-blue-500' }
-    : { text: 'text-orange-400', bg: 'bg-orange-500/20', border: 'border-orange-500/40', dot: 'bg-orange-500' };
+
+  const teamColors = isYourTeam
+    ? { text: 'text-[hsl(var(--team-blue))]', bg: 'bg-[hsl(var(--team-blue)/0.12)]', border: 'border-[hsl(var(--team-blue)/0.3)]', dot: 'bg-[hsl(var(--team-blue))]' }
+    : { text: 'text-[hsl(var(--team-red))]', bg: 'bg-[hsl(var(--team-red)/0.12)]', border: 'border-[hsl(var(--team-red)/0.3)]', dot: 'bg-[hsl(var(--team-red))]' };
 
   const getContainerClasses = () => {
     const base = 'flex items-center gap-2';
@@ -56,79 +53,57 @@ export function PlayerArea({
     return cn(base, 'flex-row-reverse');
   };
 
-  const getHandClasses = () => {
-    if (isBottom) return 'flex justify-center items-end';
-    if (isTop) return 'flex justify-center items-start';
-    if (isSide) return 'flex flex-col items-center';
-    return 'flex';
-  };
-
-  // Minimal chip for non-bottom players on mobile - Apple Wallet style
+  // Minimal chip for non-bottom players on mobile
   const renderMinimalChip = () => (
-    <div 
+    <div
       className={cn(
-        'flex items-center gap-1.5 px-2.5 py-1 rounded-full',
+        'flex items-center gap-1.5 px-2.5 py-1 rounded-lg',
         'border backdrop-blur-sm transition-all',
-        teamColorClasses.border,
-        teamColorClasses.bg
+        teamColors.border,
+        teamColors.bg,
+        isCurrentPlayer && 'active-player-glow'
       )}
       data-testid={`player-chip-${player.id}`}
     >
-      {/* Team color dot */}
-      <span className={cn('w-2 h-2 rounded-full', teamColorClasses.dot)} />
-      <span className={cn(
-        'text-[11px] font-medium',
-        teamColorClasses.text
-      )}>{player.name}</span>
+      <span className={cn('w-1.5 h-1.5 rounded-full', teamColors.dot)} />
+      <span className={cn('text-[11px] font-medium', teamColors.text)}>{player.name}</span>
       {isDealer && (
-        <span className="px-1.5 py-0.5 text-[9px] text-amber-400 font-bold rounded-full border border-amber-400/60 bg-amber-500/10">D</span>
+        <span className="px-1 py-px text-[8px] font-bold rounded text-[hsl(var(--gold))] bg-[hsl(var(--gold)/0.12)] border border-[hsl(var(--gold)/0.25)]">D</span>
       )}
-      {isBidder && <Crown className="w-2.5 h-2.5 text-amber-400" />}
+      {isBidder && <Crown className="w-2.5 h-2.5 text-[hsl(var(--gold))]" />}
       {showBidResult && player.bid !== null && (
         <span className={cn(
-          'text-[10px] font-medium',
-          player.bid > 0 ? 'text-amber-400' : 'text-muted-foreground/60'
+          'text-[10px] font-semibold',
+          player.bid > 0 ? 'text-[hsl(var(--gold))]' : 'text-muted-foreground/50'
         )}>
           {player.bid === 0 ? 'Pass' : player.bid}
         </span>
       )}
       {isCurrentPlayer && (
-        <span className="w-1 h-1 rounded-full bg-primary animate-pulse" />
+        <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--gold))] animate-pulse" />
       )}
     </div>
   );
 
-  // Full player info panel for desktop and bottom player
+  // Full player info panel for desktop
   const renderFullPanel = () => (
-    <motion.div
-      animate={isCurrentPlayer ? { 
-        boxShadow: [
-          '0 0 0 0 rgba(var(--primary-rgb), 0)',
-          '0 0 16px 3px rgba(var(--primary-rgb), 0.3)',
-          '0 0 0 0 rgba(var(--primary-rgb), 0)'
-        ]
-      } : {}}
-      transition={isCurrentPlayer ? { 
-        duration: 2,
-        repeat: Infinity,
-        ease: "easeInOut"
-      } : {}}
+    <div
       className={cn(
         'relative flex items-center gap-2 px-3 py-2 rounded-xl',
         'backdrop-blur-sm border transition-all',
-        isCurrentPlayer 
-          ? 'bg-primary/10 border-primary/40' 
-          : 'bg-card/50 border-border/30',
+        isCurrentPlayer
+          ? 'bg-[hsl(var(--gold)/0.08)] border-[hsl(var(--gold)/0.25)] active-player-glow'
+          : 'bg-card/40 border-border/30',
         isSide ? 'flex-col text-center' : 'flex-row'
       )}
     >
       {isDealer && (
-        <div 
+        <div
           className={cn(
             'absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full',
-            'bg-amber-500 text-white flex items-center justify-center',
+            'bg-[hsl(var(--gold))] text-background flex items-center justify-center',
             'text-[9px] font-bold',
-            'ring-2 ring-amber-400 ring-offset-1 ring-offset-background'
+            'ring-2 ring-[hsl(var(--gold)/0.4)] ring-offset-1 ring-offset-background'
           )}
           title="Dealer"
           data-testid={`dealer-chip-${player.id}`}
@@ -136,41 +111,41 @@ export function PlayerArea({
           D
         </div>
       )}
-      
+
       <div className="flex items-center gap-2">
         <div className={cn(
           'w-6 h-6 rounded-full flex items-center justify-center',
-          teamColorClasses.bg
+          teamColors.bg
         )}>
           {player.isHuman ? (
-            <User className={cn('w-3 h-3', teamColorClasses.text)} />
+            <User className={cn('w-3 h-3', teamColors.text)} />
           ) : (
-            <Bot className={cn('w-3 h-3', teamColorClasses.text)} />
+            <Bot className={cn('w-3 h-3', teamColors.text)} />
           )}
         </div>
         <div className="flex flex-col items-start">
           <div className="flex items-center gap-1">
-            <span className={cn('font-medium text-sm', teamColorClasses.text)}>{player.name}</span>
+            <span className={cn('font-medium text-sm', teamColors.text)}>{player.name}</span>
             {isBidder && (
-              <Crown className="w-3 h-3 text-amber-400" />
+              <Crown className="w-3 h-3 text-[hsl(var(--gold))]" />
             )}
           </div>
           <span className={cn(
-            'text-[9px] font-medium uppercase tracking-wider',
-            teamColorClasses.text, 'opacity-70'
+            'text-[9px] font-medium uppercase tracking-widest',
+            teamColors.text, 'opacity-60'
           )}>
             {team.name}
           </span>
         </div>
       </div>
-      
+
       <div className="flex items-center gap-1.5 flex-wrap">
         {showBidResult && player.bid !== null && (
-          <Badge 
-            variant={player.bid > 0 ? 'outline' : 'secondary'} 
+          <Badge
+            variant={player.bid > 0 ? 'outline' : 'secondary'}
             className={cn(
               'text-[10px] px-1.5 py-0',
-              player.bid > 0 && 'border-amber-500/40 text-amber-400'
+              player.bid > 0 && 'border-[hsl(var(--gold)/0.3)] text-[hsl(var(--gold))]'
             )}
             data-testid={`bid-result-${player.id}`}
           >
@@ -182,7 +157,7 @@ export function PlayerArea({
             size="sm"
             variant="ghost"
             onClick={onSortHand}
-            className="h-6 px-2 text-[10px]"
+            className="h-6 px-2 text-[10px] text-muted-foreground/60"
             data-testid="button-sort-hand"
           >
             <ArrowUpDown className="w-3 h-3 mr-1" />
@@ -190,10 +165,10 @@ export function PlayerArea({
           </Button>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 
-  // Bottom player's cards with macOS Dock-style magnification
+  // Bottom player's cards
   const renderBottomCards = () => (
     <CardDock
       cards={player.hand}
@@ -210,7 +185,7 @@ export function PlayerArea({
         <>
           {/* Mobile: minimal chip */}
           <div className="block sm:hidden">{renderMinimalChip()}</div>
-          {/* Desktop: full panel (no card backs - just the HUD) */}
+          {/* Desktop: full panel */}
           <div className="hidden sm:block">{renderFullPanel()}</div>
         </>
       ) : (
@@ -218,32 +193,29 @@ export function PlayerArea({
           {/* Compact identity line for bottom player */}
           <div className="flex items-center justify-center gap-3 w-full px-4">
             <div className={cn(
-              'flex items-center gap-1.5 px-2.5 py-1 rounded-full',
-              teamColorClasses.border, teamColorClasses.bg, 'border'
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-lg',
+              teamColors.border, teamColors.bg, 'border',
+              isCurrentPlayer && 'active-player-glow'
             )}>
-              {/* Team color dot */}
-              <span className={cn('w-2 h-2 rounded-full', teamColorClasses.dot)} />
-              <span className={cn(
-                'text-xs font-medium',
-                teamColorClasses.text
-              )}>{player.name}</span>
+              <span className={cn('w-1.5 h-1.5 rounded-full', teamColors.dot)} />
+              <span className={cn('text-xs font-medium', teamColors.text)}>{player.name}</span>
               {isDealer && (
-                <span className="px-1.5 py-0.5 text-[9px] text-amber-400 font-bold rounded-full border border-amber-400/60 bg-amber-500/10">D</span>
+                <span className="px-1 py-px text-[8px] font-bold rounded text-[hsl(var(--gold))] bg-[hsl(var(--gold)/0.12)] border border-[hsl(var(--gold)/0.25)]">D</span>
               )}
-              {isBidder && <Crown className="w-3 h-3 text-amber-400" />}
+              {isBidder && <Crown className="w-3 h-3 text-[hsl(var(--gold))]" />}
               {showBidResult && player.bid !== null && (
-                <Badge 
-                  variant={player.bid > 0 ? 'outline' : 'secondary'} 
+                <Badge
+                  variant={player.bid > 0 ? 'outline' : 'secondary'}
                   className={cn(
                     'text-[9px] px-1.5 py-0 h-4',
-                    player.bid > 0 && 'border-amber-500/40 text-amber-400'
+                    player.bid > 0 && 'border-[hsl(var(--gold)/0.3)] text-[hsl(var(--gold))]'
                   )}
                 >
                   {player.bid === 0 ? 'Pass' : player.bid}
                 </Badge>
               )}
               {isCurrentPlayer && (
-                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--gold))] animate-pulse" />
               )}
             </div>
             {onSortHand && (
@@ -251,9 +223,10 @@ export function PlayerArea({
                 size="icon"
                 variant="ghost"
                 onClick={onSortHand}
+                className="h-8 w-8 text-muted-foreground/50 hover:text-foreground"
                 data-testid="button-sort-hand"
               >
-                <ArrowUpDown className="w-4 h-4" />
+                <ArrowUpDown className="w-3.5 h-3.5" />
               </Button>
             )}
           </div>
