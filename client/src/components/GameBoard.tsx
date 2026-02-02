@@ -480,13 +480,15 @@ export function GameBoard() {
       );
       const bidderTeamScore = bidderTeam ? gameState.roundScores[bidderTeam.id] || 0 : 0;
       const bidderMadeIt = bidderTeamScore >= gameState.highBid;
+      const isBidderYourTeam = bidderTeam?.id === 'team1';
+      const isGoodForYou = isBidderYourTeam ? bidderMadeIt : !bidderMadeIt;
       const yourTeam = gameState.teams.find(t => t.id === 'team1');
       const yourTeamWins = yourTeam && yourTeam.score >= gameState.targetScore;
 
       if (isGameOverNow) {
         setTimeout(() => playSound(yourTeamWins ? 'victory' : 'defeat'), 300);
       } else {
-        setTimeout(() => playSound(bidderMadeIt ? 'bidMade' : 'bidSet'), 300);
+        setTimeout(() => playSound(isGoodForYou ? 'bidMade' : 'bidSet'), 300);
       }
     }
     prevShowScoreModalRef.current = showScoreModal;
