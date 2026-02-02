@@ -38,6 +38,9 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
   const opponentTeam = gameState.teams.find(t => t.id === 'team2');
   const isPlaying = gameState.phase !== 'setup';
   const hasLastTrick = gameState.lastTrick && gameState.lastTrick.length > 0 && onLastTrickClick;
+  const bidderTeamId = gameState.bidderId
+    ? gameState.players.find(p => p.id === gameState.bidderId)?.teamId
+    : null;
 
   const menuItems = [
     hasLastTrick && { icon: History, label: 'Last Trick', onClick: onLastTrickClick!, testId: 'menu-last-trick' },
@@ -70,7 +73,12 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
           <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/40 border border-border/30">
             {gameState.trumpSuit && <SuitIcon suit={gameState.trumpSuit} className="w-3.5 h-3.5" />}
             {gameState.highBid > 0 && (
-              <span className="text-xs font-bold text-[hsl(var(--gold))] tabular-nums">{gameState.highBid}</span>
+              <span className={cn(
+                'text-xs font-bold tabular-nums',
+                bidderTeamId === 'team1' ? 'text-[hsl(var(--team-blue))]'
+                  : bidderTeamId === 'team2' ? 'text-[hsl(var(--team-red))]'
+                  : 'text-[hsl(var(--gold))]'
+              )}>{gameState.highBid}</span>
             )}
             {(gameState.trumpSuit || gameState.highBid > 0) && phaseLabel && (
               <span className="text-muted-foreground/25 text-xs">&middot;</span>
