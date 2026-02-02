@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Trophy, Target, XCircle, TrendingUp, Hash, Crown, Spade } from 'lucide-react';
+import { ArrowLeft, Trophy, Target, XCircle, TrendingUp, Hash, Crown, Spade, Skull } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { PIN_CODES } from '@shared/pinCodes';
@@ -76,6 +76,134 @@ function getRankMedal(index: number) {
   return null;
 }
 
+interface RankTableProps {
+  title: string;
+  icon: any;
+  iconColor: string;
+  titleClass: string;
+  entries: LeaderboardEntry[];
+  loading: boolean;
+  emptyText: string;
+  emptySubtext: string;
+  sortValue: (e: LeaderboardEntry) => number;
+  highlightFirst?: boolean;
+  highlightColor?: string;
+  firstNameClass?: string;
+  delay?: number;
+}
+
+function RankTable({ title, icon: Icon, iconColor, titleClass, entries, loading, emptyText, emptySubtext, sortValue, highlightFirst, highlightColor, firstNameClass, delay = 0 }: RankTableProps) {
+  const sorted = [...entries].sort((a, b) => sortValue(b) - sortValue(a));
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.4, ease: EASE_OUT }}
+      className="w-full mb-6"
+    >
+      <div className="rounded-xl border border-[hsl(var(--gold-dim)/0.15)] bg-card/60 backdrop-blur-sm overflow-hidden">
+        <div className="p-4 pb-2 flex items-center justify-center gap-2">
+          <Icon className={cn('w-4 h-4', iconColor)} />
+          <h3
+            className={cn('text-sm font-bold tracking-[0.15em] uppercase', titleClass)}
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            {title}
+          </h3>
+          <Icon className={cn('w-4 h-4', iconColor)} />
+        </div>
+
+        <div className="grid grid-cols-[2.5rem_1fr_3.5rem_3.5rem_3.5rem] px-4 py-2 text-[10px] tracking-[0.1em] uppercase text-muted-foreground/40 border-b border-border/20"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          <span className="text-center">#</span>
+          <span>Player</span>
+          <span className="text-center">W</span>
+          <span className="text-center">L</span>
+          <span className="text-center">Win%</span>
+        </div>
+
+        {loading ? (
+          <div className="p-8 text-center">
+            <motion.div
+              animate={{ opacity: [0.3, 0.7, 0.3] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="text-muted-foreground/40 text-sm"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              Loading...
+            </motion.div>
+          </div>
+        ) : sorted.length === 0 ? (
+          <div className="p-8 text-center">
+            <p className="text-muted-foreground/40 text-sm" style={{ fontFamily: 'var(--font-display)' }}>
+              {emptyText}
+            </p>
+            <p className="text-muted-foreground/30 text-xs mt-1" style={{ fontFamily: 'var(--font-display)' }}>
+              {emptySubtext}
+            </p>
+          </div>
+        ) : (
+          <motion.div variants={staggerContainer} initial="hidden" animate="show">
+            {sorted.map((entry, index) => {
+              const medal = getRankMedal(index);
+              const winPct = entry.gamesPlayed > 0
+                ? Math.round((entry.gamesWon / entry.gamesPlayed) * 100)
+                : 0;
+              const losses = entry.gamesPlayed - entry.gamesWon;
+
+              return (
+                <motion.div
+                  key={entry.userId}
+                  variants={staggerChild}
+                  className={cn(
+                    'grid grid-cols-[2.5rem_1fr_3.5rem_3.5rem_3.5rem] px-4 py-3 items-center border-b border-border/10 last:border-0 transition-colors',
+                    highlightFirst && index === 0 && highlightColor
+                  )}
+                >
+                  <span className="text-center">
+                    {medal ? (
+                      <span className="text-base">{medal.emoji}</span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground/40 tabular-nums font-medium">{index + 1}</span>
+                    )}
+                  </span>
+
+                  <span
+                    className={cn(
+                      'font-semibold text-sm capitalize',
+                      highlightFirst && index === 0 ? firstNameClass : 'text-foreground/80'
+                    )}
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    {entry.playerName || 'Unknown'}
+                  </span>
+
+                  <span className="text-center text-sm font-semibold tabular-nums text-emerald-400/80">
+                    {entry.gamesWon}
+                  </span>
+
+                  <span className="text-center text-sm tabular-nums text-muted-foreground/50">
+                    {losses}
+                  </span>
+
+                  <span className={cn(
+                    'text-center text-sm tabular-nums font-medium',
+                    winPct >= 60 ? 'text-emerald-400/80' : winPct >= 40 ? 'text-muted-foreground/60' : 'text-red-400/60'
+                  )}>
+                    {entry.gamesPlayed > 0 ? `${winPct}%` : '—'}
+                  </span>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 export function StatsPage({ onBack }: StatsPageProps) {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +222,9 @@ export function StatsPage({ onBack }: StatsPageProps) {
       })
       .catch(() => setLoading(false));
   }, []);
+
+  const winnerBoard = leaderboard.filter(e => e.gamesWon > 0);
+  const loserBoard = leaderboard.filter(e => (e.gamesPlayed - e.gamesWon) > 0);
 
   const handlePinLookup = async () => {
     if (pin.length !== 4) {
@@ -272,120 +403,39 @@ export function StatsPage({ onBack }: StatsPageProps) {
         )}
       </AnimatePresence>
 
-      {/* Leaderboard */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35, duration: 0.4, ease: EASE_OUT }}
-        className="w-full"
-      >
-        <div className="rounded-xl border border-[hsl(var(--gold-dim)/0.15)] bg-card/60 backdrop-blur-sm overflow-hidden">
-          {/* Leaderboard header */}
-          <div className="p-4 pb-2 flex items-center justify-center gap-2">
-            <Crown className="w-4 h-4 text-[hsl(var(--gold))]" />
-            <h3
-              className="text-sm font-bold tracking-[0.15em] uppercase gold-text"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              Leaderboard
-            </h3>
-            <Crown className="w-4 h-4 text-[hsl(var(--gold))]" />
-          </div>
+      {/* Winner Board */}
+      <RankTable
+        title="Winner Board"
+        icon={Crown}
+        iconColor="text-[hsl(var(--gold))]"
+        titleClass="gold-text"
+        entries={winnerBoard}
+        loading={loading}
+        emptyText="No games played yet"
+        emptySubtext="Play some games to see the leaderboard!"
+        sortValue={(e) => e.gamesWon}
+        highlightFirst
+        highlightColor="bg-[hsl(var(--gold)/0.06)]"
+        firstNameClass="gold-text"
+        delay={0.35}
+      />
 
-          {/* Column headers */}
-          <div className="grid grid-cols-[2.5rem_1fr_3.5rem_3.5rem_3.5rem] px-4 py-2 text-[10px] tracking-[0.1em] uppercase text-muted-foreground/40 border-b border-border/20"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            <span className="text-center">#</span>
-            <span>Player</span>
-            <span className="text-center">W</span>
-            <span className="text-center">L</span>
-            <span className="text-center">Win%</span>
-          </div>
-
-          {/* Rows */}
-          {loading ? (
-            <div className="p-8 text-center">
-              <motion.div
-                animate={{ opacity: [0.3, 0.7, 0.3] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="text-muted-foreground/40 text-sm"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                Loading...
-              </motion.div>
-            </div>
-          ) : leaderboard.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-muted-foreground/40 text-sm" style={{ fontFamily: 'var(--font-display)' }}>
-                No games played yet
-              </p>
-              <p className="text-muted-foreground/30 text-xs mt-1" style={{ fontFamily: 'var(--font-display)' }}>
-                Play some games to see the leaderboard!
-              </p>
-            </div>
-          ) : (
-            <motion.div variants={staggerContainer} initial="hidden" animate="show">
-              {leaderboard.map((entry, index) => {
-                const medal = getRankMedal(index);
-                const winPct = entry.gamesPlayed > 0
-                  ? Math.round((entry.gamesWon / entry.gamesPlayed) * 100)
-                  : 0;
-                const losses = entry.gamesPlayed - entry.gamesWon;
-
-                return (
-                  <motion.div
-                    key={entry.userId}
-                    variants={staggerChild}
-                    className={cn(
-                      'grid grid-cols-[2.5rem_1fr_3.5rem_3.5rem_3.5rem] px-4 py-3 items-center border-b border-border/10 last:border-0 transition-colors',
-                      index === 0 && 'bg-[hsl(var(--gold)/0.06)]'
-                    )}
-                  >
-                    {/* Rank */}
-                    <span className="text-center">
-                      {medal ? (
-                        <span className="text-base">{medal.emoji}</span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground/40 tabular-nums font-medium">{index + 1}</span>
-                      )}
-                    </span>
-
-                    {/* Name */}
-                    <span
-                      className={cn(
-                        'font-semibold text-sm capitalize',
-                        index === 0 ? 'gold-text' : 'text-foreground/80'
-                      )}
-                      style={{ fontFamily: 'var(--font-display)' }}
-                    >
-                      {entry.playerName || 'Unknown'}
-                    </span>
-
-                    {/* Wins */}
-                    <span className="text-center text-sm font-semibold tabular-nums text-emerald-400/80">
-                      {entry.gamesWon}
-                    </span>
-
-                    {/* Losses */}
-                    <span className="text-center text-sm tabular-nums text-muted-foreground/50">
-                      {losses}
-                    </span>
-
-                    {/* Win % */}
-                    <span className={cn(
-                      'text-center text-sm tabular-nums font-medium',
-                      winPct >= 60 ? 'text-emerald-400/80' : winPct >= 40 ? 'text-muted-foreground/60' : 'text-red-400/60'
-                    )}>
-                      {entry.gamesPlayed > 0 ? `${winPct}%` : '—'}
-                    </span>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
+      {/* Loser Board */}
+      <RankTable
+        title="Loser Board"
+        icon={Skull}
+        iconColor="text-red-400/80"
+        titleClass="text-red-400/80"
+        entries={loserBoard}
+        loading={loading}
+        emptyText="No losses yet"
+        emptySubtext="Someone's gotta lose eventually!"
+        sortValue={(e) => e.gamesPlayed - e.gamesWon}
+        highlightFirst
+        highlightColor="bg-red-400/[0.06]"
+        firstNameClass="text-red-400/80"
+        delay={0.5}
+      />
 
       {/* Bottom spacer */}
       <div className="h-6" />
