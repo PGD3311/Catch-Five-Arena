@@ -117,20 +117,22 @@ export function ScoreModal({
   const bidderTeamScore = bidderTeam ? roundScores[bidderTeam.id] || 0 : 0;
   const bidderMadeIt = bidderTeamScore >= highBid;
   const isBidderYourTeam = bidderTeam?.id === localTeamId;
+  // Good for you = your team made it OR opponents got set
+  const isGoodForYou = isBidderYourTeam ? bidderMadeIt : !bidderMadeIt;
 
   const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
   const winningTeam = isGameOver ? sortedTeams[0] : null;
   const isYourTeamWinning = winningTeam?.id === localTeamId;
-  
+
   // Team-contextual message for bid outcome
   const getBidOutcomeMessage = () => {
     if (isBidderYourTeam) {
-      return bidderMadeIt 
-        ? 'Your team made the bid!' 
+      return bidderMadeIt
+        ? 'Your team made the bid!'
         : 'Your team was SET!';
     } else {
-      return bidderMadeIt 
-        ? 'Opponents made their bid' 
+      return bidderMadeIt
+        ? 'Opponents made their bid'
         : 'Opponents were SET!';
     }
   };
@@ -184,14 +186,14 @@ export function ScoreModal({
               transition={{ delay: 0.1 }}
               className={cn(
                 'p-3 rounded-xl text-center',
-                bidderMadeIt
+                isGoodForYou
                   ? 'bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40'
                   : 'bg-gradient-to-br from-red-500/20 to-red-600/10 border border-red-500/40'
               )}
               data-testid="display-bidder-result"
             >
               <div className="flex items-center justify-center gap-2 mb-1">
-                {bidderMadeIt ? (
+                {isGoodForYou ? (
                   <TrendingUp className="w-5 h-5 text-emerald-400" />
                 ) : (
                   <TrendingDown className="w-5 h-5 text-red-400" />
@@ -391,6 +393,7 @@ export function ScoreModal({
                 const isBidderTeam = team.id === bidderTeam?.id;
                 const displayRoundScore = isBidderTeam && roundScore < highBid ? -highBid : roundScore;
                 const teamPlayers = players.filter(p => p.teamId === team.id);
+                const isYourTeam = team.id === localTeamId;
 
                 return (
                   <motion.div
@@ -401,7 +404,8 @@ export function ScoreModal({
                     className={cn(
                       'w-full flex items-center justify-between p-3 rounded-lg',
                       'bg-muted/50',
-                      isGameOver && index === 0 && 'bg-amber-100 dark:bg-amber-900/30 ring-2 ring-amber-400'
+                      isGameOver && index === 0 && isYourTeam && 'bg-emerald-100 dark:bg-emerald-900/30 ring-2 ring-emerald-400',
+                      isGameOver && index === 0 && !isYourTeam && 'bg-red-100 dark:bg-red-900/30 ring-2 ring-red-400'
                     )}
                     data-testid={`score-row-${team.id}`}
                   >
@@ -432,8 +436,10 @@ export function ScoreModal({
                         <span
                           className={cn(
                             'text-sm font-medium',
-                            displayRoundScore > 0 && 'text-emerald-600 dark:text-emerald-400',
-                            displayRoundScore < 0 && 'text-red-600 dark:text-red-400'
+                            isYourTeam && displayRoundScore > 0 && 'text-emerald-600 dark:text-emerald-400',
+                            isYourTeam && displayRoundScore < 0 && 'text-red-600 dark:text-red-400',
+                            !isYourTeam && displayRoundScore > 0 && 'text-red-600 dark:text-red-400',
+                            !isYourTeam && displayRoundScore < 0 && 'text-emerald-600 dark:text-emerald-400'
                           )}
                         >
                           {displayRoundScore > 0 ? '+' : ''}{displayRoundScore}
