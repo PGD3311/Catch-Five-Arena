@@ -95,7 +95,7 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
       </div>
 
       {/* Center: Scores */}
-      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         {yourTeam && gameState.phase !== 'setup' && (
           <TeamScore team={yourTeam} isYourTeam targetScore={gameState.targetScore} />
         )}
@@ -160,7 +160,7 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
           <Button
             size="icon"
             variant="ghost"
-            className="h-8 w-8 text-muted-foreground/60 hover:text-foreground"
+            className="hidden xs:flex h-8 w-8 text-muted-foreground/60 hover:text-foreground"
             data-testid="button-stats"
           >
             <Trophy className="w-3.5 h-3.5" />
