@@ -95,7 +95,7 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
       </div>
 
       {/* Center: Scores */}
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink">
         {yourTeam && gameState.phase !== 'setup' && (
           <TeamScore team={yourTeam} isYourTeam targetScore={gameState.targetScore} />
         )}
@@ -106,7 +106,7 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
       </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-0.5 sm:gap-1">
+      <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
         {gameState.trumpSuit && (
           <div
             className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg bg-[hsl(var(--gold)/0.1)] border border-[hsl(var(--gold)/0.2)]"
