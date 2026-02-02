@@ -86,8 +86,8 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
         </div>
 
         {gameState.highBid > 0 && (
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[hsl(var(--gold)/0.08)] border border-[hsl(var(--gold)/0.2)]">
-            <span className="text-[10px] font-medium text-[hsl(var(--gold))]">
+          <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[hsl(var(--gold)/0.08)] border border-[hsl(var(--gold)/0.2)]">
+            <span className="text-[8px] sm:text-[9px] font-medium text-[hsl(var(--gold))]">
               BID {gameState.highBid}
             </span>
           </div>
