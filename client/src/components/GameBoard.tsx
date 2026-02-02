@@ -263,20 +263,24 @@ export function GameBoard() {
     if (isMultiplayerMode) {
       multiplayer.sendAction('sort_hand', {});
     } else {
-      const SUIT_ORDER: Record<string, number> = { 'Clubs': 0, 'Diamonds': 1, 'Hearts': 2, 'Spades': 3 };
+      const trumpSuit = gameState.trumpSuit;
+      const SUIT_BASE: Record<string, number> = { 'Spades': 0, 'Hearts': 1, 'Clubs': 2, 'Diamonds': 3 };
       const RANK_ORDER: Record<string, number> = {
-        'A': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6,
-        '8': 7, '9': 8, '10': 9, 'J': 10, 'Q': 11, 'K': 12
+        'A': 14, 'K': 13, 'Q': 12, 'J': 11, '10': 10, '9': 9, '8': 8,
+        '7': 7, '6': 6, '5': 5, '4': 4, '3': 3, '2': 2
       };
-      
+
       setGameState(prev => ({
         ...prev,
         players: prev.players.map((p, idx) => {
           if (idx === mySeatIndex) {
             const sortedHand = [...p.hand].sort((a, b) => {
-              const suitDiff = SUIT_ORDER[a.suit] - SUIT_ORDER[b.suit];
+              const aIsTrump = trumpSuit && a.suit === trumpSuit ? 0 : 1;
+              const bIsTrump = trumpSuit && b.suit === trumpSuit ? 0 : 1;
+              if (aIsTrump !== bIsTrump) return aIsTrump - bIsTrump;
+              const suitDiff = SUIT_BASE[a.suit] - SUIT_BASE[b.suit];
               if (suitDiff !== 0) return suitDiff;
-              return RANK_ORDER[a.rank] - RANK_ORDER[b.rank];
+              return RANK_ORDER[b.rank] - RANK_ORDER[a.rank];
             });
             return { ...p, hand: sortedHand };
           }
