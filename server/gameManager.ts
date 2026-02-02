@@ -913,31 +913,15 @@ async function handleLeaveRoom(ws: WebSocket) {
 
   if (room) {
     if (room.gameState) {
-      // Game in progress: replace human with CPU so game continues
+      // Game in progress: keep seat reserved so player can rejoin
+      // Just null the WebSocket — the turn timer will auto-play their turns while they're gone
       player.ws = null as any;
-      const cpuNames = ['CPU Alpha', 'CPU Beta', 'CPU Gamma', 'CPU Delta'];
-      room.cpuPlayers.push({
-        seatIndex: player.seatIndex,
-        playerName: cpuNames[player.seatIndex] || `CPU ${player.seatIndex + 1}`,
-      });
-      // Update game state to mark this player as CPU
-      if (room.gameState) {
-        room.gameState = {
-          ...room.gameState,
-          players: room.gameState.players.map((p, idx) =>
-            idx === player.seatIndex ? { ...p, isHuman: false, name: cpuNames[player.seatIndex] || `CPU ${player.seatIndex + 1}` } : p
-          ),
-        };
-      }
-      room.players.delete(player.playerToken);
       broadcastToRoom(room, {
         type: 'player_disconnected',
         seatIndex: player.seatIndex,
         players: getPlayerList(room),
       });
-      // Broadcast updated game state so clients see CPU
-      broadcastGameState(room);
-      log(`Player ${player.playerName} left active game in room ${room.code}, replaced with CPU`, 'ws');
+      log(`Player ${player.playerName} left active game in room ${room.code}, seat reserved for rejoin`, 'ws');
     } else {
       // Lobby: fully remove the player, freeing the seat
       room.players.delete(player.playerToken);
