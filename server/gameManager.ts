@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { storage } from './storage';
 import { log } from './index';
 import type { GameState, Card, Suit, DeckColor, ChatMessage } from '@shared/gameTypes';
+import { MIN_BID, MAX_BID } from '@shared/gameTypes';
 import * as gameEngine from '@shared/gameEngine';
 
 // Track stats for human players when rounds/games complete
@@ -153,6 +154,16 @@ const turnTimerPlayerIndex = new Map<string, number>(); // Track which player th
 const lobbyDisconnectTimers = new Map<string, NodeJS.Timeout>(); // token -> timer
 const TURN_TIMEOUT_MS = 20000; // 20 seconds per turn
 
+function safeSend(ws: WebSocket | null, data: string): void {
+  try {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(data);
+    }
+  } catch (err) {
+    log(`Failed to send WebSocket message: ${err}`, 'ws');
+  }
+}
+
 function generateRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
@@ -189,6 +200,10 @@ export function initializeWebSocket(server: any): WebSocketServer {
         log(`WebSocket error: ${error}`, 'ws');
         ws.send(JSON.stringify({ type: 'error', message: 'Invalid message format' }));
       }
+    });
+
+    ws.on('error', (err) => {
+      log(`WebSocket error on connection: ${err.message}`, 'ws');
     });
 
     ws.on('close', () => {
@@ -685,18 +700,47 @@ async function handlePlayerAction(ws: WebSocket, message: any) {
         newState = gameEngine.dealCards(newState);
       }
       break;
-    case 'bid':
-      newState = gameEngine.processBid(newState, data.amount);
+    case 'bid': {
+      const bidAmount = data?.amount;
+      if (typeof bidAmount !== 'number' || (bidAmount !== 0 && (bidAmount < MIN_BID || bidAmount > MAX_BID || !Number.isInteger(bidAmount)))) {
+        ws.send(JSON.stringify({ type: 'error', message: 'Invalid bid amount' }));
+        return;
+      }
+      newState = gameEngine.processBid(newState, bidAmount);
       break;
-    case 'select_trump':
+    }
+    case 'select_trump': {
+      const VALID_SUITS: Suit[] = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
+      if (!VALID_SUITS.includes(data?.suit)) {
+        ws.send(JSON.stringify({ type: 'error', message: 'Invalid trump suit' }));
+        return;
+      }
       newState = gameEngine.selectTrump(newState, data.suit);
       break;
-    case 'play_card':
-      newState = gameEngine.playCard(newState, data.card);
+    }
+    case 'play_card': {
+      const cardToPlay = data?.card;
+      const currentHand = newState.players[player.seatIndex]?.hand;
+      if (!cardToPlay?.id || !currentHand?.some((c: Card) => c.id === cardToPlay.id)) {
+        ws.send(JSON.stringify({ type: 'error', message: 'Card not in your hand' }));
+        return;
+      }
+      // Use the server's copy of the card, not the client's
+      const serverCard = currentHand.find((c: Card) => c.id === cardToPlay.id)!;
+      newState = gameEngine.playCard(newState, serverCard);
       break;
-    case 'discard_trump':
-      newState = gameEngine.discardTrumpCard(newState, data.card);
+    }
+    case 'discard_trump': {
+      const discardCard = data?.card;
+      const discardHand = newState.players[player.seatIndex]?.hand;
+      if (!discardCard?.id || !discardHand?.some((c: Card) => c.id === discardCard.id)) {
+        ws.send(JSON.stringify({ type: 'error', message: 'Card not in your hand' }));
+        return;
+      }
+      const serverDiscardCard = discardHand.find((c: Card) => c.id === discardCard.id)!;
+      newState = gameEngine.discardTrumpCard(newState, serverDiscardCard);
       break;
+    }
     case 'continue':
       // Only process if we're in scoring or game-over phase (prevent duplicate calls)
       log(`[Continue] Room ${room.code} | Current phase: ${newState.phase} | GameOver: ${gameEngine.checkGameOver(newState)}`, 'game');
@@ -704,6 +748,15 @@ async function handlePlayerAction(ws: WebSocket, message: any) {
         if (gameEngine.checkGameOver(newState)) {
           log(`[Continue] Room ${room.code} | Starting new game`, 'game');
           newState = gameEngine.initializeGame(room.deckColor, room.targetScore);
+          // Re-apply player names and types from room (initializeGame uses defaults)
+          const connectedPlayers = Array.from(room.players.values());
+          newState.players = newState.players.map((p, index) => {
+            const cp = connectedPlayers.find(c => c.seatIndex === index);
+            const cpu = room.cpuPlayers.find(c => c.seatIndex === index);
+            if (cp) return { ...p, name: cp.playerName, isHuman: true };
+            if (cpu) return { ...p, name: cpu.playerName, isHuman: false };
+            return { ...p, name: `CPU ${index + 1}`, isHuman: false };
+          });
           // Increment game instance ID for dedup tracking
           room.gameInstanceId = (room.gameInstanceId || 0) + 1;
           room.lastProcessedRoundSignature = undefined;
@@ -1038,13 +1091,11 @@ async function handleKickPlayer(ws: WebSocket, message: any) {
     const [token, kickedPlayer] = targetPlayer;
     
     // Notify the kicked player
-    if (kickedPlayer.ws && kickedPlayer.ws.readyState === WebSocket.OPEN) {
-      kickedPlayer.ws.send(JSON.stringify({ 
-        type: 'kicked', 
-        message: 'You have been removed from the room by the host',
-        clearSession: true
-      }));
-    }
+    safeSend(kickedPlayer.ws, JSON.stringify({
+      type: 'kicked',
+      message: 'You have been removed from the room by the host',
+      clearSession: true
+    }));
     
     // Remove from playerConnections map
     if (kickedPlayer.ws) {
@@ -1111,13 +1162,11 @@ async function handleSwapSeats(ws: WebSocket, message: any) {
 
   const playerList = getPlayerList(room);
   Array.from(room.players.values()).forEach(p => {
-    if (p.ws && p.ws.readyState === WebSocket.OPEN) {
-      p.ws.send(JSON.stringify({
-        type: 'seats_updated',
-        seatIndex: p.seatIndex,
-        players: playerList,
-      }));
-    }
+    safeSend(p.ws, JSON.stringify({
+      type: 'seats_updated',
+      seatIndex: p.seatIndex,
+      players: playerList,
+    }));
   });
 
   log(`Seats ${seat1} and ${seat2} swapped in room ${room.code}`, 'ws');
@@ -1168,13 +1217,11 @@ async function handleRandomizeTeams(ws: WebSocket) {
 
   const playerList = getPlayerList(room);
   Array.from(room.players.values()).forEach(p => {
-    if (p.ws && p.ws.readyState === WebSocket.OPEN) {
-      p.ws.send(JSON.stringify({
-        type: 'seats_updated',
-        seatIndex: p.seatIndex,
-        players: playerList,
-      }));
-    }
+    safeSend(p.ws, JSON.stringify({
+      type: 'seats_updated',
+      seatIndex: p.seatIndex,
+      players: playerList,
+    }));
   });
 
   log(`Teams randomized in room ${room.code}`, 'ws');
@@ -1475,20 +1522,19 @@ function broadcastGameState(room: GameRoom, preserveExistingTimer = false) {
   const players = Array.from(room.players.values());
   for (const player of players) {
     const filteredState = filterGameStateForPlayer(room.gameState, player.seatIndex);
-    if (player.ws && player.ws.readyState === WebSocket.OPEN) {
-      player.ws.send(JSON.stringify({
-        type: 'game_state',
-        gameState: filteredState,
-      }));
-    }
+    safeSend(player.ws, JSON.stringify({
+      type: 'game_state',
+      gameState: filteredState,
+    }));
   }
 }
 
 function broadcastToRoom(room: GameRoom, message: any, excludeWs?: WebSocket) {
+  const data = JSON.stringify(message);
   const players = Array.from(room.players.values());
   for (const player of players) {
-    if (player.ws && player.ws !== excludeWs && player.ws.readyState === WebSocket.OPEN) {
-      player.ws.send(JSON.stringify(message));
+    if (player.ws && player.ws !== excludeWs) {
+      safeSend(player.ws, data);
     }
   }
 }
@@ -1536,14 +1582,10 @@ async function handleSendChat(ws: WebSocket, message: any) {
   }
 
   // Broadcast to all players including sender
+  const chatData = JSON.stringify({ type: 'chat_message', message: chatMessage });
   const players = Array.from(room.players.values());
   for (const p of players) {
-    if (p.ws && p.ws.readyState === WebSocket.OPEN) {
-      p.ws.send(JSON.stringify({
-        type: 'chat_message',
-        message: chatMessage,
-      }));
-    }
+    safeSend(p.ws, chatData);
   }
 }
 
