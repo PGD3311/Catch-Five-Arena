@@ -504,7 +504,16 @@ export function GameBoard() {
   }, [multiplayer]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-background game-table" data-testid="game-board">
+    <div
+      className={cn(
+        "flex flex-col bg-background game-table",
+        gameState.phase === 'setup' || gameState.phase === 'dealer-draw'
+          ? 'min-h-screen'
+          : 'h-screen overflow-hidden'
+      )}
+      style={gameState.phase !== 'setup' && gameState.phase !== 'dealer-draw' ? { height: '100dvh' } : undefined}
+      data-testid="game-board"
+    >
       {isMultiplayerMode && (
         <ConnectionStatus
           connected={multiplayer.connected}
