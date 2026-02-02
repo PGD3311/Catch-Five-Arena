@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { GameState, Suit, Team } from '@shared/gameTypes';
 import { Button } from '@/components/ui/button';
-import { Settings, Share2, HelpCircle, History, LogOut, Trophy } from 'lucide-react';
+import { Settings, Share2, HelpCircle, History, LogOut, Trophy, MoreHorizontal } from 'lucide-react';
 import { SuitIcon } from '@/components/ui/suit-utils';
 import { cn } from '@/lib/utils';
 import { Link } from 'wouter';
@@ -16,170 +17,117 @@ interface GameHeaderProps {
 
 const getPhaseLabel = (phase: GameState['phase'], trickNumber: number): string => {
   switch (phase) {
-    case 'setup':
-      return 'READY';
-    case 'dealer-draw':
-      return 'DRAW';
-    case 'dealing':
-      return 'DEAL';
-    case 'bidding':
-      return 'BID';
-    case 'trump-selection':
-      return 'TRUMP';
-    case 'purge-draw':
-      return 'PURGE';
-    case 'playing':
-      return `${Math.min(trickNumber, 6)}/6`;
-    case 'scoring':
-      return 'SCORE';
-    case 'game-over':
-      return 'FINAL';
-    default:
-      return '';
+    case 'setup': return 'READY';
+    case 'dealer-draw': return 'DRAW';
+    case 'dealing': return 'DEAL';
+    case 'bidding': return 'BID';
+    case 'trump-selection': return 'TRUMP';
+    case 'purge-draw': return 'PURGE';
+    case 'discard-trump': return 'DISCARD';
+    case 'playing': return `${Math.min(trickNumber, 6)}/6`;
+    case 'scoring': return 'SCORE';
+    case 'game-over': return 'FINAL';
+    default: return '';
   }
 };
 
 export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesClick, onLastTrickClick, onExitGame }: GameHeaderProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const phaseLabel = getPhaseLabel(gameState.phase, gameState.trickNumber);
   const yourTeam = gameState.teams.find(t => t.id === 'team1');
   const opponentTeam = gameState.teams.find(t => t.id === 'team2');
-  
-  const isInGame = gameState.phase !== 'setup';
+  const isPlaying = gameState.phase !== 'setup';
+  const hasLastTrick = gameState.lastTrick && gameState.lastTrick.length > 0 && onLastTrickClick;
+
+  const menuItems = [
+    hasLastTrick && { icon: History, label: 'Last Trick', onClick: onLastTrickClick!, testId: 'menu-last-trick' },
+    { icon: Share2, label: 'Share', onClick: onShareClick, testId: 'menu-share' },
+    { icon: HelpCircle, label: 'Rules', onClick: onRulesClick, testId: 'menu-rules' },
+    { icon: Settings, label: 'Settings', onClick: onSettingsClick, testId: 'menu-settings' },
+  ].filter(Boolean) as { icon: any; label: string; onClick: () => void; testId: string }[];
 
   return (
-    <header
-      className="flex items-center justify-between gap-1 px-2 py-1.5 sm:px-4 sm:py-2 border-b border-border/50 bg-background/60 backdrop-blur-md"
-      data-testid="game-header"
-    >
-      {/* Left: Exit button */}
-      <div className="flex items-center flex-shrink-0">
-        {onExitGame && isInGame && (
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={onExitGame}
-            className="h-8 w-8 text-destructive/70 hover:text-destructive"
-            data-testid="button-exit-game"
-          >
+    <header className="relative flex items-center justify-between px-2 py-1.5 sm:px-3 border-b border-border/50 bg-background/60 backdrop-blur-md" data-testid="game-header">
+      {/* Left: Exit button or spacer */}
+      <div className="min-w-[40px] sm:min-w-[44px] flex items-center">
+        {onExitGame && isPlaying && (
+          <Button size="icon" variant="ghost" onClick={onExitGame} className="h-8 w-8 text-muted-foreground/60 hover:text-destructive" data-testid="button-exit-game">
             <LogOut className="w-4 h-4" />
           </Button>
         )}
       </div>
 
-      {/* Center: Scoreboard hero - YOUR_SCORE  ♥BID · PHASE  OPP_SCORE */}
-      {isInGame && (
-        <div className="flex items-center justify-center gap-1.5 sm:gap-3 flex-1">
-          {/* Your team score */}
+      {/* Center: Scoreboard */}
+      {isPlaying ? (
+        <div className="flex items-center gap-2 sm:gap-3">
           {yourTeam && (
-            <div
-              className={cn(
-                'flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md',
-                'bg-[hsl(var(--team-blue)/0.12)] border border-[hsl(var(--team-blue)/0.25)]'
-              )}
-              data-testid="team-score-team1"
-            >
-              <span className="text-[8px] sm:text-[9px] font-semibold uppercase tracking-wide text-[hsl(var(--team-blue))]">
-                YOU
-              </span>
-              <span className="font-bold text-sm sm:text-lg tabular-nums">{yourTeam.score}</span>
+            <div className="flex items-center gap-1.5" data-testid={`team-score-${yourTeam.id}`}>
+              <span className="w-2 h-2 rounded-full bg-[hsl(var(--team-blue))]" />
+              <span className="text-lg sm:text-xl font-bold tabular-nums">{yourTeam.score}</span>
             </div>
           )}
 
-          {/* Center divider: Trump + Bid · Phase */}
-          <div className="flex items-center gap-0.5 sm:gap-1 text-muted-foreground">
-            {gameState.trumpSuit && (
-              <SuitIcon suit={gameState.trumpSuit} className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-            )}
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/40 border border-border/30">
+            {gameState.trumpSuit && <SuitIcon suit={gameState.trumpSuit} className="w-3.5 h-3.5" />}
             {gameState.highBid > 0 && (
-              <span className="font-bold text-xs sm:text-base tabular-nums">{gameState.highBid}</span>
+              <span className="text-xs font-bold text-[hsl(var(--gold))] tabular-nums">{gameState.highBid}</span>
             )}
             {(gameState.trumpSuit || gameState.highBid > 0) && phaseLabel && (
-              <span className="text-muted-foreground/40 mx-0.5 hidden xs:inline">·</span>
+              <span className="text-muted-foreground/25 text-xs">&middot;</span>
             )}
-            {phaseLabel && (
-              <span className="text-[9px] sm:text-xs font-medium text-muted-foreground/70 hidden xs:inline">
-                {phaseLabel}
-              </span>
-            )}
+            <span className="text-[10px] sm:text-xs font-semibold tracking-wider text-muted-foreground/60">{phaseLabel}</span>
           </div>
 
-          {/* Opponent team score */}
           {opponentTeam && (
-            <div
-              className={cn(
-                'flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md',
-                'bg-[hsl(var(--team-red)/0.12)] border border-[hsl(var(--team-red)/0.25)]'
-              )}
-              data-testid="team-score-team2"
-            >
-              <span className="text-[8px] sm:text-[9px] font-semibold uppercase tracking-wide text-[hsl(var(--team-red))]">
-                OPP
-              </span>
-              <span className="font-bold text-sm sm:text-lg tabular-nums">{opponentTeam.score}</span>
+            <div className="flex items-center gap-1.5" data-testid={`team-score-${opponentTeam.id}`}>
+              <span className="text-lg sm:text-xl font-bold tabular-nums">{opponentTeam.score}</span>
+              <span className="w-2 h-2 rounded-full bg-[hsl(var(--team-red))]" />
             </div>
           )}
         </div>
+      ) : (
+        <span className="text-xs font-bold tracking-[0.15em] text-muted-foreground/50">{phaseLabel}</span>
       )}
 
-      {/* Right: Action buttons - fewer on mobile, all on desktop */}
-      <div className="flex items-center gap-0.5 flex-shrink-0">
-        {/* History - only on desktop */}
-        {gameState.lastTrick && gameState.lastTrick.length > 0 && onLastTrickClick && (
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={onLastTrickClick}
-            className="hidden sm:flex h-8 w-8 text-muted-foreground/60 hover:text-foreground"
-            data-testid="button-last-trick-header"
-          >
-            <History className="w-3.5 h-3.5" />
+      {/* Right: Actions */}
+      <div className="min-w-[40px] sm:min-w-[44px] flex items-center justify-end">
+        {/* Desktop buttons */}
+        <div className="hidden sm:flex items-center gap-0.5">
+          {menuItems.map(item => (
+            <Button key={item.testId} size="icon" variant="ghost" onClick={item.onClick} className="h-8 w-8 text-muted-foreground/50 hover:text-foreground" data-testid={item.testId.replace('menu-', 'button-')}>
+              <item.icon className="w-3.5 h-3.5" />
+            </Button>
+          ))}
+          <Link href="/stats">
+            <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground/50 hover:text-foreground" data-testid="button-stats">
+              <Trophy className="w-3.5 h-3.5" />
+            </Button>
+          </Link>
+        </div>
+
+        {/* Mobile overflow menu */}
+        <div className="sm:hidden relative">
+          <Button size="icon" variant="ghost" onClick={() => setMenuOpen(prev => !prev)} className="h-8 w-8 text-muted-foreground/60 hover:text-foreground" data-testid="button-menu">
+            <MoreHorizontal className="w-4 h-4" />
           </Button>
-        )}
-        
-        {/* Share - only on desktop */}
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={onShareClick}
-          className="hidden sm:flex h-8 w-8 text-muted-foreground/60 hover:text-foreground"
-          data-testid="button-share"
-        >
-          <Share2 className="w-3.5 h-3.5" />
-        </Button>
-        
-        {/* Rules - only on desktop */}
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={onRulesClick}
-          className="hidden sm:flex h-8 w-8 text-muted-foreground/60 hover:text-foreground"
-          data-testid="button-rules"
-        >
-          <HelpCircle className="w-3.5 h-3.5" />
-        </Button>
-        
-        {/* Settings - always visible */}
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={onSettingsClick}
-          className="h-8 w-8 text-muted-foreground/60 hover:text-foreground"
-          data-testid="button-settings"
-        >
-          <Settings className="w-3.5 h-3.5" />
-        </Button>
-        
-        {/* Stats - always visible */}
-        <Link href="/stats">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8 text-muted-foreground/60 hover:text-foreground"
-            data-testid="button-stats"
-          >
-            <Trophy className="w-3.5 h-3.5" />
-          </Button>
-        </Link>
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+              <div className="absolute right-0 top-full mt-1 z-50 bg-card/95 backdrop-blur-xl border border-border/60 rounded-lg shadow-xl py-1 min-w-[140px]">
+                {menuItems.map(item => (
+                  <button key={item.testId} onClick={() => { item.onClick(); setMenuOpen(false); }} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-foreground/80 hover:bg-muted/50" data-testid={item.testId}>
+                    <item.icon className="w-3.5 h-3.5 text-muted-foreground/60" /> {item.label}
+                  </button>
+                ))}
+                <Link href="/stats">
+                  <button onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-foreground/80 hover:bg-muted/50" data-testid="menu-stats">
+                    <Trophy className="w-3.5 h-3.5 text-muted-foreground/60" /> Stats
+                  </button>
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );
