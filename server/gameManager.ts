@@ -792,8 +792,8 @@ async function handlePlayerAction(ws: WebSocket, message: any) {
         players: newState.players.map((p, idx) => {
           if (idx === player.seatIndex) {
             const sortedHand = [...p.hand].sort((a, b) => {
-              const aIsTrump = trumpSuit && a.suit === trumpSuit ? 1 : 0;
-              const bIsTrump = trumpSuit && b.suit === trumpSuit ? 1 : 0;
+              const aIsTrump = trumpSuit && a.suit === trumpSuit ? 0 : 1;
+              const bIsTrump = trumpSuit && b.suit === trumpSuit ? 0 : 1;
               if (aIsTrump !== bIsTrump) return aIsTrump - bIsTrump;
               const suitDiff = SUIT_BASE[a.suit] - SUIT_BASE[b.suit];
               if (suitDiff !== 0) return suitDiff;
