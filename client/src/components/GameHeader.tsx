@@ -160,7 +160,7 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
           <Button
             size="icon"
             variant="ghost"
-            className="hidden xs:flex h-8 w-8 text-muted-foreground/60 hover:text-foreground"
+            className="h-8 w-8 text-muted-foreground/60 hover:text-foreground"
             data-testid="button-stats"
           >
             <Trophy className="w-3.5 h-3.5" />
