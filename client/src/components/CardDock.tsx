@@ -74,9 +74,9 @@ export function CardDock({ cards, onCardClick, canPlayCard, isCurrentPlayer, tru
       <div 
         ref={containerRef}
         className="relative z-10 overflow-x-auto overflow-y-visible scrollbar-hide"
-        style={{ 
-          paddingLeft: 'max(env(safe-area-inset-left), 1.5rem)', 
-          paddingRight: 'max(env(safe-area-inset-right), 1.5rem)' 
+        style={{
+          paddingLeft: 'max(env(safe-area-inset-left), 0.5rem)',
+          paddingRight: 'max(env(safe-area-inset-right), 0.5rem)'
         }}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
@@ -85,7 +85,7 @@ export function CardDock({ cards, onCardClick, canPlayCard, isCurrentPlayer, tru
         onScroll={checkScroll}
         onLoad={checkScroll}
       >
-        <div className="flex items-end justify-center px-8 sm:px-6 py-2 min-w-fit mx-auto" style={{ gap: cards.length > 7 ? '-6px' : cards.length > 5 ? '-2px' : '4px' }}>
+        <div className="flex items-end justify-center px-4 sm:px-6 py-2 min-w-fit mx-auto" style={{ gap: cards.length > 8 ? '-10px' : cards.length > 7 ? '-8px' : cards.length > 5 ? '-4px' : '4px' }}>
           <AnimatePresence mode="popLayout">
             {cards.map((card, index) => (
               <DockCard
@@ -131,13 +131,28 @@ function DockCard({ card, index, mouseX, containerRef, onClick, disabled, trumpS
     return Math.abs(val - cardCenterX);
   });
 
-  // Adaptive sizing - bigger cards for better readability
+  // Adaptive sizing - fit all cards on screen without scrolling
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-  const mobileBoost = isMobile ? 10 : 0;
-  // Larger base sizes for all card counts
-  const baseWidth = (totalCards <= 4 ? 64 : totalCards <= 6 ? 56 : totalCards <= 8 ? 50 : 46) + mobileBoost;
-  const maxWidth = (totalCards <= 4 ? 80 : totalCards <= 6 ? 72 : totalCards <= 8 ? 64 : 58) + mobileBoost;
-  const magnificationRange = isMobile ? 60 : 70;
+  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 400;
+
+  let baseWidth: number;
+  let maxWidth: number;
+
+  if (isMobile) {
+    // On mobile, dynamically size cards to fit the screen
+    // Account for padding (24px each side) and overlap gaps
+    const availableWidth = screenWidth - 48;
+    const overlapPerCard = totalCards > 8 ? 10 : totalCards > 7 ? 8 : totalCards > 5 ? 4 : 0;
+    const totalOverlap = Math.max(0, totalCards - 1) * overlapPerCard;
+    const maxBaseWidth = Math.floor((availableWidth + totalOverlap) / totalCards);
+    baseWidth = Math.min(maxBaseWidth, totalCards <= 4 ? 68 : totalCards <= 6 ? 58 : 52);
+    maxWidth = Math.min(baseWidth + 14, totalCards <= 4 ? 82 : totalCards <= 6 ? 72 : 66);
+  } else {
+    baseWidth = totalCards <= 4 ? 64 : totalCards <= 6 ? 56 : totalCards <= 8 ? 50 : 46;
+    maxWidth = totalCards <= 4 ? 80 : totalCards <= 6 ? 72 : totalCards <= 8 ? 64 : 58;
+  }
+
+  const magnificationRange = isMobile ? 55 : 70;
   
   const springConfig = { stiffness: 350, damping: 28, mass: 0.4 }; // Smoother spring
   
