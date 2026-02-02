@@ -358,7 +358,7 @@ export function useMultiplayer() {
       case 'spectating':
         console.log('[WS] Now spectating room:', message.roomCode);
         sessionStorage.setItem('spectatorRoomCode', message.roomCode);
-        sessionStorage.setItem('spectatorDisplayName', message.spectatorId);
+        sessionStorage.setItem('spectatorDisplayName', message.displayName || message.spectatorId);
         setState(prev => ({
           ...prev,
           isSpectating: true,
