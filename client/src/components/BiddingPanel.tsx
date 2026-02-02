@@ -35,7 +35,7 @@ export function BiddingPanel({ open, highBid, playerName, isDealer, allOthersPas
       {/* Header */}
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex flex-col">
-          <span className="font-semibold text-sm" style={{ fontFamily: 'var(--font-display)' }}>Place Your Bid</span>
+          <span className="font-semibold text-sm text-[hsl(var(--gold))]" style={{ fontFamily: 'var(--font-display)' }}>Place Your Bid</span>
           {highBid > 0 && (
             <span className="text-[11px] text-muted-foreground/60">Current high: {highBid}</span>
           )}

@@ -66,7 +66,7 @@ export function PlayerArea({
       data-testid={`player-chip-${player.id}`}
     >
       <span className={cn('w-1.5 h-1.5 rounded-full', teamColors.dot)} />
-      <span className={cn('text-[11px] font-medium', teamColors.text)}>{player.name}</span>
+      <span className={cn('text-[11px] font-medium', teamColors.text)} style={{ fontFamily: 'var(--font-display)' }}>{player.name}</span>
       {isDealer && (
         <span className="px-1 py-px text-[8px] font-bold rounded text-[hsl(var(--gold))] bg-[hsl(var(--gold)/0.12)] border border-[hsl(var(--gold)/0.25)]">D</span>
       )}
@@ -103,7 +103,8 @@ export function PlayerArea({
             'absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full',
             'bg-[hsl(var(--gold))] text-background flex items-center justify-center',
             'text-[9px] font-bold',
-            'ring-2 ring-[hsl(var(--gold)/0.4)] ring-offset-1 ring-offset-background'
+            'ring-2 ring-[hsl(var(--gold)/0.4)] ring-offset-1 ring-offset-background',
+            'border border-[hsl(var(--gold)/0.3)]'
           )}
           title="Dealer"
           data-testid={`dealer-chip-${player.id}`}
@@ -125,7 +126,7 @@ export function PlayerArea({
         </div>
         <div className="flex flex-col items-start">
           <div className="flex items-center gap-1">
-            <span className={cn('font-medium text-sm', teamColors.text)}>{player.name}</span>
+            <span className={cn('font-medium text-sm', teamColors.text)} style={{ fontFamily: 'var(--font-display)' }}>{player.name}</span>
             {isBidder && (
               <Crown className="w-3 h-3 text-[hsl(var(--gold))]" />
             )}
@@ -198,7 +199,7 @@ export function PlayerArea({
               isCurrentPlayer && 'active-player-glow'
             )}>
               <span className={cn('w-1.5 h-1.5 rounded-full', teamColors.dot)} />
-              <span className={cn('text-xs font-medium', teamColors.text)}>{player.name}</span>
+              <span className={cn('text-xs font-medium', teamColors.text)} style={{ fontFamily: 'var(--font-display)' }}>{player.name}</span>
               {isDealer && (
                 <span className="px-1 py-px text-[8px] font-bold rounded text-[hsl(var(--gold))] bg-[hsl(var(--gold)/0.12)] border border-[hsl(var(--gold)/0.25)]">D</span>
               )}

@@ -7,26 +7,32 @@ import { cn } from '@/lib/utils';
 import { Trophy, TrendingDown, TrendingUp, Users, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+const CONFETTI_COLORS = [
+  'hsl(42, 82%, 58%)',   // gold
+  'hsl(42, 90%, 72%)',   // light gold
+  'hsl(215, 80%, 60%)',  // team-blue
+  'hsl(355, 75%, 58%)',  // team-red
+  'hsl(38, 70%, 50%)',   // dark gold
+];
+
 const Confetti = ({ count = 50 }: { count?: number }) => {
-  const colors = ['#fbbf24', '#3b82f6', '#ef4444', '#22c55e', '#a855f7', '#f97316'];
-  
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {Array.from({ length: count }).map((_, i) => (
         <motion.div
           key={i}
-          initial={{ 
+          initial={{
             x: Math.random() * 400 - 200,
             y: -20,
             rotate: 0,
             opacity: 1
           }}
-          animate={{ 
+          animate={{
             y: 500,
             rotate: Math.random() * 720 - 360,
             opacity: 0
           }}
-          transition={{ 
+          transition={{
             duration: 2 + Math.random() * 2,
             delay: Math.random() * 0.5,
             ease: "easeOut"
@@ -35,7 +41,7 @@ const Confetti = ({ count = 50 }: { count?: number }) => {
           style={{
             width: 8 + Math.random() * 8,
             height: 8 + Math.random() * 8,
-            backgroundColor: colors[Math.floor(Math.random() * colors.length)],
+            backgroundColor: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
             borderRadius: Math.random() > 0.5 ? '50%' : '2px',
           }}
         />
@@ -74,6 +80,18 @@ const suitColor: Record<string, string> = {
   Spades: 'text-foreground',
 };
 
+const GoldDivider = () => (
+  <motion.div
+    initial={{ scaleX: 0, opacity: 0 }}
+    animate={{ scaleX: 1, opacity: 1 }}
+    transition={{ delay: 0.2, duration: 0.5 }}
+    className="mx-auto mt-2 h-px w-3/4"
+    style={{
+      background: 'linear-gradient(90deg, transparent, hsl(42 82% 58% / 0.5), hsl(42 90% 72% / 0.7), hsl(42 82% 58% / 0.5), transparent)',
+    }}
+  />
+);
+
 export function ScoreModal({
   open,
   teams,
@@ -96,7 +114,7 @@ export function ScoreModal({
     if (open) {
       setCanContinue(false);
       setCountdown(5);
-      
+
       const interval = setInterval(() => {
         setCountdown(prev => {
           if (prev <= 1) {
@@ -107,7 +125,7 @@ export function ScoreModal({
           return prev - 1;
         });
       }, 1000);
-      
+
       return () => clearInterval(interval);
     }
   }, [open]);
@@ -139,9 +157,12 @@ export function ScoreModal({
 
   return (
     <Dialog open={open}>
-      <DialogContent className="w-[95vw] sm:max-w-xl max-h-[85vh] overflow-y-auto mx-auto" onPointerDownOutside={(e) => e.preventDefault()}>
+      <DialogContent
+        className="w-[95vw] sm:max-w-xl max-h-[85vh] overflow-y-auto mx-auto border-[hsl(var(--gold-dim)/0.15)] bg-card/95 backdrop-blur-xl"
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         {isGameOver && isYourTeamWinning && <Confetti count={60} />}
-        
+
         <DialogHeader className="relative">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
@@ -156,10 +177,13 @@ export function ScoreModal({
                       animate={{ rotate: [0, -10, 10, 0] }}
                       transition={{ duration: 0.5, delay: 0.2 }}
                     >
-                      <Trophy className="w-8 h-8 text-amber-500 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
+                      <Trophy className="w-8 h-8 text-[hsl(var(--gold))] drop-shadow-[0_0_8px_hsl(var(--gold)/0.5)]" />
                     </motion.div>
                   )}
-                  <span className={isYourTeamWinning ? 'text-amber-400' : ''}>
+                  <span
+                    className={isYourTeamWinning ? 'gold-text' : 'text-red-400/80'}
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
                     {isYourTeamWinning ? 'Victory!' : 'Defeat'}
                   </span>
                   {isYourTeamWinning && (
@@ -167,15 +191,18 @@ export function ScoreModal({
                       animate={{ rotate: [0, 10, -10, 0] }}
                       transition={{ duration: 0.5, delay: 0.3 }}
                     >
-                      <Sparkles className="w-6 h-6 text-amber-400" />
+                      <Sparkles className="w-6 h-6 text-[hsl(var(--gold))]" />
                     </motion.div>
                   )}
                 </>
               ) : (
-                'Round Complete'
+                <span className="gold-text" style={{ fontFamily: 'var(--font-display)' }}>
+                  Round Complete
+                </span>
               )}
             </DialogTitle>
           </motion.div>
+          <GoldDivider />
         </DialogHeader>
 
         <div className="space-y-4 py-2">
@@ -198,7 +225,7 @@ export function ScoreModal({
                 ) : (
                   <TrendingDown className="w-5 h-5 text-red-400" />
                 )}
-                <span className="font-bold text-lg" data-testid="text-bidder-outcome">
+                <span className="font-bold text-lg" style={{ fontFamily: 'var(--font-display)' }} data-testid="text-bidder-outcome">
                   {getBidOutcomeMessage()}
                 </span>
               </div>
@@ -212,8 +239,8 @@ export function ScoreModal({
           {/* Point Categories - High, Low, Jack, Five, Game */}
           {roundScoreDetails && (
             <div className="space-y-2">
-              <h3 className="font-semibold text-base text-center">Points Won</h3>
-              <div className="grid grid-cols-5 gap-1.5">
+              <h3 className="font-semibold text-base text-center" style={{ fontFamily: 'var(--font-display)' }}>Points Won</h3>
+              <div className="grid grid-cols-5 gap-1.5 p-2 rounded-xl felt-surface noise-overlay">
                 {[
                   { key: 'high', label: 'High', points: 1 },
                   { key: 'low', label: 'Low', points: 1 },
@@ -225,7 +252,7 @@ export function ScoreModal({
                   const winningTeam = winner ? teams.find(t => t.id === winner.teamId) : null;
                   const isTeam1 = winningTeam?.id === 'team1';
                   const winningCard = winner?.card;
-                  
+
                   return (
                     <motion.div
                       key={key}
@@ -234,15 +261,15 @@ export function ScoreModal({
                       transition={{ delay: 0.15 + index * 0.08, type: "spring", stiffness: 400 }}
                       className={cn(
                         'flex flex-col items-center p-2 rounded-lg border min-h-[72px] justify-between',
-                        winner 
-                          ? isTeam1 
-                            ? 'bg-blue-500/20 border-blue-500/50' 
-                            : 'bg-orange-500/20 border-orange-500/50'
+                        winner
+                          ? isTeam1
+                            ? 'bg-[hsl(var(--team-blue)/0.2)] border-[hsl(var(--team-blue)/0.5)]'
+                            : 'bg-[hsl(var(--team-red)/0.2)] border-[hsl(var(--team-red)/0.5)]'
                           : 'bg-muted/30 border-border/50'
                       )}
                       data-testid={`point-category-${key}`}
                     >
-                      <span className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">{label}</span>
+                      <span className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium" style={{ fontFamily: 'var(--font-display)' }}>{label}</span>
                       {winningCard && key !== 'game' ? (
                         <div className="flex items-center gap-0.5">
                           <span className={cn("text-base font-bold", suitColor[winningCard.suit])}>
@@ -253,16 +280,16 @@ export function ScoreModal({
                           </span>
                         </div>
                       ) : (
-                        <motion.span 
+                        <motion.span
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ delay: 0.3 + index * 0.08, type: "spring", stiffness: 500 }}
                           className={cn(
                             'text-lg font-bold',
-                            winner 
-                              ? isTeam1 
-                                ? 'text-blue-400' 
-                                : 'text-orange-400'
+                            winner
+                              ? isTeam1
+                                ? 'text-[hsl(var(--team-blue))]'
+                                : 'text-[hsl(var(--team-red))]'
                               : 'text-muted-foreground'
                           )}
                         >
@@ -272,7 +299,7 @@ export function ScoreModal({
                       {winningTeam && (
                         <span className={cn(
                           "text-[11px] font-medium",
-                          isTeam1 ? 'text-blue-400' : 'text-orange-400'
+                          isTeam1 ? 'text-[hsl(var(--team-blue))]' : 'text-[hsl(var(--team-red))]'
                         )}>
                           {isTeam1 ? 'You' : 'Opp'}
                         </span>
@@ -281,22 +308,22 @@ export function ScoreModal({
                   );
                 })}
               </div>
-              
+
               {/* Game Point Breakdown */}
               {roundScoreDetails.gameBreakdown && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
                   className="mt-3 p-3 rounded-lg bg-muted/30 border border-border/50"
                 >
-                  <h4 className="text-xs font-semibold text-center mb-2 text-muted-foreground uppercase tracking-wide">Game Point Breakdown</h4>
+                  <h4 className="text-xs font-semibold text-center mb-2 text-muted-foreground uppercase tracking-wide" style={{ fontFamily: 'var(--font-display)' }}>Game Point Breakdown</h4>
                   <div className="grid grid-cols-2 gap-3">
                     {teams.map((team) => {
                       const breakdown = roundScoreDetails.gameBreakdown[team.id];
                       const isTeam1 = team.id === 'team1';
                       const isWinner = roundScoreDetails.game?.teamId === team.id;
-                      
+
                       const formatBreakdown = () => {
                         const parts: string[] = [];
                         if (breakdown.aces > 0) parts.push(`${breakdown.aces} Ace${breakdown.aces > 1 ? 's' : ''}`);
@@ -306,24 +333,24 @@ export function ScoreModal({
                         if (breakdown.tens > 0) parts.push(`${breakdown.tens} Ten${breakdown.tens > 1 ? 's' : ''}`);
                         return parts.length > 0 ? parts.join(', ') : 'None';
                       };
-                      
+
                       return (
                         <div
                           key={team.id}
                           className={cn(
                             'p-2 rounded-lg text-center',
-                            isWinner 
-                              ? isTeam1 
-                                ? 'bg-blue-500/20 ring-1 ring-blue-500/50' 
-                                : 'bg-orange-500/20 ring-1 ring-orange-500/50'
+                            isWinner
+                              ? isTeam1
+                                ? 'bg-[hsl(var(--team-blue)/0.2)] ring-1 ring-[hsl(var(--team-blue)/0.5)]'
+                                : 'bg-[hsl(var(--team-red)/0.2)] ring-1 ring-[hsl(var(--team-red)/0.5)]'
                               : 'bg-muted/20'
                           )}
                           data-testid={`game-breakdown-${team.id}`}
                         >
                           <div className={cn(
                             'text-xs font-semibold mb-1',
-                            isTeam1 ? 'text-blue-400' : 'text-orange-400'
-                          )}>
+                            isTeam1 ? 'text-[hsl(var(--team-blue))]' : 'text-[hsl(var(--team-red))]'
+                          )} style={{ fontFamily: 'var(--font-display)' }}>
                             {isTeam1 ? 'Your Team' : 'Opponents'}
                           </div>
                           <div className="text-xs text-muted-foreground leading-relaxed">
@@ -331,7 +358,7 @@ export function ScoreModal({
                           </div>
                           <div className={cn(
                             'text-sm font-bold mt-1',
-                            isWinner && (isTeam1 ? 'text-blue-400' : 'text-orange-400')
+                            isWinner && (isTeam1 ? 'text-[hsl(var(--team-blue))]' : 'text-[hsl(var(--team-red))]')
                           )}>
                             = {breakdown.total} pts
                           </div>
@@ -351,7 +378,7 @@ export function ScoreModal({
 
           {/* Slept Cards */}
           {sleptCards.length > 0 && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
@@ -384,7 +411,7 @@ export function ScoreModal({
           )}
 
           <div className="space-y-2">
-            <h3 className="font-semibold text-base">
+            <h3 className="font-semibold text-base" style={{ fontFamily: 'var(--font-display)' }}>
               {isGameOver ? 'Final Standings' : 'Team Totals'}
             </h3>
             <div className="space-y-1.5">
@@ -404,7 +431,7 @@ export function ScoreModal({
                     className={cn(
                       'w-full flex items-center justify-between p-3 rounded-lg',
                       'bg-muted/50',
-                      isGameOver && index === 0 && isYourTeam && 'bg-emerald-100 dark:bg-emerald-900/30 ring-2 ring-emerald-400',
+                      isGameOver && index === 0 && isYourTeam && 'bg-[hsl(var(--gold)/0.1)] ring-2 ring-[hsl(var(--gold)/0.4)]',
                       isGameOver && index === 0 && !isYourTeam && 'bg-red-100 dark:bg-red-900/30 ring-2 ring-red-400'
                     )}
                     data-testid={`score-row-${team.id}`}
@@ -412,13 +439,13 @@ export function ScoreModal({
                     <div className="flex flex-col gap-0.5 text-left">
                       <div className="flex items-center gap-2 flex-wrap">
                         {isGameOver && index === 0 && (
-                          <Trophy className="w-4 h-4 text-amber-500" />
+                          <Trophy className="w-4 h-4 text-[hsl(var(--gold))]" />
                         )}
                         <div className={cn(
                           "w-2.5 h-2.5 rounded-full",
-                          team.id === 'team1' ? 'bg-blue-500' : 'bg-orange-500'
+                          team.id === 'team1' ? 'bg-[hsl(var(--team-blue))]' : 'bg-[hsl(var(--team-red))]'
                         )} />
-                        <span className="font-semibold text-sm">
+                        <span className="font-semibold text-sm" style={{ fontFamily: 'var(--font-display)' }}>
                           {team.id === 'team1' ? 'Your Team' : 'Opponents'}
                         </span>
                         {isBidderTeam && (
@@ -446,7 +473,7 @@ export function ScoreModal({
                         </span>
                       )}
                       <div className="text-right">
-                        <span className="text-xl font-bold">{team.score}</span>
+                        <span className="text-xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>{team.score}</span>
                         <span className="text-xs text-muted-foreground">/{targetScore}</span>
                       </div>
                     </div>
@@ -460,12 +487,13 @@ export function ScoreModal({
         <DialogFooter>
           <Button
             onClick={onContinue}
-            className="w-full"
+            className="w-full shadow-[0_0_20px_hsl(var(--gold)/0.15)]"
+            style={{ fontFamily: 'var(--font-display)' }}
             size="lg"
             disabled={!canContinue}
             data-testid="button-continue"
           >
-            {canContinue 
+            {canContinue
               ? (isGameOver ? 'New Game' : 'Continue to Next Round')
               : `Review scores... (${countdown})`
             }
