@@ -1,0 +1,17 @@
+ Center the scoreboard as the hero — make the two team scores the dominant visual element. They're what players look at most. Put them side by side, bigger, with the trump suit icon between them as a    
+  divider.                                                                                                                                                                                                  
+                                                                                                                                                                                                            
+  Collapse phase + bid + trump into the score area — instead of a separate "BID" label + "7" + heart icon scattered on the left, show it inline with the scores: something like 18 [♥7] 12 where the center 
+   shows trump suit + current bid together.                                                                                                                                                                 
+                                                                                                                                                                                                            
+  Move buttons into a single overflow menu on mobile — instead of hiding 4 buttons, put them behind a single ⋯ menu icon. On desktop keep them visible.                                                     
+                                                                                                                                                                                                            
+  Drop the /25 target score text — players set it once and know what it is. It's just noise during gameplay. Or show it only on hover/tap.                                                                  
+                                                                                                                                                                                                            
+  So the header becomes roughly:                                                                                                                                                                            
+                                                                                                                                                                                                            
+  [Exit]   18  ♥7 · 4/6  12   [⋯]                                                                                                                                                                           
+           ^^  ^^^^^^^^^  ^^                                                                                                                                                                                
+          you  trump+bid  them                                                                                                                                                                              
+                                                                                                                                                                                                            
+  One line, one glance, everything you need. The phase ("4/6") sits right next to the bid and trump since they're all about the current round state. 
