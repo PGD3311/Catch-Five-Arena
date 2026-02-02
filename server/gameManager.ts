@@ -797,7 +797,7 @@ async function handlePlayerAction(ws: WebSocket, message: any) {
               if (aIsTrump !== bIsTrump) return aIsTrump - bIsTrump;
               const suitDiff = SUIT_BASE[a.suit] - SUIT_BASE[b.suit];
               if (suitDiff !== 0) return suitDiff;
-              return RANK_ORDER[b.rank] - RANK_ORDER[a.rank];
+              return RANK_ORDER[a.rank] - RANK_ORDER[b.rank];
             });
             return { ...p, hand: sortedHand };
           }
