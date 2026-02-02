@@ -85,7 +85,7 @@ export function CardDock({ cards, onCardClick, canPlayCard, isCurrentPlayer, tru
         onScroll={checkScroll}
         onLoad={checkScroll}
       >
-        <div className="flex items-end justify-center px-4 sm:px-6 py-2 min-w-fit mx-auto" style={{ gap: cards.length > 8 ? '-10px' : cards.length > 7 ? '-8px' : cards.length > 5 ? '-4px' : '4px' }}>
+        <div className="flex items-end justify-center px-2 sm:px-6 py-2 min-w-fit mx-auto">
           <AnimatePresence mode="popLayout">
             {cards.map((card, index) => (
               <DockCard
@@ -135,16 +135,21 @@ function DockCard({ card, index, mouseX, containerRef, onClick, disabled, trumpS
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 400;
 
+  // Spacing between cards: negative = overlap, positive = gap
+  const spacingPx = totalCards > 8 ? -12 : totalCards > 7 ? -10 : totalCards > 5 ? -6 : 4;
+
   let baseWidth: number;
   let maxWidth: number;
 
   if (isMobile) {
     // On mobile, dynamically size cards to fit the screen
-    // Account for padding (24px each side) and overlap gaps
-    const availableWidth = screenWidth - 48;
-    const overlapPerCard = totalCards > 8 ? 10 : totalCards > 7 ? 8 : totalCards > 5 ? 4 : 0;
-    const totalOverlap = Math.max(0, totalCards - 1) * overlapPerCard;
-    const maxBaseWidth = Math.floor((availableWidth + totalOverlap) / totalCards);
+    // Outer padding: 0.5rem (8px) each side = 16px
+    // Inner padding: px-2 (8px) each side = 16px
+    // Total horizontal padding = 32px
+    const availableWidth = screenWidth - 32;
+    // For overlap (negative spacing), cards share space; for gap (positive), they need more
+    const totalSpacing = (totalCards - 1) * spacingPx;
+    const maxBaseWidth = Math.floor((availableWidth - totalSpacing) / totalCards);
     baseWidth = Math.min(maxBaseWidth, totalCards <= 4 ? 68 : totalCards <= 6 ? 58 : 52);
     maxWidth = Math.min(baseWidth + 14, totalCards <= 4 ? 82 : totalCards <= 6 ? 72 : 66);
   } else {
@@ -188,7 +193,7 @@ function DockCard({ card, index, mouseX, containerRef, onClick, disabled, trumpS
       initial={{ opacity: 0, scale: 0.8, y: 20, rotate: baseTilt }}
       animate={{ opacity: 1, scale: 1, rotate: baseTilt }}
       exit={{ opacity: 0, scale: 0.5, y: -30 }}
-      style={{ width, height, y, zIndex: baseZIndex, rotate: tilt }}
+      style={{ width, height, y, zIndex: baseZIndex, rotate: tilt, marginLeft: index > 0 ? spacingPx : 0 }}
       whileHover={{ zIndex: 40, rotate: 0 }}
       className="relative flex-shrink-0 origin-bottom"
     >
