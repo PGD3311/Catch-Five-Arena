@@ -940,6 +940,13 @@ export function discardTrumpCard(state: GameState, card: Card): GameState {
 
 export function playCard(state: GameState, card: Card): GameState {
   const player = state.players[state.currentPlayerIndex];
+
+  // Guard: verify the card is actually in the current player's hand
+  if (!player.hand.some(c => c.id === card.id)) {
+    console.warn(`[playCard] Card ${card.id} not in ${player.name}'s hand, ignoring`);
+    return state;
+  }
+
   const newHand = player.hand.filter(c => c.id !== card.id);
   const newPlayers = [...state.players];
   newPlayers[state.currentPlayerIndex] = { ...player, hand: newHand };
