@@ -682,17 +682,19 @@ export function GameBoard() {
             </div>
           </div>
 
-          {/* Bottom player area with bidding panel above cards */}
-          <div className="flex flex-col items-center gap-2">
+          {/* Bottom player area with bidding panel overlaying cards */}
+          <div className="relative flex flex-col items-center gap-2">
             {showBiddingModal && (
-              <BiddingPanel
-                open={showBiddingModal}
-                highBid={gameState.highBid}
-                playerName={humanPlayer.name}
-                isDealer={isDealer}
-                allOthersPassed={passedCount === 3}
-                onBid={handleBid}
-              />
+              <div className="absolute bottom-full mb-2 z-30 w-full flex justify-center">
+                <BiddingPanel
+                  open={showBiddingModal}
+                  highBid={gameState.highBid}
+                  playerName={humanPlayer.name}
+                  isDealer={isDealer}
+                  allOthersPassed={passedCount === 3}
+                  onBid={handleBid}
+                />
+              </div>
             )}
             {gameState.phase === 'discard-trump' && isMyTurn && (
               <div className="text-center mb-2 p-2 bg-destructive/10 border border-destructive/30 rounded-md">
