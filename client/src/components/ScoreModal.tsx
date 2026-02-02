@@ -158,7 +158,7 @@ export function ScoreModal({
   return (
     <Dialog open={open}>
       <DialogContent
-        className="w-[95vw] sm:max-w-xl max-h-[85vh] overflow-y-auto mx-auto border-[hsl(var(--gold-dim)/0.15)] bg-card/95 backdrop-blur-xl"
+        className="w-[95vw] sm:max-w-xl max-h-[85vh] overflow-y-auto mx-auto border-[hsl(var(--gold-dim)/0.15)] bg-card/95 backdrop-blur-xl [&>button:last-child]:hidden"
         onPointerDownOutside={(e) => e.preventDefault()}
       >
         {isGameOver && isYourTeamWinning && <Confetti count={60} />}
