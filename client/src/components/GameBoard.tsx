@@ -16,6 +16,7 @@ import { MultiplayerLobby } from './MultiplayerLobby';
 import { ConnectionStatus } from './ConnectionStatus';
 import { LastTrickModal } from './LastTrickModal';
 import { HomeScreen } from './HomeScreen';
+import { StatsPage } from './StatsPage';
 import { ChatPanel, FloatingEmoji, initAudioContext } from './ChatPanel';
 import type { ChatMessage } from '@shared/gameTypes';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,7 @@ export function GameBoard() {
   const [showPurgeDraw, setShowPurgeDraw] = useState(false);
   const [showDealerDraw, setShowDealerDraw] = useState(false);
   const [showMultiplayerLobby, setShowMultiplayerLobby] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [showLastTrick, setShowLastTrick] = useState(false);
   const [trickWinner, setTrickWinner] = useState<Player | null>(null);
   const [displayTrick, setDisplayTrick] = useState<TrickCard[]>([]);
@@ -541,10 +543,13 @@ export function GameBoard() {
       />
       {gameState.phase === 'setup' && (
         <div className="flex-1 flex flex-col items-center justify-center p-8">
-          {!showMultiplayerLobby ? (
+          {showStats ? (
+            <StatsPage onBack={() => setShowStats(false)} />
+          ) : !showMultiplayerLobby ? (
             <HomeScreen
               onPlay={() => setShowMultiplayerLobby(true)}
               onRules={() => setRulesOpen(true)}
+              onStats={() => setShowStats(true)}
             />
           ) : (
             <MultiplayerLobby

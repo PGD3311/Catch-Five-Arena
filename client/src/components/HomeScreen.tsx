@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Heart, Diamond, Club, Spade } from 'lucide-react';
+import { Heart, Diamond, Club, Spade, BarChart3 } from 'lucide-react';
 
 interface HomeScreenProps {
   onPlay: () => void;
   onRules: () => void;
+  onStats: () => void;
 }
 
 const suits = [
@@ -16,7 +17,7 @@ const suits = [
   { Icon: Spade, color: 'text-slate-400/10', x: '75%', y: '48%', size: 28, rotate: -25, delay: 1.8 },
 ];
 
-export function HomeScreen({ onPlay, onRules }: HomeScreenProps) {
+export function HomeScreen({ onPlay, onRules, onStats }: HomeScreenProps) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden px-6">
       {/* Floating suit decorations */}
@@ -106,6 +107,17 @@ export function HomeScreen({ onPlay, onRules }: HomeScreenProps) {
             data-testid="button-how-to-play"
           >
             How to Play
+          </Button>
+
+          <Button
+            variant="ghost"
+            onClick={onStats}
+            className="text-muted-foreground/40 hover:text-muted-foreground/70 text-xs tracking-[0.2em] uppercase font-medium flex items-center gap-1.5"
+            style={{ fontFamily: 'var(--font-display)' }}
+            data-testid="button-stats"
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            Stats
           </Button>
         </motion.div>
 
