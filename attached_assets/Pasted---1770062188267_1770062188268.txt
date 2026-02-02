@@ -1,0 +1,11 @@
+ ├───────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤                     
+  │ CardDock framer-motion hook warning   │ False — hooks are all at component top-level, no conditional calls. No warning should occur.                                              │                     
+  ├───────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤                     
+  │ Sort logic duplicated client + server │ True — identical RANK_ORDER and SUIT_BASE in GameBoard.tsx:267-271 and gameManager.ts:785-789. Could be extracted to a shared util later. │                     
+  ├───────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤                     
+  │ Mobile menu accessibility gaps        │ True — no aria-* attributes, no keyboard nav, no focus trapping, no escape-to-close. Standard for a casual game but worth noting.         │                     
+  ├───────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤                     
+  │ "/25" target score removed            │ True — no targetScore references remain in GameHeader. Clean removal.                                                                     │                     
+  └───────────────────────────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘                     
+  So 3 out of 4 are accurate. The CardDock hook warning claim is wrong — the framer-motion hooks are used correctly.                                                                                        
+                                                                                                                          
