@@ -95,8 +95,9 @@ async function trackPlayerStats(room: GameRoom, previousPhase: string) {
           }
         }
         
-        // Track game win/loss on game over
-        if (newPhase === 'game-over' && playerTeam) {
+        // Track game win/loss on game over — only count when all 4 players are human
+        const allHuman = state.players.every(p => p.isHuman);
+        if (newPhase === 'game-over' && playerTeam && allHuman) {
           increments.gamesPlayed = 1;
           if (playerTeam.score >= state.targetScore) {
             increments.gamesWon = 1;
