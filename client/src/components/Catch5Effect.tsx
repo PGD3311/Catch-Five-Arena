@@ -71,7 +71,7 @@ export function Catch5Effect({ onShake }: Catch5EffectProps) {
       <motion.div
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: [0, 1.2, 1], opacity: [0, 1, 1, 0] }}
-        transition={{ duration: 1.2, times: [0, 0.15, 0.5, 1], ease: 'easeOut' }}
+        transition={{ duration: 1.5, times: [0, 0.12, 0.55, 1], ease: 'easeOut' }}
         className="absolute gold-text"
         style={{
           fontFamily: 'var(--font-display)',

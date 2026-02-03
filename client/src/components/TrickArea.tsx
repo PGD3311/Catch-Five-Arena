@@ -15,6 +15,7 @@ interface TrickAreaProps {
 export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, onShake }: TrickAreaProps) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const [catch5CardId, setCatch5CardId] = useState<string | null>(null);
+  const firedCatch5Ref = useRef<string | null>(null);
   const prevTrickLenRef = useRef(0);
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -22,6 +23,7 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
   useEffect(() => {
     if (currentTrick.length < prevTrickLenRef.current) {
       setCatch5CardId(null);
+      firedCatch5Ref.current = null;
     }
     prevTrickLenRef.current = currentTrick.length;
   }, [currentTrick.length]);
@@ -59,12 +61,12 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
   // Run detection whenever trick updates
   useEffect(() => {
     const detected = detectCatch5();
-    if (detected && detected !== catch5CardId) {
+    if (detected && detected !== firedCatch5Ref.current) {
+      firedCatch5Ref.current = detected;
       setCatch5CardId(detected);
-      // Auto-clear after animations finish so the effect doesn't
-      // persist and re-trigger when later cards are played
+      // Auto-clear visual effect after animations finish
       if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
-      clearTimerRef.current = setTimeout(() => setCatch5CardId(null), 1300);
+      clearTimerRef.current = setTimeout(() => setCatch5CardId(null), 1600);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTrick]);
