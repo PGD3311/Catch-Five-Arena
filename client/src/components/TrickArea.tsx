@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { TrickCard, Player, Suit, Card, determineTrickWinner } from '@shared/gameTypes';
 
 import { PlayingCard } from './PlayingCard';
-import { Catch5Effect } from './Catch5Effect';
+import { Catch5Effect, resetShownEffects } from './Catch5Effect';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTension } from '@/hooks/useTension';
 
@@ -112,6 +112,7 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
       setCatch5CardId(null);
       firedCatch5Ref.current = null;
       slamAnimatedRef.current.clear();
+      resetShownEffects();
     }
     prevTrickLenRef.current = currentTrick.length;
   }, [currentTrick.length]);
@@ -267,7 +268,7 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
                 style={{ zIndex: isSlam ? 10 : index + 1 }}
               >
                 <PlayingCard card={trickCard.card} small trumpSuit={trumpSuit} />
-                {isNewSlam && <Catch5Effect onShake={onShake} />}
+                {isNewSlam && <Catch5Effect onShake={onShake} cardId={trickCard.card.id} />}
               </motion.div>
             );
           });

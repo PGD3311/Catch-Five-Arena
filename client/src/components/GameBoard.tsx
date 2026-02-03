@@ -230,8 +230,8 @@ export function GameBoard() {
         }
         const trickHold = 2500;
         trickWinnerTimeoutRef.current = setTimeout(() => {
-          setDisplayTrick([]);
           setGameState(prev => playCard(prev, card));
+          setDisplayTrick([]);
         }, trickHold);
       } else {
         setGameState(prev => playCard(prev, card));

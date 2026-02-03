@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 
 interface Catch5EffectProps {
   onShake?: () => void;
+  cardId: string;
 }
 
 interface Particle {
@@ -14,6 +15,15 @@ interface Particle {
   hue: number;
 }
 
+// Module-level guard: once a card ID has shown its slam effect,
+// any remount for the same ID renders nothing. Survives React
+// unmount/remount cycles that component-local refs cannot.
+const shownEffects = new Set<string>();
+
+export function resetShownEffects() {
+  shownEffects.clear();
+}
+
 // Stable keyframe references — prevents Framer Motion from
 // replaying animations when the parent re-renders.
 const TEXT_SCALE = [0, 1.2, 1];
@@ -22,18 +32,19 @@ const TEXT_TIMES = [0, 0.12, 0.55, 1];
 const RING_INITIAL = { scale: 0, opacity: 0.8 };
 const RING_ANIMATE = { scale: 3, opacity: 0 };
 
-export function Catch5Effect({ onShake }: Catch5EffectProps) {
-  // Fire onShake exactly once on mount — ref avoids dep on callback identity
+export function Catch5Effect({ onShake, cardId }: Catch5EffectProps) {
+  const alreadyShown = shownEffects.has(cardId);
+
+  // All hooks must run unconditionally (Rules of Hooks)
   const onShakeRef = useRef(onShake);
   onShakeRef.current = onShake;
-  const firedRef = useRef(false);
 
   useEffect(() => {
-    if (!firedRef.current) {
-      firedRef.current = true;
+    if (!alreadyShown) {
+      shownEffects.add(cardId);
       onShakeRef.current?.();
     }
-  }, []);
+  }, [cardId, alreadyShown]);
 
   const particles = useMemo(() => {
     return Array.from({ length: 18 }, (_, i) => {
@@ -46,13 +57,15 @@ export function Catch5Effect({ onShake }: Catch5EffectProps) {
         size: 3 + Math.random() * 3,
         duration: 0.5 + Math.random() * 0.3,
         hue: 38 + Math.random() * 10,
-        // Pre-compute stable animate object so Framer Motion doesn't replay
         endX: Math.cos(angle) * distance,
         endY: Math.sin(angle) * distance,
         animate: { scale: [1, 0] as number[], x: Math.cos(angle) * distance, y: Math.sin(angle) * distance, opacity: [1, 0] as number[] },
       };
     });
   }, []);
+
+  // Remount for a card that already played — render nothing
+  if (alreadyShown) return null;
 
   return (
     <div className="absolute inset-0 pointer-events-none flex items-center justify-center" style={{ zIndex: 50 }}>
