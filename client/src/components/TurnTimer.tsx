@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { useTension } from '@/hooks/useTension';
 
 interface TurnTimerProps {
   isActive: boolean;
@@ -23,6 +24,18 @@ export function TurnTimer({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasTimedOut = useRef(false);
   const onTimeoutRef = useRef(onTimeout);
+  const { tension } = useTension();
+
+  // Tension-driven warning threshold: 5s → 8s as tension rises
+  // Stored in a ref so changes don't restart the interval
+  const warningThresholdRef = useRef(5 + tension * 3);
+  warningThresholdRef.current = 5 + tension * 3;
+
+  // Tension-driven stroke width: 2.5 → 3.2
+  const strokeWidth = 2.5 + tension * 0.7;
+
+  // Tension-driven pulse speed: 0.5s → 0.35s
+  const pulseSpeed = `${0.5 - tension * 0.15}s`;
 
   useEffect(() => {
     onTimeoutRef.current = onTimeout;
@@ -42,13 +55,13 @@ export function TurnTimer({
 
       const initialTime = calculateTimeLeft();
       setTimeLeft(initialTime);
-      setIsWarning(initialTime <= 5);
+      setIsWarning(initialTime <= warningThresholdRef.current);
 
       intervalRef.current = setInterval(() => {
         const newTime = calculateTimeLeft();
         setTimeLeft(newTime);
 
-        if (newTime <= 5) {
+        if (newTime <= warningThresholdRef.current) {
           setIsWarning(true);
         }
 
@@ -88,7 +101,7 @@ export function TurnTimer({
             r="16"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.5"
+            strokeWidth={strokeWidth}
             className="text-muted/40"
           />
           {/* Progress */}
@@ -97,7 +110,7 @@ export function TurnTimer({
             cy="18"
             r="16"
             fill="none"
-            strokeWidth="2.5"
+            strokeWidth={strokeWidth}
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
@@ -110,9 +123,12 @@ export function TurnTimer({
         <span
           className={cn(
             "absolute inset-0 flex items-center justify-center text-xs font-bold tabular-nums",
-            isWarning ? "text-[hsl(var(--team-red))] timer-urgent" : "text-foreground/80"
+            isWarning ? "text-[hsl(var(--team-red))]" : "text-foreground/80"
           )}
-          style={{ fontFamily: 'var(--font-display)' }}
+          style={{
+            fontFamily: 'var(--font-display)',
+            ...(isWarning ? { animation: `timer-urgent ${pulseSpeed} ease-in-out infinite` } : {}),
+          }}
         >
           {timeLeft}
         </span>

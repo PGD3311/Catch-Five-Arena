@@ -5,7 +5,7 @@ type SoundType = 'cardPlay' | 'cardDeal' | 'trickWon' | 'bidMade' | 'bidSet' | '
 const STORAGE_KEY = 'catch5-sound-muted';
 
 interface SoundContextValue {
-  playSound: (type: SoundType) => void;
+  playSound: (type: SoundType, tension?: number) => void;
   isMuted: boolean;
   toggleMute: () => void;
 }
@@ -199,17 +199,28 @@ export function SoundProvider({ children }: { children: ReactNode }) {
     });
   }, [playRichTone]);
 
-  const playSound = useCallback((type: SoundType) => {
+  const playSound = useCallback((type: SoundType, tension: number = 0) => {
     if (isMuted) return;
 
+    // Clamp tension to [0, 1]
+    const t = Math.min(Math.max(tension, 0), 1);
+
     switch (type) {
-      case 'cardPlay':
-        // Satisfying card slap sound
-        playNoise(0.1, { volume: 0.35, filterFreq: 2500, attack: 0.001, decay: 0.099 });
-        playNoise(0.06, { volume: 0.2, filterFreq: 600, filterType: 'bandpass', delay: 0.005 });
-        playRichTone(150, 0.06, { type: 'triangle', volume: 0.15, attack: 0.001, release: 0.04 });
-        playRichTone(100, 0.04, { type: 'sine', volume: 0.1, attack: 0.001, delay: 0.02 });
+      case 'cardPlay': {
+        // Satisfying card slap sound — tension boosts volume +30%, filter 2500→3200Hz
+        const volScale = 1 + t * 0.3;
+        const filterFreq = 2500 + t * 700;
+        playNoise(0.1, { volume: 0.35 * volScale, filterFreq, attack: 0.001, decay: 0.099 });
+        playNoise(0.06, { volume: 0.2 * volScale, filterFreq: 600, filterType: 'bandpass', delay: 0.005 });
+        playRichTone(150, 0.06, { type: 'triangle', volume: 0.15 * volScale, attack: 0.001, release: 0.04 });
+        playRichTone(100, 0.04, { type: 'sine', volume: 0.1 * volScale, attack: 0.001, delay: 0.02 });
+        // Sub-bass thump at tension > 0.5
+        if (t > 0.5) {
+          const subVol = (t - 0.5) * 0.4; // 0 → 0.2
+          playRichTone(55, 0.12, { type: 'sine', volume: subVol, attack: 0.001, release: 0.1 });
+        }
         break;
+      }
 
       case 'cardDeal':
         // Quick card flip
@@ -227,42 +238,49 @@ export function SoundProvider({ children }: { children: ReactNode }) {
         }
         break;
 
-      case 'trickWon':
-        // Satisfying sweep/collect sound
-        playNoise(0.12, { volume: 0.12, filterFreq: 1500, attack: 0.01, decay: 0.11 });
-        playRichTone(440, 0.1, { volume: 0.2, attack: 0.01, harmonics: [0.5, 0.25] });
-        playRichTone(554, 0.1, { volume: 0.22, delay: 0.08, attack: 0.01, harmonics: [0.5, 0.25] });
-        playRichTone(659, 0.15, { volume: 0.25, delay: 0.16, attack: 0.01, harmonics: [0.6, 0.3, 0.1] });
+      case 'trickWon': {
+        // Satisfying sweep/collect sound — tension boosts volume +25%, adds detune spread
+        const twVolScale = 1 + t * 0.25;
+        const detune = t * 15; // 0 → ±15 cents
+        playNoise(0.12, { volume: 0.12 * twVolScale, filterFreq: 1500, attack: 0.01, decay: 0.11 });
+        playRichTone(440, 0.1, { volume: 0.2 * twVolScale, attack: 0.01, harmonics: [0.5, 0.25], detune: -detune });
+        playRichTone(554, 0.1, { volume: 0.22 * twVolScale, delay: 0.08, attack: 0.01, harmonics: [0.5, 0.25], detune });
+        playRichTone(659, 0.15, { volume: 0.25 * twVolScale, delay: 0.16, attack: 0.01, harmonics: [0.6, 0.3, 0.1], detune: -detune });
         break;
+      }
 
-      case 'bidMade':
-        // Triumphant fanfare for making the bid
-        playRichTone(523, 0.12, { volume: 0.2, attack: 0.01, harmonics: [0.5, 0.25] });
-        playRichTone(659, 0.12, { volume: 0.22, delay: 0.1, attack: 0.01, harmonics: [0.5, 0.25] });
-        playRichTone(784, 0.12, { volume: 0.24, delay: 0.2, attack: 0.01, harmonics: [0.5, 0.25] });
-        playChord([1047, 1319, 1568], 0.4, { 
-          volume: 0.28, 
-          delay: 0.35, 
+      case 'bidMade': {
+        // Triumphant fanfare for making the bid — tension boosts volume +20%
+        const bmVolScale = 1 + t * 0.2;
+        playRichTone(523, 0.12, { volume: 0.2 * bmVolScale, attack: 0.01, harmonics: [0.5, 0.25] });
+        playRichTone(659, 0.12, { volume: 0.22 * bmVolScale, delay: 0.1, attack: 0.01, harmonics: [0.5, 0.25] });
+        playRichTone(784, 0.12, { volume: 0.24 * bmVolScale, delay: 0.2, attack: 0.01, harmonics: [0.5, 0.25] });
+        playChord([1047, 1319, 1568], 0.4, {
+          volume: 0.28 * bmVolScale,
+          delay: 0.35,
           stagger: 0.02,
           attack: 0.01
         });
-        playNoise(0.2, { volume: 0.08, filterFreq: 6000, delay: 0.35 });
+        playNoise(0.2, { volume: 0.08 * bmVolScale, filterFreq: 6000, delay: 0.35 });
         break;
+      }
 
-      case 'bidSet':
-        // Dramatic descending "failure" sound
-        playRichTone(440, 0.2, { volume: 0.25, harmonics: [0.4, 0.2], type: 'sine' });
-        playRichTone(370, 0.22, { volume: 0.27, delay: 0.18, harmonics: [0.4, 0.2] });
-        playRichTone(311, 0.25, { volume: 0.28, delay: 0.38, harmonics: [0.4, 0.2] });
-        playChord([147, 185, 220], 0.5, { 
-          volume: 0.22, 
-          delay: 0.6, 
+      case 'bidSet': {
+        // Dramatic descending "failure" sound — tension boosts volume +20%
+        const bsVolScale = 1 + t * 0.2;
+        playRichTone(440, 0.2, { volume: 0.25 * bsVolScale, harmonics: [0.4, 0.2], type: 'sine' });
+        playRichTone(370, 0.22, { volume: 0.27 * bsVolScale, delay: 0.18, harmonics: [0.4, 0.2] });
+        playRichTone(311, 0.25, { volume: 0.28 * bsVolScale, delay: 0.38, harmonics: [0.4, 0.2] });
+        playChord([147, 185, 220], 0.5, {
+          volume: 0.22 * bsVolScale,
+          delay: 0.6,
           attack: 0.02,
           stagger: 0.03
         });
         // Add a low rumble for impact
-        playRichTone(80, 0.4, { type: 'sine', volume: 0.15, delay: 0.6, attack: 0.05 });
+        playRichTone(80, 0.4, { type: 'sine', volume: 0.15 * bsVolScale, delay: 0.6, attack: 0.05 });
         break;
+      }
 
       case 'victory':
         // Grand victory fanfare

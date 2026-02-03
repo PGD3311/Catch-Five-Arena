@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { TrickCard, Player, Suit } from '@shared/gameTypes';
 import { PlayingCard } from './PlayingCard';
 import { Catch5Effect } from './Catch5Effect';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTension } from '@/hooks/useTension';
 
 interface TrickAreaProps {
   currentTrick: TrickCard[];
@@ -18,6 +19,27 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
   const firedCatch5Ref = useRef<string | null>(null);
   const prevTrickLenRef = useRef(0);
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { tension } = useTension();
+
+  // Tension-driven felt glow: green (150) → gold (42)
+  const feltGlowStyle = useMemo(() => {
+    const hue = 150 - tension * 108;          // 150 → 42
+    const opacity = 0.10 + tension * 0.20;    // 0.10 → 0.30
+    const radius = 60 + tension * 15;         // 60% → 75%
+
+    const style: React.CSSProperties = {
+      background: `radial-gradient(ellipse at center, hsla(${hue}, 50%, 40%, ${opacity}) 0%, transparent ${radius}%)`,
+      transition: 'background 1s ease',
+    };
+
+    // Outer glow shadow on the felt surface when tension > 0.3
+    if (tension > 0.3) {
+      const shadowOpacity = (tension - 0.3) * 0.15; // 0 → ~0.105
+      style.boxShadow = `0 0 40px hsla(${hue}, 50%, 40%, ${shadowOpacity})`;
+    }
+
+    return style;
+  }, [tension]);
 
   // Clear catch5 state when trick resets (new trick starts)
   useEffect(() => {
@@ -104,11 +126,14 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
     <div className="relative w-full h-36 sm:h-48 md:h-56" data-testid="trick-area">
       {/* Felt table surface */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative w-44 h-28 sm:w-56 sm:h-36 md:w-72 md:h-44 rounded-2xl felt-surface noise-overlay border border-white/[0.04] overflow-hidden">
+        <div
+          className="relative w-44 h-28 sm:w-56 sm:h-36 md:w-72 md:h-44 rounded-2xl felt-surface noise-overlay border border-white/[0.04] overflow-hidden"
+          style={tension > 0.3 ? { boxShadow: feltGlowStyle.boxShadow } : undefined}
+        >
           {/* Inner highlight rim */}
           <div className="absolute inset-[1px] rounded-2xl ring-1 ring-inset ring-white/[0.06]" />
-          {/* Center glow */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_hsl(var(--felt-glow)/0.1)_0%,_transparent_60%)]" />
+          {/* Center glow — tension-driven */}
+          <div className="absolute inset-0" style={feltGlowStyle} />
         </div>
       </div>
 

@@ -246,14 +246,14 @@
   background-size: 128px 128px;
 }
 
-/* Active player glow pulse */
+/* Active player glow pulse — tension-driven via CSS custom properties */
 @keyframes player-glow {
-  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--gold) / 0), 0 0 12px hsl(var(--gold) / 0.1); }
-  50% { box-shadow: 0 0 0 3px hsl(var(--gold) / 0.15), 0 0 20px hsl(var(--gold) / 0.2); }
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--gold) / 0), 0 0 12px hsl(var(--gold) / var(--glow-outer, 0.1)); }
+  50% { box-shadow: 0 0 0 var(--glow-spread, 3px) hsl(var(--gold) / var(--glow-opacity, 0.15)), 0 0 20px hsl(var(--gold) / var(--glow-outer, 0.2)); }
 }
 
 .active-player-glow {
-  animation: player-glow 2s ease-in-out infinite;
+  animation: player-glow var(--glow-speed, 2s) ease-in-out infinite;
 }
 
 /* Timer warning pulse */

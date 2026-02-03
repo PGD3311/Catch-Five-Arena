@@ -27,6 +27,7 @@ import { useCpuTurns } from '@/hooks/useCpuTurns';
 import { useToast } from '@/hooks/use-toast';
 import { useSound } from '@/hooks/useSoundEffects';
 import { TensionProvider } from '@/hooks/useTension';
+import { computeTension } from '@shared/tensionEngine';
 import { History, Eye } from 'lucide-react';
 import {
   initializeGame,
@@ -202,7 +203,7 @@ export function GameBoard() {
   }, [isMultiplayerMode, multiplayer]);
 
   const handleCardPlay = useCallback((card: CardType) => {
-    playSound('cardPlay');
+    playSound('cardPlay', computeTension(gameState));
     if (isMultiplayerMode) {
       multiplayer.sendAction('play_card', { card });
     } else {
@@ -221,7 +222,8 @@ export function GameBoard() {
       if (newTrick.length === 4 && gameState.trumpSuit) {
         setDisplayTrick(newTrick);
         // Play trick won sound after a short delay
-        setTimeout(() => playSound('trickWon'), 300);
+        const trickTension = computeTension(gameState);
+        setTimeout(() => playSound('trickWon', trickTension), 300);
         
         if (trickWinnerTimeoutRef.current) {
           clearTimeout(trickWinnerTimeoutRef.current);
@@ -546,10 +548,11 @@ export function GameBoard() {
 
       const soundDelay = isDramaticReveal ? 2000 : 300;
 
+      const scoreTension = computeTension(gameState);
       if (isGameOverNow) {
-        setTimeout(() => playSound(yourTeamWins ? 'victory' : 'defeat'), soundDelay);
+        setTimeout(() => playSound(yourTeamWins ? 'victory' : 'defeat', scoreTension), soundDelay);
       } else {
-        setTimeout(() => playSound(isGoodForYou ? 'bidMade' : 'bidSet'), soundDelay);
+        setTimeout(() => playSound(isGoodForYou ? 'bidMade' : 'bidSet', scoreTension), soundDelay);
       }
     }
     prevShowScoreModalRef.current = showScoreModal;

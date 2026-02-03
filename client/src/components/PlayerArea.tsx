@@ -1,9 +1,11 @@
+import { useMemo } from 'react';
 import { Player, DeckColor, Card as CardType, Team, Suit } from '@shared/gameTypes';
 import { CardDock } from './CardDock';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { User, Bot, Crown, ArrowUpDown } from 'lucide-react';
+import { useTension } from '@/hooks/useTension';
 
 interface PlayerAreaProps {
   player: Player;
@@ -40,6 +42,18 @@ export function PlayerArea({
   const isTop = position === 'top';
   const isSide = position === 'left' || position === 'right';
   const isYourTeam = team.id === 'team1';
+  const { tension } = useTension();
+
+  // Tension-driven glow CSS custom properties for active-player-glow
+  const glowStyle = useMemo((): React.CSSProperties | undefined => {
+    if (!isCurrentPlayer) return undefined;
+    return {
+      '--glow-speed': `${2.0 - tension * 1.0}s`,       // 2.0s → 1.0s
+      '--glow-spread': `${3 + tension * 3}px`,          // 3px → 6px
+      '--glow-opacity': `${0.15 + tension * 0.20}`,     // 0.15 → 0.35
+      '--glow-outer': `${0.1 + tension * 0.15}`,        // 0.1 → 0.25
+    } as React.CSSProperties;
+  }, [isCurrentPlayer, tension]);
 
   const teamColors = isYourTeam
     ? { text: 'text-[hsl(var(--team-blue))]', bg: 'bg-[hsl(var(--team-blue)/0.12)]', border: 'border-[hsl(var(--team-blue)/0.3)]', dot: 'bg-[hsl(var(--team-blue))]' }
@@ -63,6 +77,7 @@ export function PlayerArea({
         teamColors.bg,
         isCurrentPlayer && 'active-player-glow'
       )}
+      style={glowStyle}
       data-testid={`player-chip-${player.id}`}
     >
       <span className={cn('w-1.5 h-1.5 rounded-full', teamColors.dot)} />
@@ -96,6 +111,7 @@ export function PlayerArea({
           : 'bg-card/40 border-border/30',
         isSide ? 'flex-col text-center' : 'flex-row'
       )}
+      style={glowStyle}
     >
       {isDealer && (
         <div
@@ -193,11 +209,14 @@ export function PlayerArea({
         <>
           {/* Compact identity line for bottom player */}
           <div className="flex items-center justify-center gap-3 w-full px-4">
-            <div className={cn(
-              'flex items-center gap-1.5 px-2.5 py-1 rounded-lg',
-              teamColors.border, teamColors.bg, 'border',
-              isCurrentPlayer && 'active-player-glow'
-            )}>
+            <div
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1 rounded-lg',
+                teamColors.border, teamColors.bg, 'border',
+                isCurrentPlayer && 'active-player-glow'
+              )}
+              style={glowStyle}
+            >
               <span className={cn('w-1.5 h-1.5 rounded-full', teamColors.dot)} />
               <span className={cn('text-xs font-medium', teamColors.text)} style={{ fontFamily: 'var(--font-display)' }}>{player.name}</span>
               {isDealer && (
