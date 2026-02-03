@@ -1,9 +1,100 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { TrickCard, Player, Suit } from '@shared/gameTypes';
+import { TrickCard, Player, Suit, Card } from '@shared/gameTypes';
+import { TOTAL_TRICKS } from '@shared/gameTypes';
 import { PlayingCard } from './PlayingCard';
 import { Catch5Effect } from './Catch5Effect';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTension } from '@/hooks/useTension';
+
+interface CardConfig {
+  spring: { type: 'spring'; stiffness: number; damping: number; mass: number };
+  scale: number | number[];
+  glowClass: string | null;
+}
+
+function getCardConfig(
+  card: Card,
+  index: number,
+  trickNumber: number,
+  trumpSuit: Suit | null | undefined,
+  isSlam: boolean,
+): CardConfig {
+  const isTrump = trumpSuit && card.suit === trumpSuit;
+  const isFive = isTrump && card.rank === '5';
+  const isAceOrJack = isTrump && (card.rank === 'A' || card.rank === 'J');
+  const isFinalTrick = trickNumber >= TOTAL_TRICKS;
+  const isFourthCard = index === 3;
+
+  // Priority 1: Catch-5 slam — always wins
+  if (isSlam) {
+    return {
+      spring: { type: 'spring', stiffness: 600, damping: 16, mass: 1.2 },
+      scale: [0.7, 1.15, 1],
+      glowClass: null,
+    };
+  }
+
+  // Priority 2: Trick 6 + Five of trump
+  if (isFinalTrick && isFive) {
+    return {
+      spring: { type: 'spring', stiffness: 480, damping: 16, mass: 0.9 },
+      scale: [0.7, 1.1, 1],
+      glowClass: 'point-card-glow',
+    };
+  }
+
+  // Priority 3: Trick 6 + Ace/Jack of trump
+  if (isFinalTrick && isAceOrJack) {
+    return {
+      spring: { type: 'spring', stiffness: 420, damping: 18, mass: 0.8 },
+      scale: [0.7, 1.06, 1],
+      glowClass: 'point-card-flash',
+    };
+  }
+
+  // Priority 4: Trick 6 + 4th card (resolves trick)
+  if (isFinalTrick && isFourthCard) {
+    return {
+      spring: { type: 'spring', stiffness: 450, damping: 18, mass: 0.8 },
+      scale: 1,
+      glowClass: null,
+    };
+  }
+
+  // Priority 5: Trick 6 + routine card
+  if (isFinalTrick) {
+    return {
+      spring: { type: 'spring', stiffness: 380, damping: 20, mass: 0.7 },
+      scale: 1,
+      glowClass: null,
+    };
+  }
+
+  // Priority 6: Tricks 1-5 + Five of trump
+  if (isFive) {
+    return {
+      spring: { type: 'spring', stiffness: 340, damping: 20, mass: 0.7 },
+      scale: 1,
+      glowClass: 'point-card-flash',
+    };
+  }
+
+  // Priority 7: Tricks 1-5 + Ace/Jack of trump
+  if (isAceOrJack) {
+    return {
+      spring: { type: 'spring', stiffness: 310, damping: 22, mass: 0.7 },
+      scale: 1,
+      glowClass: null,
+    };
+  }
+
+  // Priority 8: Routine (default)
+  return {
+    spring: { type: 'spring', stiffness: 280, damping: 24, mass: 0.7 },
+    scale: 1,
+    glowClass: null,
+  };
+}
 
 interface TrickAreaProps {
   currentTrick: TrickCard[];
@@ -11,9 +102,10 @@ interface TrickAreaProps {
   trumpSuit?: Suit | null;
   mySeatIndex?: number;
   onShake?: () => void;
+  trickNumber?: number;
 }
 
-export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, onShake }: TrickAreaProps) {
+export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, onShake, trickNumber = 1 }: TrickAreaProps) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const [catch5CardId, setCatch5CardId] = useState<string | null>(null);
   const firedCatch5Ref = useRef<string | null>(null);
@@ -144,10 +236,7 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
             const pos = getPositionForPlayer(trickCard.playerId);
             const startPos = getStartPosition(trickCard.playerId);
             const isSlam = trickCard.card.id === catch5CardId;
-
-            const springTransition = isSlam
-              ? { type: "spring" as const, stiffness: 600, damping: 16, mass: 1.2 }
-              : { type: "spring" as const, stiffness: 280, damping: 24, mass: 0.7 };
+            const config = getCardConfig(trickCard.card, index, trickNumber, trumpSuit, isSlam);
 
             return (
               <motion.div
@@ -162,7 +251,7 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
                 animate={{
                   x: pos.x,
                   y: pos.y,
-                  scale: isSlam ? [0.7, 1.15, 1] : 1,
+                  scale: config.scale,
                   opacity: 1,
                   rotate: pos.rotate
                 }}
@@ -171,8 +260,8 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
                   opacity: 0,
                   y: -40
                 }}
-                transition={springTransition}
-                className="absolute"
+                transition={config.spring}
+                className={`absolute ${config.glowClass ?? ''}`}
                 style={{ zIndex: isSlam ? 10 : index + 1 }}
               >
                 <PlayingCard card={trickCard.card} small trumpSuit={trumpSuit} />

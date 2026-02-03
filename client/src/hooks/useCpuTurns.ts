@@ -1,5 +1,6 @@
 import { useEffect, type Dispatch, type SetStateAction, type MutableRefObject } from 'react';
 import type { GameState, Suit, TrickCard } from '@shared/gameTypes';
+import { TOTAL_TRICKS } from '@shared/gameTypes';
 import {
   processBid,
   getCpuBid,
@@ -112,10 +113,11 @@ export function useCpuTurns({
             if (trickWinnerTimeoutRef.current) {
               clearTimeout(trickWinnerTimeoutRef.current);
             }
+            const cpuTrickHold = prev.trickNumber >= TOTAL_TRICKS ? 3500 : 2500;
             trickWinnerTimeoutRef.current = setTimeout(() => {
               setDisplayTrick([]);
               setGameState(prevInner => playCard(prevInner, cardToPlay));
-            }, 2500);
+            }, cpuTrickHold);
             return prev;
           } else {
             return playCard(prev, cardToPlay);

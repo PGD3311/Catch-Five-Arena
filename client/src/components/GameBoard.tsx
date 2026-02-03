@@ -1,4 +1,4 @@
-import { GameState, Card as CardType, Suit, Player, TrickCard } from '@shared/gameTypes';
+import { GameState, Card as CardType, Suit, Player, TrickCard, TOTAL_TRICKS } from '@shared/gameTypes';
 import { PlayerArea } from './PlayerArea';
 import { TrickArea } from './TrickArea';
 import { GameHeader } from './GameHeader';
@@ -228,15 +228,16 @@ export function GameBoard() {
         if (trickWinnerTimeoutRef.current) {
           clearTimeout(trickWinnerTimeoutRef.current);
         }
+        const trickHold = gameState.trickNumber >= TOTAL_TRICKS ? 3500 : 2500;
         trickWinnerTimeoutRef.current = setTimeout(() => {
           setDisplayTrick([]);
           setGameState(prev => playCard(prev, card));
-        }, 2500);
+        }, trickHold);
       } else {
         setGameState(prev => playCard(prev, card));
       }
     }
-  }, [isMultiplayerMode, multiplayer, toast, gameState.players, gameState.currentPlayerIndex, gameState.currentTrick, gameState.trumpSuit, playSound]);
+  }, [isMultiplayerMode, multiplayer, toast, gameState.players, gameState.currentPlayerIndex, gameState.currentTrick, gameState.trumpSuit, gameState.trickNumber, playSound]);
 
   const handleDiscardTrump = useCallback((card: CardType) => {
     if (isMultiplayerMode) {
@@ -346,48 +347,51 @@ export function GameBoard() {
       ? gameState.lastTrick.map(tc => tc.card.id).join(',')
       : null;
     
+    // Final trick gets longer display hold (3500ms vs 2500ms)
+    const mpTrickHold = gameState.trickNumber >= TOTAL_TRICKS ? 3500 : 2500;
+
     // Case 1: Trick just completed (was building, now reset)
     // Use lastTrick if available (server populates this when trick completes)
     if (prevTrick.length > 0 && currentTrick.length === 0 && gameState.lastTrick && gameState.lastTrick.length === 4) {
       console.log('[GameBoard] Case 1: Trick completed, showing lastTrick');
       setDisplayTrick(gameState.lastTrick);
       lastShownTrickRef.current = lastTrickId;
-      
+
       if (trickWinnerTimeoutRef.current) {
         clearTimeout(trickWinnerTimeoutRef.current);
       }
       trickWinnerTimeoutRef.current = setTimeout(() => {
         setDisplayTrick([]);
-      }, 2500);
+      }, mpTrickHold);
     }
     // Case 2: We have exactly 4 cards in current trick (show it)
     else if (currentTrick.length === 4 && prevTrick.length < 4) {
       console.log('[GameBoard] Case 2: currentTrick has 4 cards');
       setDisplayTrick(currentTrick);
-      
+
       if (trickWinnerTimeoutRef.current) {
         clearTimeout(trickWinnerTimeoutRef.current);
       }
       trickWinnerTimeoutRef.current = setTimeout(() => {
         setDisplayTrick([]);
-      }, 2500);
+      }, mpTrickHold);
     }
     // Case 3: Phase changed to scoring/game-over and we have a new lastTrick we haven't shown
-    else if ((gameState.phase === 'scoring' || gameState.phase === 'game-over') && 
+    else if ((gameState.phase === 'scoring' || gameState.phase === 'game-over') &&
              gameState.lastTrick && gameState.lastTrick.length === 4 &&
              lastTrickId !== lastShownTrickRef.current) {
       console.log('[GameBoard] Case 3: Scoring phase with new lastTrick');
       setDisplayTrick(gameState.lastTrick);
       lastShownTrickRef.current = lastTrickId;
-      
+
       if (trickWinnerTimeoutRef.current) {
         clearTimeout(trickWinnerTimeoutRef.current);
       }
       trickWinnerTimeoutRef.current = setTimeout(() => {
         setDisplayTrick([]);
-      }, 2500);
+      }, mpTrickHold);
     }
-  }, [isMultiplayerMode, gameState.currentTrick, gameState.lastTrick, gameState.phase, displayTrick.length]);
+  }, [isMultiplayerMode, gameState.currentTrick, gameState.lastTrick, gameState.phase, gameState.trickNumber, displayTrick.length]);
 
   // CPU turn scheduling (bidding, trump selection, discard, card play)
   useCpuTurns({
@@ -717,6 +721,7 @@ export function GameBoard() {
                 trumpSuit={gameState.trumpSuit}
                 mySeatIndex={mySeatIndex}
                 onShake={handleCatch5Shake}
+                trickNumber={gameState.trickNumber}
               />
               
               {/* Timer and context line */}
