@@ -211,14 +211,14 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
     }
   };
 
-  const getStartPosition = (playerId: string): { x: number; y: number; rotate: number } => {
+  const getStartPosition = (playerId: string): { x: number; y: number } => {
     const visualIndex = getVisualIndex(playerId);
     switch (visualIndex) {
-      case 0: return { x: 0, y: 80, rotate: 1 };
-      case 1: return { x: -80, y: 0, rotate: -2 };
-      case 2: return { x: 0, y: -80, rotate: -1 };
-      case 3: return { x: 80, y: 0, rotate: 2 };
-      default: return { x: 0, y: 0, rotate: 0 };
+      case 0: return { x: 0, y: 140 };
+      case 1: return { x: -140, y: 0 };
+      case 2: return { x: 0, y: -140 };
+      case 3: return { x: 140, y: 0 };
+      default: return { x: 0, y: 0 };
     }
   };
 
@@ -265,36 +265,23 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
                 initial={{
                   x: startPos.x,
                   y: startPos.y,
-                  scale: 0.9,
+                  scale: 0.7,
                   opacity: 0,
-                  rotate: startPos.rotate,
-                  filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))',
+                  rotate: pos.rotate - 8
                 }}
                 animate={{
                   x: pos.x,
                   y: pos.y,
                   scale: config.scale,
                   opacity: 1,
-                  rotate: pos.rotate,
-                  filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.25))',
+                  rotate: pos.rotate
                 }}
                 exit={{
-                  x: 0,
-                  y: -20,
-                  scale: 0.5,
+                  scale: 0.4,
                   opacity: 0,
-                  rotate: 0,
-                  filter: 'drop-shadow(0 0 0 transparent)',
+                  y: -40
                 }}
-                transition={{
-                  // Uniform entry for travel — every card slides in the same way
-                  default: { type: 'spring', stiffness: 260, damping: 26, mass: 0.7 },
-                  // Config spring only drives scale (bounce on important cards)
-                  scale: config.spring,
-                  opacity: { duration: 0.2, ease: 'easeOut' },
-                  filter: { duration: 0.3, ease: 'easeOut' },
-                  exit: { duration: 0.35, ease: [0.4, 0, 1, 1] },
-                }}
+                transition={config.spring}
                 className={`absolute ${config.glowClass ?? ''}`}
                 style={{ zIndex: isSlam ? 10 : index + 1 }}
               >
