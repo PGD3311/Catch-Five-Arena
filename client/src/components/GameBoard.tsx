@@ -496,17 +496,37 @@ export function GameBoard() {
     return bidderTeam ? gameState.roundScoreDetails.five.teamId === bidderTeam.id : false;
   })();
 
-  // Hide header scores during dramatic hold
+  // Hide header scores during dramatic reveal — from the moment scoring phase
+  // starts (even while final trick is still displaying) until after the hold
+  const isScoringPhase = gameState.phase === 'scoring' || gameState.phase === 'game-over';
   const [hideHeaderScores, setHideHeaderScores] = useState(false);
+  const dramaticHoldTimerRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    if (showScoreModal && isDramaticReveal) {
+    if (isScoringPhase && isDramaticReveal) {
       setHideHeaderScores(true);
-      const timer = setTimeout(() => setHideHeaderScores(false), 1800);
-      return () => clearTimeout(timer);
-    } else {
-      setHideHeaderScores(false);
     }
-  }, [showScoreModal, isDramaticReveal]);
+  }, [isScoringPhase, isDramaticReveal]);
+
+  // Once the score modal actually opens, start the 1800ms hold timer
+  useEffect(() => {
+    if (showScoreModal && isDramaticReveal && hideHeaderScores) {
+      dramaticHoldTimerRef.current = setTimeout(() => setHideHeaderScores(false), 1800);
+      return () => {
+        if (dramaticHoldTimerRef.current) clearTimeout(dramaticHoldTimerRef.current);
+      };
+    }
+  }, [showScoreModal, isDramaticReveal, hideHeaderScores]);
+
+  // Reset when leaving scoring phase
+  useEffect(() => {
+    if (!isScoringPhase) {
+      setHideHeaderScores(false);
+      if (dramaticHoldTimerRef.current) {
+        clearTimeout(dramaticHoldTimerRef.current);
+        dramaticHoldTimerRef.current = null;
+      }
+    }
+  }, [isScoringPhase]);
 
   // Play sounds when score modal opens
   const prevShowScoreModalRef = useRef(false);
