@@ -115,6 +115,7 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const [catch5CardId, setCatch5CardId] = useState<string | null>(null);
   const firedCatch5Ref = useRef<string | null>(null);
+  const slamAnimatedRef = useRef<Set<string>>(new Set());
   const prevTrickLenRef = useRef(0);
   const { tension } = useTension();
 
@@ -138,10 +139,12 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
     return style;
   }, [tension]);
 
-  // Clear catch5 visual when trick resets (new trick starts)
+  // Clear catch5 state when trick resets (new trick starts)
   useEffect(() => {
     if (currentTrick.length < prevTrickLenRef.current) {
       setCatch5CardId(null);
+      firedCatch5Ref.current = null;
+      slamAnimatedRef.current.clear();
     }
     prevTrickLenRef.current = currentTrick.length;
   }, [currentTrick.length]);
@@ -169,9 +172,7 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
     return null;
   };
 
-  // Run detection whenever trick updates — catch5CardId stays set for the
-  // full trick so Catch5Effect never unmounts/remounts (its animations
-  // fade out visually on their own within ~1.5s).
+  // Run detection whenever trick updates
   useEffect(() => {
     const detected = detectCatch5();
     if (detected && detected !== firedCatch5Ref.current) {
@@ -180,6 +181,14 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTrick]);
+
+  // After a slam card renders with SLAM_SCALE, mark it so subsequent
+  // renders use scale: 1 — prevents popLayout from replaying the bounce.
+  useEffect(() => {
+    if (catch5CardId && !slamAnimatedRef.current.has(catch5CardId)) {
+      slamAnimatedRef.current.add(catch5CardId);
+    }
+  }, [catch5CardId]);
 
   const getVisualIndex = (playerId: string): number => {
     const seatIndex = players.findIndex(p => p.id === playerId);
@@ -245,7 +254,10 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
             const pos = getPositionForPlayer(trickCard.playerId);
             const startPos = getStartPosition(trickCard.playerId);
             const isSlam = trickCard.card.id === catch5CardId;
-            const config = getCardConfig(trickCard.card, index, trickNumber, trumpSuit, isSlam);
+            // First render: SLAM_SCALE plays. After that: scale 1 so
+            // popLayout re-animation produces no visible bounce.
+            const isNewSlam = isSlam && !slamAnimatedRef.current.has(trickCard.card.id);
+            const config = getCardConfig(trickCard.card, index, trickNumber, trumpSuit, isNewSlam);
 
             return (
               <motion.div
