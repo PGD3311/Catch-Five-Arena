@@ -1,6 +1,7 @@
+import { useState, useEffect, useRef } from 'react';
 import { TrickCard, Player, Suit } from '@shared/gameTypes';
 import { PlayingCard } from './PlayingCard';
-import { cn } from '@/lib/utils';
+import { Catch5Effect } from './Catch5Effect';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface TrickAreaProps {
@@ -8,10 +9,65 @@ interface TrickAreaProps {
   players: Player[];
   trumpSuit?: Suit | null;
   mySeatIndex?: number;
+  onShake?: () => void;
 }
 
-export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0 }: TrickAreaProps) {
+export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, onShake }: TrickAreaProps) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  const [catch5CardId, setCatch5CardId] = useState<string | null>(null);
+  const prevTrickLenRef = useRef(0);
+  const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear catch5 state when trick resets (new trick starts)
+  useEffect(() => {
+    if (currentTrick.length < prevTrickLenRef.current) {
+      setCatch5CardId(null);
+    }
+    prevTrickLenRef.current = currentTrick.length;
+  }, [currentTrick.length]);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+    };
+  }, []);
+
+  // Detect catch-5 combo: a trump 5 played after the trump Ace by a teammate
+  const detectCatch5 = (): string | null => {
+    if (!trumpSuit) return null;
+
+    for (let i = 1; i < currentTrick.length; i++) {
+      const card = currentTrick[i];
+      if (card.card.rank !== '5' || card.card.suit !== trumpSuit) continue;
+
+      for (let j = 0; j < i; j++) {
+        const earlier = currentTrick[j];
+        if (earlier.card.rank !== 'A' || earlier.card.suit !== trumpSuit) continue;
+
+        // Check same team
+        const fivePlayer = players.find(p => p.id === card.playerId);
+        const acePlayer = players.find(p => p.id === earlier.playerId);
+        if (fivePlayer && acePlayer && fivePlayer.teamId === acePlayer.teamId) {
+          return card.card.id;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Run detection whenever trick updates
+  useEffect(() => {
+    const detected = detectCatch5();
+    if (detected && detected !== catch5CardId) {
+      setCatch5CardId(detected);
+      // Auto-clear after animations finish so the effect doesn't
+      // persist and re-trigger when later cards are played
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+      clearTimerRef.current = setTimeout(() => setCatch5CardId(null), 1300);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTrick]);
 
   const getVisualIndex = (playerId: string): number => {
     const seatIndex = players.findIndex(p => p.id === playerId);
@@ -60,6 +116,12 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0 }:
           {currentTrick.map((trickCard, index) => {
             const pos = getPositionForPlayer(trickCard.playerId);
             const startPos = getStartPosition(trickCard.playerId);
+            const isSlam = trickCard.card.id === catch5CardId;
+
+            const springTransition = isSlam
+              ? { type: "spring" as const, stiffness: 600, damping: 16, mass: 1.2 }
+              : { type: "spring" as const, stiffness: 280, damping: 24, mass: 0.7 };
+
             return (
               <motion.div
                 key={trickCard.card.id}
@@ -73,7 +135,7 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0 }:
                 animate={{
                   x: pos.x,
                   y: pos.y,
-                  scale: 1,
+                  scale: isSlam ? [0.7, 1.15, 1] : 1,
                   opacity: 1,
                   rotate: pos.rotate
                 }}
@@ -82,16 +144,12 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0 }:
                   opacity: 0,
                   y: -40
                 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 280,
-                  damping: 24,
-                  mass: 0.7
-                }}
+                transition={springTransition}
                 className="absolute"
-                style={{ zIndex: index + 1 }}
+                style={{ zIndex: isSlam ? 10 : index + 1 }}
               >
                 <PlayingCard card={trickCard.card} small trumpSuit={trumpSuit} />
+                {isSlam && <Catch5Effect onShake={onShake} />}
               </motion.div>
             );
           })}

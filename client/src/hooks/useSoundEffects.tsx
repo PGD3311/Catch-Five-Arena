@@ -1,6 +1,6 @@
 import { useCallback, useRef, createContext, useContext, useState, ReactNode } from 'react';
 
-type SoundType = 'cardPlay' | 'cardDeal' | 'trickWon' | 'bidMade' | 'bidSet' | 'victory' | 'defeat' | 'yourTurn' | 'buttonClick' | 'shuffle';
+type SoundType = 'cardPlay' | 'cardDeal' | 'trickWon' | 'bidMade' | 'bidSet' | 'victory' | 'defeat' | 'yourTurn' | 'buttonClick' | 'shuffle' | 'catch5Slam';
 
 const STORAGE_KEY = 'catch5-sound-muted';
 
@@ -334,6 +334,23 @@ export function SoundProvider({ children }: { children: ReactNode }) {
       case 'buttonClick':
         playRichTone(800, 0.03, { type: 'square', volume: 0.06, attack: 0.001, release: 0.02 });
         playNoise(0.02, { volume: 0.04, filterFreq: 4000 });
+        break;
+
+      case 'catch5Slam':
+        // Low-frequency thump — the table impact
+        playRichTone(80, 0.15, { type: 'sine', volume: 0.4, attack: 0.001, release: 0.12 });
+        // Sharp noise burst — the card slap
+        playNoise(0.08, { volume: 0.45, filterFreq: 1200, attack: 0.001, decay: 0.079 });
+        // Rising power chord after impact — the "catch" payoff
+        playChord([330, 415, 523], 0.3, {
+          volume: 0.28,
+          delay: 0.1,
+          stagger: 0.015,
+          attack: 0.01,
+          type: 'sine'
+        });
+        // High shimmer noise — sparkle tail
+        playNoise(0.15, { volume: 0.12, filterFreq: 8000, delay: 0.15, attack: 0.01 });
         break;
     }
   }, [isMuted, playRichTone, playNoise, playChord]);

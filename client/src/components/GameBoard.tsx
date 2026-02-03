@@ -56,6 +56,7 @@ export function GameBoard() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [floatingEmojis, setFloatingEmojis] = useState<ChatMessage[]>([]);
+  const [screenShake, setScreenShake] = useState(false);
   const trickWinnerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const prevTrickRef = useRef<TrickCard[]>([]);
   const lastChatCountRef = useRef(0);
@@ -110,6 +111,12 @@ export function GameBoard() {
   const handleSendChat = useCallback((content: string, type: 'text' | 'emoji') => {
     multiplayer.sendChat(content, type);
   }, [multiplayer]);
+
+  const handleCatch5Shake = useCallback(() => {
+    playSound('catch5Slam');
+    setScreenShake(true);
+    setTimeout(() => setScreenShake(false), 400);
+  }, [playSound]);
   
   // Debug logging for trick card positioning
   useEffect(() => {
@@ -528,7 +535,8 @@ export function GameBoard() {
         "flex flex-col bg-background game-table",
         gameState.phase === 'setup' || gameState.phase === 'dealer-draw'
           ? 'min-h-screen'
-          : 'h-screen overflow-hidden'
+          : 'h-screen overflow-hidden',
+        screenShake && 'screen-shake'
       )}
       style={gameState.phase !== 'setup' && gameState.phase !== 'dealer-draw' ? { height: '100dvh' } : undefined}
       data-testid="game-board"
@@ -653,11 +661,12 @@ export function GameBoard() {
 
             {/* Center area - minimal and clean */}
             <div className="flex-1 flex flex-col items-center justify-center max-w-xs sm:max-w-md">
-              <TrickArea 
-                currentTrick={displayTrick.length > 0 ? displayTrick : gameState.currentTrick} 
-                players={gameState.players} 
+              <TrickArea
+                currentTrick={displayTrick.length > 0 ? displayTrick : gameState.currentTrick}
+                players={gameState.players}
                 trumpSuit={gameState.trumpSuit}
                 mySeatIndex={mySeatIndex}
+                onShake={handleCatch5Shake}
               />
               
               {/* Timer and context line */}
