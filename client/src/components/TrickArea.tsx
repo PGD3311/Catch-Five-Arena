@@ -214,10 +214,10 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
   const getStartPosition = (playerId: string): { x: number; y: number; rotate: number } => {
     const visualIndex = getVisualIndex(playerId);
     switch (visualIndex) {
-      case 0: return { x: 0, y: 120, rotate: 3 };
-      case 1: return { x: -120, y: 0, rotate: -4 };
-      case 2: return { x: 0, y: -120, rotate: -3 };
-      case 3: return { x: 120, y: 0, rotate: 4 };
+      case 0: return { x: 0, y: 80, rotate: 1 };
+      case 1: return { x: -80, y: 0, rotate: -2 };
+      case 2: return { x: 0, y: -80, rotate: -1 };
+      case 3: return { x: 80, y: 0, rotate: 2 };
       default: return { x: 0, y: 0, rotate: 0 };
     }
   };
@@ -265,10 +265,10 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
                 initial={{
                   x: startPos.x,
                   y: startPos.y,
-                  scale: 0.8,
+                  scale: 0.9,
                   opacity: 0,
                   rotate: startPos.rotate,
-                  filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.15))',
+                  filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))',
                 }}
                 animate={{
                   x: pos.x,
