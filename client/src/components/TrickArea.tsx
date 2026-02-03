@@ -287,7 +287,12 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
                   filter: 'drop-shadow(0 0 0 transparent)',
                 }}
                 transition={{
-                  ...config.spring,
+                  // Uniform entry for travel — every card slides in the same way
+                  default: { type: 'spring', stiffness: 260, damping: 26, mass: 0.7 },
+                  // Config spring only drives scale (bounce on important cards)
+                  scale: config.spring,
+                  opacity: { duration: 0.2, ease: 'easeOut' },
+                  filter: { duration: 0.3, ease: 'easeOut' },
                   exit: { duration: 0.35, ease: [0.4, 0, 1, 1] },
                 }}
                 className={`absolute ${config.glowClass ?? ''}`}
