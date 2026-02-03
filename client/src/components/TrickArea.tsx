@@ -115,9 +115,7 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const [catch5CardId, setCatch5CardId] = useState<string | null>(null);
   const firedCatch5Ref = useRef<string | null>(null);
-  const slamAnimatedRef = useRef<Set<string>>(new Set());
   const prevTrickLenRef = useRef(0);
-  const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { tension } = useTension();
 
   // Tension-driven felt glow: green (150) → gold (42)
@@ -141,23 +139,12 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
   }, [tension]);
 
   // Clear catch5 visual when trick resets (new trick starts)
-  // NOTE: firedCatch5Ref is intentionally NOT cleared here — it prevents
-  // re-detection during displayTrick transitions. Card IDs are unique per
-  // deal, so a future catch-5 will have a different ID and still trigger.
   useEffect(() => {
     if (currentTrick.length < prevTrickLenRef.current) {
       setCatch5CardId(null);
-      slamAnimatedRef.current.clear();
     }
     prevTrickLenRef.current = currentTrick.length;
   }, [currentTrick.length]);
-
-  // Clean up timer on unmount
-  useEffect(() => {
-    return () => {
-      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
-    };
-  }, []);
 
   // Detect catch-5 combo: a trump 5 played after the trump Ace by a teammate
   const detectCatch5 = (): string | null => {
@@ -182,15 +169,14 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
     return null;
   };
 
-  // Run detection whenever trick updates
+  // Run detection whenever trick updates — catch5CardId stays set for the
+  // full trick so Catch5Effect never unmounts/remounts (its animations
+  // fade out visually on their own within ~1.5s).
   useEffect(() => {
     const detected = detectCatch5();
     if (detected && detected !== firedCatch5Ref.current) {
       firedCatch5Ref.current = detected;
       setCatch5CardId(detected);
-      // Auto-clear visual effect after animations finish
-      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
-      clearTimerRef.current = setTimeout(() => setCatch5CardId(null), 1600);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTrick]);
