@@ -88,7 +88,7 @@ function LobbyHeader({ title, subtitle }: { title: string; subtitle: string }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.15, duration: 0.3 }}
-        className="text-[11px] tracking-[0.2em] uppercase text-muted-foreground/50"
+        className="text-xs tracking-[0.2em] uppercase text-muted-foreground/50"
         style={{ fontFamily: 'var(--font-display)' }}
       >
         {subtitle}
@@ -145,7 +145,7 @@ function SeatTile({
       data-testid={`seat-${seat}`}
     >
       <div className="flex items-center justify-between gap-1 mb-1.5">
-        <span className="text-[11px] text-muted-foreground/70" style={{ fontFamily: 'var(--font-display)' }}>
+        <span className="text-xs text-muted-foreground/70" style={{ fontFamily: 'var(--font-display)' }}>
           {label}
         </span>
         <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0', tc.bg, tc.text)}>
@@ -300,7 +300,7 @@ export function MultiplayerLobby({
             data-testid="badge-room-code"
             onClick={copyCodeOnly}
           >
-            <p className="text-[10px] tracking-[0.25em] uppercase text-muted-foreground/40 mb-1" style={{ fontFamily: 'var(--font-display)' }}>
+            <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground/40 mb-1" style={{ fontFamily: 'var(--font-display)' }}>
               Room Code
             </p>
             <p className="text-3xl font-bold font-mono tracking-[0.3em] gold-text cursor-pointer">
@@ -341,7 +341,7 @@ export function MultiplayerLobby({
                   size="sm"
                   variant="outline"
                   onClick={() => { setSelectedSeat(null); onRandomizeTeams(); }}
-                  className="h-7 text-[11px] border-[hsl(var(--gold-dim)/0.25)] text-[hsl(var(--gold))] hover:bg-[hsl(var(--gold)/0.06)]"
+                  className="h-7 text-xs border-[hsl(var(--gold-dim)/0.25)] text-[hsl(var(--gold))] hover:bg-[hsl(var(--gold)/0.06)]"
                   style={{ fontFamily: 'var(--font-display)' }}
                   data-testid="button-randomize-teams"
                 >
@@ -436,7 +436,7 @@ export function MultiplayerLobby({
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="text-[11px] text-center text-amber-400"
+                  className="text-xs text-center text-amber-400"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
                   Tap another player to swap positions
@@ -473,7 +473,7 @@ export function MultiplayerLobby({
           </div>
 
           {!allSeatsReady && isHost && (
-            <p className="text-[11px] text-center text-muted-foreground/40" style={{ fontFamily: 'var(--font-display)' }}>
+            <p className="text-xs text-center text-muted-foreground/40" style={{ fontFamily: 'var(--font-display)' }}>
               Add CPU players or wait for friends to join
             </p>
           )}
@@ -750,7 +750,7 @@ export function MultiplayerLobby({
                           data-testid={`select-seat-${seat}`}
                         >
                           <div className="flex items-center justify-between gap-1 mb-1.5">
-                            <span className="text-[11px] text-muted-foreground/70" style={{ fontFamily: 'var(--font-display)' }}>
+                            <span className="text-xs text-muted-foreground/70" style={{ fontFamily: 'var(--font-display)' }}>
                               {getSeatLabel(seat, false)}
                             </span>
                             <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0', teamColor(seat).bg, teamColor(seat).text)}>
@@ -809,7 +809,7 @@ export function MultiplayerLobby({
                     size="sm"
                     variant="ghost"
                     onClick={() => onListActiveGames?.()}
-                    className="h-7 text-[11px] text-muted-foreground/50 hover:text-muted-foreground"
+                    className="h-7 text-xs text-muted-foreground/50 hover:text-muted-foreground"
                     style={{ fontFamily: 'var(--font-display)' }}
                   >
                     <RefreshCw className="w-3 h-3 mr-1" /> Refresh
@@ -821,7 +821,7 @@ export function MultiplayerLobby({
                     <p className="text-sm text-muted-foreground/40" style={{ fontFamily: 'var(--font-display)' }}>
                       No active games right now
                     </p>
-                    <p className="text-[11px] text-muted-foreground/30 mt-1" style={{ fontFamily: 'var(--font-display)' }}>
+                    <p className="text-xs text-muted-foreground/30 mt-1" style={{ fontFamily: 'var(--font-display)' }}>
                       Check back when someone starts playing
                     </p>
                   </motion.div>
@@ -838,7 +838,7 @@ export function MultiplayerLobby({
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-xs font-mono text-muted-foreground/50">{game.roomCode}</span>
-                              <Badge variant="secondary" className="text-[9px] px-1 py-0 capitalize">
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 capitalize">
                                 {game.phase}
                               </Badge>
                             </div>

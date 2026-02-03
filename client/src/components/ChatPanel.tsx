@@ -175,7 +175,7 @@ export function ChatPanel({
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-[100] w-80 bg-card border rounded-lg shadow-xl flex flex-col" style={{ maxHeight: '400px' }}>
+    <div className="fixed bottom-4 right-4 z-[100] w-80 bg-card border rounded-xl shadow-xl flex flex-col" style={{ maxHeight: '400px' }}>
       <div className="flex items-center justify-between gap-2 p-3 border-b">
         <div className="flex items-center gap-2">
           <MessageCircle className="w-4 h-4 text-muted-foreground" />
@@ -190,7 +190,7 @@ export function ChatPanel({
         <div ref={scrollRef} className="space-y-2">
           {messages.length === 0 ? (
             <div className="text-center py-6">
-              <MessageCircle className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
+              <MessageCircle className="w-6 h-6 mx-auto text-muted-foreground/50 mb-2" />
               <p className="text-muted-foreground text-sm">No messages yet</p>
               <p className="text-muted-foreground/70 text-xs mt-1">Say hi to your opponents!</p>
             </div>

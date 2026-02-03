@@ -48,7 +48,7 @@ export function BiddingModal({ open, highBid, playerName, isDealer, allOthersPas
                   disabled={!isValid}
                   onClick={() => onBid(bid)}
                   className={cn(
-                    'h-14 text-xl font-bold',
+                    'h-14 text-xl font-bold rounded-xl',
                     !isValid && 'opacity-40'
                   )}
                   data-testid={`button-bid-${bid}`}
@@ -64,7 +64,7 @@ export function BiddingModal({ open, highBid, playerName, isDealer, allOthersPas
               variant="outline"
               size="lg"
               onClick={() => onBid(0)}
-              className="w-full h-12 text-lg"
+              className="w-full h-12 text-lg rounded-xl"
               data-testid="button-pass"
             >
               Pass

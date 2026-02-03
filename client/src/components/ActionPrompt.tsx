@@ -58,7 +58,7 @@ export function ActionPrompt({ gameState }: ActionPromptProps) {
       >
         <span
           className={cn(
-            'text-[11px] font-semibold tracking-[0.1em] uppercase',
+            'text-xs font-semibold tracking-[0.1em] uppercase',
             isWaiting ? 'text-muted-foreground/40' : 'text-[hsl(var(--gold))]'
           )}
           style={{ fontFamily: 'var(--font-display)' }}

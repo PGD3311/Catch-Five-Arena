@@ -37,7 +37,7 @@ export function BiddingPanel({ open, highBid, playerName, isDealer, allOthersPas
         <div className="flex flex-col">
           <span className="font-semibold text-sm text-[hsl(var(--gold))]" style={{ fontFamily: 'var(--font-display)' }}>Place Your Bid</span>
           {highBid > 0 && (
-            <span className="text-[11px] text-muted-foreground/60">Current high: {highBid}</span>
+            <span className="text-xs text-muted-foreground/60">Current high: {highBid}</span>
           )}
         </div>
 
@@ -81,7 +81,7 @@ export function BiddingPanel({ open, highBid, playerName, isDealer, allOthersPas
           <Button
             variant="outline"
             onClick={() => onBid(0)}
-            className="h-12 sm:h-11 px-6 sm:px-5 text-base sm:text-sm font-semibold rounded-xl sm:rounded-lg active:scale-95 transition-all border-border/50"
+            className="h-12 sm:h-11 px-6 sm:px-5 text-base sm:text-sm font-semibold rounded-xl active:scale-95 transition-all border-border/50"
             style={{ fontFamily: 'var(--font-display)' }}
             data-testid="button-pass"
           >

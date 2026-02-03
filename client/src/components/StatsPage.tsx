@@ -286,7 +286,7 @@ export function StatsPage({ onBack }: StatsPageProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.15, duration: 0.3 }}
-          className="text-[11px] tracking-[0.2em] uppercase text-muted-foreground/50"
+          className="text-xs tracking-[0.2em] uppercase text-muted-foreground/50"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Who runs the table?

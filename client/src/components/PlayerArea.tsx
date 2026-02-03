@@ -66,7 +66,7 @@ export function PlayerArea({
       data-testid={`player-chip-${player.id}`}
     >
       <span className={cn('w-1.5 h-1.5 rounded-full', teamColors.dot)} />
-      <span className={cn('text-[11px] font-medium', teamColors.text)} style={{ fontFamily: 'var(--font-display)' }}>{player.name}</span>
+      <span className={cn('text-xs font-medium', teamColors.text)} style={{ fontFamily: 'var(--font-display)' }}>{player.name}</span>
       {isDealer && (
         <span className="px-1 py-px text-[8px] font-bold rounded text-[hsl(var(--gold))] bg-[hsl(var(--gold)/0.12)] border border-[hsl(var(--gold)/0.25)]">D</span>
       )}

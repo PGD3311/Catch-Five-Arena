@@ -269,7 +269,7 @@ export function ScoreModal({
                       )}
                       data-testid={`point-category-${key}`}
                     >
-                      <span className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium" style={{ fontFamily: 'var(--font-display)' }}>{label}</span>
+                      <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium" style={{ fontFamily: 'var(--font-display)' }}>{label}</span>
                       {winningCard && key !== 'game' ? (
                         <div className="flex items-center gap-0.5">
                           <span className={cn("text-base font-bold", suitColor[winningCard.suit])}>
@@ -298,7 +298,7 @@ export function ScoreModal({
                       )}
                       {winningTeam && (
                         <span className={cn(
-                          "text-[11px] font-medium",
+                          "text-xs font-medium",
                           isTeam1 ? 'text-[hsl(var(--team-blue))]' : 'text-[hsl(var(--team-red))]'
                         )}>
                           {isTeam1 ? 'You' : 'Opp'}
@@ -315,7 +315,7 @@ export function ScoreModal({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
-                  className="mt-3 p-3 rounded-lg bg-muted/30 border border-border/50"
+                  className="mt-3 p-3 rounded-xl bg-muted/30 border border-border/50"
                 >
                   <h4 className="text-xs font-semibold text-center mb-2 text-muted-foreground uppercase tracking-wide" style={{ fontFamily: 'var(--font-display)' }}>Game Point Breakdown</h4>
                   <div className="grid grid-cols-2 gap-3">
@@ -429,7 +429,7 @@ export function ScoreModal({
                     animate={{ x: 0, opacity: 1 }}
                     transition={{ delay: 0.7 + index * 0.1 }}
                     className={cn(
-                      'w-full flex items-center justify-between p-3 rounded-lg',
+                      'w-full flex items-center justify-between p-3 rounded-xl',
                       'bg-muted/50',
                       isGameOver && index === 0 && isYourTeam && 'bg-[hsl(var(--gold)/0.1)] ring-2 ring-[hsl(var(--gold)/0.4)]',
                       isGameOver && index === 0 && !isYourTeam && 'bg-red-100 dark:bg-red-900/30 ring-2 ring-red-400'
