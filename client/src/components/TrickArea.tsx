@@ -12,6 +12,12 @@ interface CardConfig {
   glowClass: string | null;
 }
 
+// Stable scale keyframe references — prevents Framer Motion from
+// replaying bounce animations when the parent re-renders.
+const SLAM_SCALE: number[] = [0.7, 1.15, 1];
+const FIVE_FINAL_SCALE: number[] = [0.7, 1.1, 1];
+const ACE_JACK_FINAL_SCALE: number[] = [0.7, 1.06, 1];
+
 function getCardConfig(
   card: Card,
   index: number,
@@ -29,7 +35,7 @@ function getCardConfig(
   if (isSlam) {
     return {
       spring: { type: 'spring', stiffness: 600, damping: 16, mass: 1.2 },
-      scale: [0.7, 1.15, 1],
+      scale: SLAM_SCALE,
       glowClass: null,
     };
   }
@@ -38,7 +44,7 @@ function getCardConfig(
   if (isFinalTrick && isFive) {
     return {
       spring: { type: 'spring', stiffness: 480, damping: 16, mass: 0.9 },
-      scale: [0.7, 1.1, 1],
+      scale: FIVE_FINAL_SCALE,
       glowClass: 'point-card-glow',
     };
   }
@@ -47,7 +53,7 @@ function getCardConfig(
   if (isFinalTrick && isAceOrJack) {
     return {
       spring: { type: 'spring', stiffness: 420, damping: 18, mass: 0.8 },
-      scale: [0.7, 1.06, 1],
+      scale: ACE_JACK_FINAL_SCALE,
       glowClass: 'point-card-flash',
     };
   }
@@ -109,6 +115,7 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const [catch5CardId, setCatch5CardId] = useState<string | null>(null);
   const firedCatch5Ref = useRef<string | null>(null);
+  const slamAnimatedRef = useRef<Set<string>>(new Set());
   const prevTrickLenRef = useRef(0);
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { tension } = useTension();
@@ -138,6 +145,7 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
     if (currentTrick.length < prevTrickLenRef.current) {
       setCatch5CardId(null);
       firedCatch5Ref.current = null;
+      slamAnimatedRef.current.clear();
     }
     prevTrickLenRef.current = currentTrick.length;
   }, [currentTrick.length]);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 
 interface Catch5EffectProps {
@@ -14,28 +14,52 @@ interface Particle {
   hue: number;
 }
 
-export function Catch5Effect({ onShake }: Catch5EffectProps) {
-  useEffect(() => {
-    onShake?.();
-  }, [onShake]);
+// Stable keyframe references — prevents Framer Motion from
+// replaying animations when the parent re-renders.
+const TEXT_SCALE = [0, 1.2, 1];
+const TEXT_OPACITY = [0, 1, 1, 0];
+const TEXT_TIMES = [0, 0.12, 0.55, 1];
+const RING_INITIAL = { scale: 0, opacity: 0.8 };
+const RING_ANIMATE = { scale: 3, opacity: 0 };
 
-  const particles = useMemo<Particle[]>(() => {
-    return Array.from({ length: 18 }, (_, i) => ({
-      id: i,
-      angle: (i / 18) * Math.PI * 2 + (Math.random() - 0.5) * 0.4,
-      distance: 80 + Math.random() * 80,
-      size: 3 + Math.random() * 3,
-      duration: 0.5 + Math.random() * 0.3,
-      hue: 38 + Math.random() * 10,
-    }));
+export function Catch5Effect({ onShake }: Catch5EffectProps) {
+  // Fire onShake exactly once on mount — ref avoids dep on callback identity
+  const onShakeRef = useRef(onShake);
+  onShakeRef.current = onShake;
+  const firedRef = useRef(false);
+
+  useEffect(() => {
+    if (!firedRef.current) {
+      firedRef.current = true;
+      onShakeRef.current?.();
+    }
+  }, []);
+
+  const particles = useMemo(() => {
+    return Array.from({ length: 18 }, (_, i) => {
+      const angle = (i / 18) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+      const distance = 80 + Math.random() * 80;
+      return {
+        id: i,
+        angle,
+        distance,
+        size: 3 + Math.random() * 3,
+        duration: 0.5 + Math.random() * 0.3,
+        hue: 38 + Math.random() * 10,
+        // Pre-compute stable animate object so Framer Motion doesn't replay
+        endX: Math.cos(angle) * distance,
+        endY: Math.sin(angle) * distance,
+        animate: { scale: [1, 0] as number[], x: Math.cos(angle) * distance, y: Math.sin(angle) * distance, opacity: [1, 0] as number[] },
+      };
+    });
   }, []);
 
   return (
     <div className="absolute inset-0 pointer-events-none flex items-center justify-center" style={{ zIndex: 50 }}>
       {/* Shockwave ring */}
       <motion.div
-        initial={{ scale: 0, opacity: 0.8 }}
-        animate={{ scale: 3, opacity: 0 }}
+        initial={RING_INITIAL}
+        animate={RING_ANIMATE}
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className="absolute rounded-full"
         style={{
@@ -48,13 +72,11 @@ export function Catch5Effect({ onShake }: Catch5EffectProps) {
 
       {/* Gold particle burst */}
       {particles.map((p) => {
-        const endX = Math.cos(p.angle) * p.distance;
-        const endY = Math.sin(p.angle) * p.distance;
         return (
           <motion.div
             key={p.id}
             initial={{ scale: 0, x: 0, y: 0, opacity: 1 }}
-            animate={{ scale: [1, 0], x: endX, y: endY, opacity: [1, 0] }}
+            animate={p.animate}
             transition={{ duration: p.duration, ease: 'easeOut' }}
             className="absolute rounded-full"
             style={{
@@ -70,8 +92,8 @@ export function Catch5Effect({ onShake }: Catch5EffectProps) {
       {/* "CATCH 5!" text */}
       <motion.div
         initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: [0, 1.2, 1], opacity: [0, 1, 1, 0] }}
-        transition={{ duration: 1.5, times: [0, 0.12, 0.55, 1], ease: 'easeOut' }}
+        animate={{ scale: TEXT_SCALE, opacity: TEXT_OPACITY }}
+        transition={{ duration: 1.5, times: TEXT_TIMES, ease: 'easeOut' }}
         className="absolute gold-text"
         style={{
           fontFamily: 'var(--font-display)',
