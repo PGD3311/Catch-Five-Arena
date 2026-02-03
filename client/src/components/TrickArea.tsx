@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { TrickCard, Player, Suit, Card } from '@shared/gameTypes';
+import { TrickCard, Player, Suit, Card, determineTrickWinner } from '@shared/gameTypes';
 import { TOTAL_TRICKS } from '@shared/gameTypes';
 import { PlayingCard } from './PlayingCard';
 import { Catch5Effect } from './Catch5Effect';
@@ -242,7 +242,11 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
       {/* Cards in trick */}
       <div className="absolute inset-0 flex items-center justify-center">
         <AnimatePresence mode="popLayout">
-          {currentTrick.map((trickCard, index) => {
+          {(() => {
+            const sweepTarget = currentTrick.length === 4
+              ? getStartPosition(determineTrickWinner(currentTrick, trumpSuit ?? null))
+              : null;
+            return currentTrick.map((trickCard, index) => {
             const pos = getPositionForPlayer(trickCard.playerId);
             const startPos = getStartPosition(trickCard.playerId);
             const isSlam = trickCard.card.id === catch5CardId;
@@ -269,11 +273,20 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
                   opacity: 1,
                   rotate: pos.rotate
                 }}
-                exit={{
-                  scale: 0.4,
-                  opacity: 0,
-                  y: -40
-                }}
+                exit={sweepTarget
+                  ? {
+                      x: sweepTarget.x,
+                      y: sweepTarget.y,
+                      scale: 0.5,
+                      opacity: 0,
+                      transition: { duration: 0.4, ease: 'easeIn' },
+                    }
+                  : {
+                      scale: 0.4,
+                      opacity: 0,
+                      y: -40,
+                    }
+                }
                 transition={config.spring}
                 className={`absolute ${config.glowClass ?? ''}`}
                 style={{ zIndex: isSlam ? 10 : index + 1 }}
@@ -282,7 +295,8 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
                 {isNewSlam && <Catch5Effect onShake={onShake} />}
               </motion.div>
             );
-          })}
+          });
+          })()}
         </AnimatePresence>
       </div>
     </div>
