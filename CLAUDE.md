@@ -8,15 +8,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev          # Start dev server (tsx + Vite HMR)
 npm run build        # Production build (Vite client + esbuild server)
 npm run check        # TypeScript type checking (tsc)
+npm test             # Run tests (vitest)
 npm run db:push      # Push schema changes to PostgreSQL (drizzle-kit)
 npm start            # Run production server (dist/index.cjs)
 ```
 
-There is no test runner or test suite configured. `npm test` does not exist.
-
 ## Verification Requirements
 
 - ALWAYS run `npm run check` after code changes to catch type errors.
+- ALWAYS run `npm test` after modifying game logic in `shared/gameEngine.ts` to catch regressions. Tests cover `determineTrickWinner`, `canPlayCard`, `calculateRoundScores`, `playCard`, `processBid`, `performPurgeAndDraw`, `dealCards`, `createDeck`, and `shuffleDeck`.
 - ALWAYS run `npm run build` before marking work complete. A successful build only means it compiles — it does not mean existing features still work correctly.
 - After modifying game logic in `shared/gameEngine.ts`, manually verify the affected flow in the browser. Compilation does not catch logic regressions.
 
