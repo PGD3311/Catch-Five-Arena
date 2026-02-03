@@ -113,7 +113,10 @@ export function useCpuTurns({
             if (trickWinnerTimeoutRef.current) {
               clearTimeout(trickWinnerTimeoutRef.current);
             }
-            const cpuTrickHold = prev.trickNumber >= TOTAL_TRICKS ? 3500 : 2500;
+            const cpuHasPoints = prev.trumpSuit && newTrick.some(tc =>
+              tc.card.suit === prev.trumpSuit &&
+              (tc.card.rank === '5' || tc.card.rank === 'A' || tc.card.rank === 'J'));
+            const cpuTrickHold = (prev.trickNumber >= TOTAL_TRICKS && cpuHasPoints) ? 3500 : 2500;
             trickWinnerTimeoutRef.current = setTimeout(() => {
               setDisplayTrick([]);
               setGameState(prevInner => playCard(prevInner, cardToPlay));

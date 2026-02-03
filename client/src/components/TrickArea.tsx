@@ -24,18 +24,28 @@ function getCardConfig(
   trickNumber: number,
   trumpSuit: Suit | null | undefined,
   isSlam: boolean,
+  alreadySlammed: boolean,
 ): CardConfig {
   const isTrump = trumpSuit && card.suit === trumpSuit;
   const isFive = isTrump && card.rank === '5';
   const isAceOrJack = isTrump && (card.rank === 'A' || card.rank === 'J');
   const isFinalTrick = trickNumber >= TOTAL_TRICKS;
-  const isFourthCard = index === 3;
 
-  // Priority 1: Catch-5 slam — always wins
+  // Priority 1: Catch-5 slam — initial bounce
   if (isSlam) {
     return {
       spring: { type: 'spring', stiffness: 600, damping: 16, mass: 1.2 },
       scale: SLAM_SCALE,
+      glowClass: null,
+    };
+  }
+
+  // Slam card that already animated — hold at scale 1 so popLayout
+  // re-renders don't fall through to trick-6 effects and replay a bounce.
+  if (alreadySlammed) {
+    return {
+      spring: { type: 'spring', stiffness: 280, damping: 24, mass: 0.7 },
+      scale: 1,
       glowClass: null,
     };
   }
@@ -58,25 +68,7 @@ function getCardConfig(
     };
   }
 
-  // Priority 4: Trick 6 + 4th card (resolves trick)
-  if (isFinalTrick && isFourthCard) {
-    return {
-      spring: { type: 'spring', stiffness: 450, damping: 18, mass: 0.8 },
-      scale: 1,
-      glowClass: null,
-    };
-  }
-
-  // Priority 5: Trick 6 + routine card
-  if (isFinalTrick) {
-    return {
-      spring: { type: 'spring', stiffness: 380, damping: 20, mass: 0.7 },
-      scale: 1,
-      glowClass: null,
-    };
-  }
-
-  // Priority 6: Tricks 1-5 + Five of trump
+  // Priority 4: Five of trump (any trick)
   if (isFive) {
     return {
       spring: { type: 'spring', stiffness: 340, damping: 20, mass: 0.7 },
@@ -85,7 +77,7 @@ function getCardConfig(
     };
   }
 
-  // Priority 7: Tricks 1-5 + Ace/Jack of trump
+  // Priority 5: Ace/Jack of trump (any trick)
   if (isAceOrJack) {
     return {
       spring: { type: 'spring', stiffness: 310, damping: 22, mass: 0.7 },
@@ -94,7 +86,7 @@ function getCardConfig(
     };
   }
 
-  // Priority 8: Routine (default)
+  // Priority 6: Routine (default)
   return {
     spring: { type: 'spring', stiffness: 280, damping: 24, mass: 0.7 },
     scale: 1,
@@ -257,7 +249,8 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
             // First render: SLAM_SCALE plays. After that: scale 1 so
             // popLayout re-animation produces no visible bounce.
             const isNewSlam = isSlam && !slamAnimatedRef.current.has(trickCard.card.id);
-            const config = getCardConfig(trickCard.card, index, trickNumber, trumpSuit, isNewSlam);
+            const alreadySlammed = isSlam && slamAnimatedRef.current.has(trickCard.card.id);
+            const config = getCardConfig(trickCard.card, index, trickNumber, trumpSuit, isNewSlam, alreadySlammed);
 
             return (
               <motion.div

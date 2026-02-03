@@ -228,7 +228,10 @@ export function GameBoard() {
         if (trickWinnerTimeoutRef.current) {
           clearTimeout(trickWinnerTimeoutRef.current);
         }
-        const trickHold = gameState.trickNumber >= TOTAL_TRICKS ? 3500 : 2500;
+        const hasPointCards = newTrick.some(tc =>
+          tc.card.suit === gameState.trumpSuit &&
+          (tc.card.rank === '5' || tc.card.rank === 'A' || tc.card.rank === 'J'));
+        const trickHold = (gameState.trickNumber >= TOTAL_TRICKS && hasPointCards) ? 3500 : 2500;
         trickWinnerTimeoutRef.current = setTimeout(() => {
           setDisplayTrick([]);
           setGameState(prev => playCard(prev, card));
@@ -349,8 +352,14 @@ export function GameBoard() {
       ? gameState.lastTrick.map(tc => tc.card.id).join(',')
       : null;
     
-    // Final trick gets longer display hold (3500ms vs 2500ms)
-    const mpTrickHold = gameState.trickNumber >= TOTAL_TRICKS ? 3500 : 2500;
+    // Final trick gets longer hold only if trump point cards are present
+    const mpTrickData = (gameState.lastTrick && gameState.lastTrick.length === 4)
+      ? gameState.lastTrick
+      : (currentTrick.length === 4 ? currentTrick : []);
+    const mpHasPoints = gameState.trumpSuit && mpTrickData.some(tc =>
+      tc.card.suit === gameState.trumpSuit &&
+      (tc.card.rank === '5' || tc.card.rank === 'A' || tc.card.rank === 'J'));
+    const mpTrickHold = (gameState.trickNumber >= TOTAL_TRICKS && mpHasPoints) ? 3500 : 2500;
 
     // Case 1: Trick just completed (was building, now reset)
     // Use lastTrick if available (server populates this when trick completes)
