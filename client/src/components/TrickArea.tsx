@@ -213,12 +213,11 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
 
   const getStartPosition = (playerId: string): { x: number; y: number; rotate: number } => {
     const visualIndex = getVisualIndex(playerId);
-    // Cards arrive from further out with a toss rotation
     switch (visualIndex) {
-      case 0: return { x: 0, y: 160, rotate: 6 };   // bottom player — toss up
-      case 1: return { x: -160, y: 0, rotate: -10 }; // left player — toss right
-      case 2: return { x: 0, y: -160, rotate: -6 };  // top player — toss down
-      case 3: return { x: 160, y: 0, rotate: 10 };   // right player — toss left
+      case 0: return { x: 0, y: 120, rotate: 3 };
+      case 1: return { x: -120, y: 0, rotate: -4 };
+      case 2: return { x: 0, y: -120, rotate: -3 };
+      case 3: return { x: 120, y: 0, rotate: 4 };
       default: return { x: 0, y: 0, rotate: 0 };
     }
   };
@@ -266,10 +265,10 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
                 initial={{
                   x: startPos.x,
                   y: startPos.y,
-                  scale: 0.6,
+                  scale: 0.8,
                   opacity: 0,
                   rotate: startPos.rotate,
-                  filter: 'drop-shadow(0 0 0 transparent)',
+                  filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.15))',
                 }}
                 animate={{
                   x: pos.x,
@@ -277,7 +276,7 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
                   scale: config.scale,
                   opacity: 1,
                   rotate: pos.rotate,
-                  filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.35))',
+                  filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.25))',
                 }}
                 exit={{
                   x: 0,
