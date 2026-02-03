@@ -1,6 +1,6 @@
 import { useCallback, useRef, createContext, useContext, useState, ReactNode } from 'react';
 
-type SoundType = 'cardPlay' | 'cardDeal' | 'trickWon' | 'bidMade' | 'bidSet' | 'victory' | 'defeat' | 'yourTurn' | 'buttonClick' | 'shuffle' | 'catch5Slam';
+type SoundType = 'cardPlay' | 'cardDeal' | 'trickWon' | 'bidMade' | 'bidSet' | 'victory' | 'defeat' | 'yourTurn' | 'buttonClick' | 'shuffle' | 'catch5Slam' | 'trumpDeclare';
 
 const STORAGE_KEY = 'catch5-sound-muted';
 
@@ -369,6 +369,17 @@ export function SoundProvider({ children }: { children: ReactNode }) {
         });
         // High shimmer noise — sparkle tail
         playNoise(0.15, { volume: 0.12, filterFreq: 8000, delay: 0.15, attack: 0.01 });
+        break;
+
+      case 'trumpDeclare':
+        // Deep confirmation tone — weighty, authoritative
+        playRichTone(130, 0.35, { type: 'sine', volume: 0.3, attack: 0.02, decay: 0.1, sustain: 0.6, release: 0.15 });
+        // Octave overtone for warmth
+        playRichTone(260, 0.3, { type: 'sine', volume: 0.15, attack: 0.03, delay: 0.02, harmonics: [0.3, 0.1] });
+        // Resolving fifth — gives finality
+        playRichTone(195, 0.25, { type: 'sine', volume: 0.12, delay: 0.12, attack: 0.02, harmonics: [0.2] });
+        // Subtle breath of noise — gravitas
+        playNoise(0.2, { volume: 0.06, filterFreq: 1200, filterType: 'bandpass', delay: 0.05, attack: 0.02 });
         break;
     }
   }, [isMuted, playRichTone, playNoise, playChord]);
