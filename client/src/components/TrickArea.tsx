@@ -140,11 +140,13 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
     return style;
   }, [tension]);
 
-  // Clear catch5 state when trick resets (new trick starts)
+  // Clear catch5 visual when trick resets (new trick starts)
+  // NOTE: firedCatch5Ref is intentionally NOT cleared here — it prevents
+  // re-detection during displayTrick transitions. Card IDs are unique per
+  // deal, so a future catch-5 will have a different ID and still trigger.
   useEffect(() => {
     if (currentTrick.length < prevTrickLenRef.current) {
       setCatch5CardId(null);
-      firedCatch5Ref.current = null;
       slamAnimatedRef.current.clear();
     }
     prevTrickLenRef.current = currentTrick.length;
