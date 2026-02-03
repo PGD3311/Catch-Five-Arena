@@ -26,6 +26,7 @@ import { useMultiplayer } from '@/hooks/useMultiplayer';
 import { useCpuTurns } from '@/hooks/useCpuTurns';
 import { useToast } from '@/hooks/use-toast';
 import { useSound } from '@/hooks/useSoundEffects';
+import { TensionProvider } from '@/hooks/useTension';
 import { History, Eye } from 'lucide-react';
 import {
   initializeGame,
@@ -585,6 +586,7 @@ export function GameBoard() {
       style={gameState.phase !== 'setup' && gameState.phase !== 'dealer-draw' ? { height: '100dvh' } : undefined}
       data-testid="game-board"
     >
+      <TensionProvider gameState={gameState}>
       {isMultiplayerMode && (
         <ConnectionStatus
           connected={multiplayer.connected}
@@ -887,6 +889,7 @@ export function GameBoard() {
           unreadCount={unreadCount}
         />
       )}
+      </TensionProvider>
     </div>
   );
 }
