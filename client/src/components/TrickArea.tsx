@@ -211,29 +211,43 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
     }
   };
 
-  const getStartPosition = (playerId: string): { x: number; y: number } => {
+  const getStartPosition = (playerId: string): { x: number; y: number; rotate: number } => {
     const visualIndex = getVisualIndex(playerId);
+    // Cards arrive from further out with a toss rotation
     switch (visualIndex) {
-      case 0: return { x: 0, y: 140 };
-      case 1: return { x: -140, y: 0 };
-      case 2: return { x: 0, y: -140 };
-      case 3: return { x: 140, y: 0 };
-      default: return { x: 0, y: 0 };
+      case 0: return { x: 0, y: 160, rotate: 6 };   // bottom player — toss up
+      case 1: return { x: -160, y: 0, rotate: -10 }; // left player — toss right
+      case 2: return { x: 0, y: -160, rotate: -6 };  // top player — toss down
+      case 3: return { x: 160, y: 0, rotate: 10 };   // right player — toss left
+      default: return { x: 0, y: 0, rotate: 0 };
     }
   };
 
   return (
     <div className="relative w-full h-36 sm:h-48 md:h-56" data-testid="trick-area">
-      {/* Felt table surface */}
-      <div className="absolute inset-0 flex items-center justify-center">
+      {/* Table — wood rail + inset felt */}
+      <div className="absolute inset-0 flex items-center justify-center" style={{ perspective: '600px' }}>
+        {/* Wood rail */}
         <div
-          className="relative w-44 h-28 sm:w-56 sm:h-36 md:w-72 md:h-44 rounded-2xl felt-surface noise-overlay border border-white/[0.04] overflow-hidden"
-          style={tension > 0.3 ? { boxShadow: feltGlowStyle.boxShadow } : undefined}
+          className="relative w-48 h-32 sm:w-60 sm:h-40 md:w-80 md:h-48 rounded-[20px] sm:rounded-[24px] table-rail"
+          style={{
+            transform: 'rotateX(2deg)',
+            transformOrigin: 'center 60%',
+          }}
         >
-          {/* Inner highlight rim */}
-          <div className="absolute inset-[1px] rounded-2xl ring-1 ring-inset ring-white/[0.06]" />
-          {/* Center glow — tension-driven */}
-          <div className="absolute inset-0" style={feltGlowStyle} />
+          {/* Rail top bevel highlight */}
+          <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-[inherit] bg-gradient-to-r from-transparent via-white/[0.12] to-transparent" />
+
+          {/* Inset felt playing surface */}
+          <div
+            className="absolute inset-[5px] sm:inset-[6px] md:inset-[7px] rounded-[15px] sm:rounded-[18px] felt-surface noise-overlay felt-lamp overflow-hidden"
+            style={tension > 0.3 ? { boxShadow: feltGlowStyle.boxShadow } : undefined}
+          >
+            {/* Inner felt edge highlight — light catching the near lip */}
+            <div className="absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-white/[0.04]" />
+            {/* Tension-driven center glow */}
+            <div className="absolute inset-0 rounded-[inherit]" style={feltGlowStyle} />
+          </div>
         </div>
       </div>
 
@@ -252,23 +266,31 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
                 initial={{
                   x: startPos.x,
                   y: startPos.y,
-                  scale: 0.7,
+                  scale: 0.6,
                   opacity: 0,
-                  rotate: pos.rotate - 8
+                  rotate: startPos.rotate,
+                  filter: 'drop-shadow(0 0 0 transparent)',
                 }}
                 animate={{
                   x: pos.x,
                   y: pos.y,
                   scale: config.scale,
                   opacity: 1,
-                  rotate: pos.rotate
+                  rotate: pos.rotate,
+                  filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.35))',
                 }}
                 exit={{
-                  scale: 0.4,
+                  x: 0,
+                  y: -20,
+                  scale: 0.5,
                   opacity: 0,
-                  y: -40
+                  rotate: 0,
+                  filter: 'drop-shadow(0 0 0 transparent)',
                 }}
-                transition={config.spring}
+                transition={{
+                  ...config.spring,
+                  exit: { duration: 0.35, ease: [0.4, 0, 1, 1] },
+                }}
                 className={`absolute ${config.glowClass ?? ''}`}
                 style={{ zIndex: isSlam ? 10 : index + 1 }}
               >
