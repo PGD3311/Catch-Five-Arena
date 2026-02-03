@@ -496,6 +496,18 @@ export function GameBoard() {
     return bidderTeam ? gameState.roundScoreDetails.five.teamId === bidderTeam.id : false;
   })();
 
+  // Hide header scores during dramatic hold
+  const [hideHeaderScores, setHideHeaderScores] = useState(false);
+  useEffect(() => {
+    if (showScoreModal && isDramaticReveal) {
+      setHideHeaderScores(true);
+      const timer = setTimeout(() => setHideHeaderScores(false), 1800);
+      return () => clearTimeout(timer);
+    } else {
+      setHideHeaderScores(false);
+    }
+  }, [showScoreModal, isDramaticReveal]);
+
   // Play sounds when score modal opens
   const prevShowScoreModalRef = useRef(false);
   useEffect(() => {
@@ -563,13 +575,14 @@ export function GameBoard() {
           onReturnToLobby={handleReturnToLobby}
         />
       )}
-      <GameHeader 
-        gameState={gameState} 
+      <GameHeader
+        gameState={gameState}
         onSettingsClick={() => setSettingsOpen(true)}
         onShareClick={() => setShareOpen(true)}
         onRulesClick={() => setRulesOpen(true)}
         onLastTrickClick={() => setShowLastTrick(true)}
         onExitGame={handleExitGame}
+        hideScores={hideHeaderScores}
       />
       {gameState.phase === 'setup' && (
         <div className="flex-1 flex flex-col items-center justify-center p-8">

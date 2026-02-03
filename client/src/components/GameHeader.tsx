@@ -13,6 +13,7 @@ interface GameHeaderProps {
   onRulesClick: () => void;
   onLastTrickClick?: () => void;
   onExitGame?: () => void;
+  hideScores?: boolean;
 }
 
 const getPhaseLabel = (phase: GameState['phase'], trickNumber: number): string => {
@@ -31,7 +32,7 @@ const getPhaseLabel = (phase: GameState['phase'], trickNumber: number): string =
   }
 };
 
-export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesClick, onLastTrickClick, onExitGame }: GameHeaderProps) {
+export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesClick, onLastTrickClick, onExitGame, hideScores = false }: GameHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const phaseLabel = getPhaseLabel(gameState.phase, gameState.trickNumber);
   const yourTeam = gameState.teams.find(t => t.id === 'team1');
@@ -66,7 +67,7 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
           {yourTeam && (
             <div className="flex items-center gap-1.5" data-testid={`team-score-${yourTeam.id}`}>
               <span className="w-2 h-2 rounded-full bg-[hsl(var(--team-blue))]" />
-              <span className="text-lg sm:text-xl font-bold tabular-nums">{yourTeam.score}</span>
+              <span className={cn("text-lg sm:text-xl font-bold tabular-nums transition-opacity duration-500", hideScores && "opacity-0")}>{yourTeam.score}</span>
             </div>
           )}
 
@@ -88,7 +89,7 @@ export function GameHeader({ gameState, onSettingsClick, onShareClick, onRulesCl
 
           {opponentTeam && (
             <div className="flex items-center gap-1.5" data-testid={`team-score-${opponentTeam.id}`}>
-              <span className="text-lg sm:text-xl font-bold tabular-nums">{opponentTeam.score}</span>
+              <span className={cn("text-lg sm:text-xl font-bold tabular-nums transition-opacity duration-500", hideScores && "opacity-0")}>{opponentTeam.score}</span>
               <span className="w-2 h-2 rounded-full bg-[hsl(var(--team-red))]" />
             </div>
           )}
