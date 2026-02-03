@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { TrickCard, Player, Suit, Card, determineTrickWinner } from '@shared/gameTypes';
-import { TOTAL_TRICKS } from '@shared/gameTypes';
+
 import { PlayingCard } from './PlayingCard';
 import { Catch5Effect } from './Catch5Effect';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,13 +15,8 @@ interface CardConfig {
 // Stable scale keyframe references — prevents Framer Motion from
 // replaying bounce animations when the parent re-renders.
 const SLAM_SCALE: number[] = [0.7, 1.15, 1];
-const FIVE_FINAL_SCALE: number[] = [0.7, 1.1, 1];
-const ACE_JACK_FINAL_SCALE: number[] = [0.7, 1.06, 1];
-
 function getCardConfig(
   card: Card,
-  index: number,
-  trickNumber: number,
   trumpSuit: Suit | null | undefined,
   isSlam: boolean,
   alreadySlammed: boolean,
@@ -29,7 +24,6 @@ function getCardConfig(
   const isTrump = trumpSuit && card.suit === trumpSuit;
   const isFive = isTrump && card.rank === '5';
   const isAceOrJack = isTrump && (card.rank === 'A' || card.rank === 'J');
-  const isFinalTrick = trickNumber >= TOTAL_TRICKS;
 
   // Priority 1: Catch-5 slam — initial bounce
   if (isSlam) {
@@ -50,25 +44,7 @@ function getCardConfig(
     };
   }
 
-  // Priority 2: Trick 6 + Five of trump
-  if (isFinalTrick && isFive) {
-    return {
-      spring: { type: 'spring', stiffness: 480, damping: 16, mass: 0.9 },
-      scale: FIVE_FINAL_SCALE,
-      glowClass: 'point-card-glow',
-    };
-  }
-
-  // Priority 3: Trick 6 + Ace/Jack of trump
-  if (isFinalTrick && isAceOrJack) {
-    return {
-      spring: { type: 'spring', stiffness: 420, damping: 18, mass: 0.8 },
-      scale: ACE_JACK_FINAL_SCALE,
-      glowClass: 'point-card-flash',
-    };
-  }
-
-  // Priority 4: Five of trump (any trick)
+  // Priority 2: Five of trump (any trick)
   if (isFive) {
     return {
       spring: { type: 'spring', stiffness: 340, damping: 20, mass: 0.7 },
@@ -77,7 +53,7 @@ function getCardConfig(
     };
   }
 
-  // Priority 5: Ace/Jack of trump (any trick)
+  // Priority 3: Ace/Jack of trump (any trick)
   if (isAceOrJack) {
     return {
       spring: { type: 'spring', stiffness: 310, damping: 22, mass: 0.7 },
@@ -86,7 +62,7 @@ function getCardConfig(
     };
   }
 
-  // Priority 6: Routine (default)
+  // Priority 4: Routine (default)
   return {
     spring: { type: 'spring', stiffness: 280, damping: 24, mass: 0.7 },
     scale: 1,
@@ -100,10 +76,9 @@ interface TrickAreaProps {
   trumpSuit?: Suit | null;
   mySeatIndex?: number;
   onShake?: () => void;
-  trickNumber?: number;
 }
 
-export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, onShake, trickNumber = 1 }: TrickAreaProps) {
+export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, onShake }: TrickAreaProps) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const [catch5CardId, setCatch5CardId] = useState<string | null>(null);
   const firedCatch5Ref = useRef<string | null>(null);
@@ -254,7 +229,7 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
             // popLayout re-animation produces no visible bounce.
             const isNewSlam = isSlam && !slamAnimatedRef.current.has(trickCard.card.id);
             const alreadySlammed = isSlam && slamAnimatedRef.current.has(trickCard.card.id);
-            const config = getCardConfig(trickCard.card, index, trickNumber, trumpSuit, isNewSlam, alreadySlammed);
+            const config = getCardConfig(trickCard.card, trumpSuit, isNewSlam, alreadySlammed);
 
             return (
               <motion.div

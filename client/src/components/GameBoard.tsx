@@ -1,4 +1,4 @@
-import { GameState, Card as CardType, Suit, Player, TrickCard, TOTAL_TRICKS } from '@shared/gameTypes';
+import { GameState, Card as CardType, Suit, Player, TrickCard } from '@shared/gameTypes';
 import { PlayerArea } from './PlayerArea';
 import { TrickArea } from './TrickArea';
 import { GameHeader } from './GameHeader';
@@ -228,10 +228,7 @@ export function GameBoard() {
         if (trickWinnerTimeoutRef.current) {
           clearTimeout(trickWinnerTimeoutRef.current);
         }
-        const hasPointCards = newTrick.some(tc =>
-          tc.card.suit === gameState.trumpSuit &&
-          (tc.card.rank === '5' || tc.card.rank === 'A' || tc.card.rank === 'J'));
-        const trickHold = (gameState.trickNumber >= TOTAL_TRICKS && hasPointCards) ? 3500 : 2500;
+        const trickHold = 2500;
         trickWinnerTimeoutRef.current = setTimeout(() => {
           setDisplayTrick([]);
           setGameState(prev => playCard(prev, card));
@@ -356,10 +353,7 @@ export function GameBoard() {
     const mpTrickData = (gameState.lastTrick && gameState.lastTrick.length === 4)
       ? gameState.lastTrick
       : (currentTrick.length === 4 ? currentTrick : []);
-    const mpHasPoints = gameState.trumpSuit && mpTrickData.some(tc =>
-      tc.card.suit === gameState.trumpSuit &&
-      (tc.card.rank === '5' || tc.card.rank === 'A' || tc.card.rank === 'J'));
-    const mpTrickHold = (gameState.trickNumber >= TOTAL_TRICKS && mpHasPoints) ? 3500 : 2500;
+    const mpTrickHold = 2500;
 
     // Case 1: Trick just completed (was building, now reset)
     // Use lastTrick if available (server populates this when trick completes)
@@ -732,7 +726,6 @@ export function GameBoard() {
                 trumpSuit={gameState.trumpSuit}
                 mySeatIndex={mySeatIndex}
                 onShake={handleCatch5Shake}
-                trickNumber={gameState.trickNumber}
               />
               
               {/* Timer and context line */}
