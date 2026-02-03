@@ -6,15 +6,6 @@ interface Catch5EffectProps {
   cardId: string;
 }
 
-interface Particle {
-  id: number;
-  angle: number;
-  distance: number;
-  size: number;
-  duration: number;
-  hue: number;
-}
-
 // Module-level guard: once a card ID has shown its slam effect,
 // any remount for the same ID renders nothing. Survives React
 // unmount/remount cycles that component-local refs cannot.

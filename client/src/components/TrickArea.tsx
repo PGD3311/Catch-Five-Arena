@@ -268,7 +268,7 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
                 style={{ zIndex: isSlam ? 10 : index + 1 }}
               >
                 <PlayingCard card={trickCard.card} small trumpSuit={trumpSuit} />
-                {isNewSlam && <Catch5Effect onShake={onShake} cardId={trickCard.card.id} />}
+                {isSlam && <Catch5Effect onShake={onShake} cardId={trickCard.card.id} />}
               </motion.div>
             );
           });
