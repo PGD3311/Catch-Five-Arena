@@ -64,6 +64,7 @@ interface ScoreModalProps {
   sleptCards?: Card[];
   trumpSuit?: string | null;
   localTeamId?: string;
+  isDramaticReveal?: boolean;
 }
 
 const suitSymbol: Record<string, string> = {
@@ -106,29 +107,50 @@ export function ScoreModal({
   sleptCards = [],
   trumpSuit,
   localTeamId = 'team1',
+  isDramaticReveal = false,
 }: ScoreModalProps) {
   const [canContinue, setCanContinue] = useState(false);
   const [countdown, setCountdown] = useState(5);
+  const [revealPhase, setRevealPhase] = useState<'holding' | 'revealing'>('revealing');
 
   useEffect(() => {
     if (open) {
       setCanContinue(false);
-      setCountdown(5);
+      const timerDuration = isDramaticReveal ? 8 : 5;
+      setCountdown(timerDuration);
 
-      const interval = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            setCanContinue(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(interval);
+      if (isDramaticReveal) {
+        setRevealPhase('holding');
+        const holdTimer = setTimeout(() => {
+          setRevealPhase('revealing');
+        }, 1800);
+        return () => clearTimeout(holdTimer);
+      } else {
+        setRevealPhase('revealing');
+      }
     }
-  }, [open]);
+  }, [open, isDramaticReveal]);
+
+  // Countdown timer — only runs once revealPhase is 'revealing'
+  useEffect(() => {
+    if (!open || revealPhase !== 'revealing') return;
+
+    const timerDuration = isDramaticReveal ? 8 : 5;
+    setCountdown(timerDuration);
+
+    const interval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setCanContinue(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [open, revealPhase, isDramaticReveal]);
 
   const bidder = players.find(p => p.id === bidderId);
   const bidderTeam = teams.find(t => t.id === bidder?.teamId);
@@ -205,7 +227,10 @@ export function ScoreModal({
           <GoldDivider />
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div
+          className="space-y-4 py-2 transition-opacity duration-500"
+          style={{ opacity: revealPhase === 'revealing' ? 1 : 0 }}
+        >
           {bidderTeam && (
             <motion.div
               initial={{ y: 20, opacity: 0 }}
@@ -484,7 +509,10 @@ export function ScoreModal({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter
+          className="transition-opacity duration-500"
+          style={{ opacity: revealPhase === 'revealing' ? 1 : 0 }}
+        >
           <Button
             onClick={onContinue}
             className="w-full shadow-[0_0_20px_hsl(var(--gold)/0.15)]"

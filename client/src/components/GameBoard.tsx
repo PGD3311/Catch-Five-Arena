@@ -486,12 +486,22 @@ export function GameBoard() {
   const showScoreModal = (gameState.phase === 'scoring' || gameState.phase === 'game-over') && displayTrick.length === 0;
   const showBidResults = gameState.phase === 'bidding' || gameState.phase === 'trump-selection' || gameState.phase === 'purge-draw';
 
+  // Compute dramatic reveal: bid 8+ AND bidding team captured the Five of trump
+  const isDramaticReveal = (() => {
+    if (gameState.highBid < 8) return false;
+    if (!gameState.roundScoreDetails?.five) return false;
+    const bidderTeam = gameState.teams.find(t =>
+      gameState.players.find(p => p.id === gameState.bidderId)?.teamId === t.id
+    );
+    return bidderTeam ? gameState.roundScoreDetails.five.teamId === bidderTeam.id : false;
+  })();
+
   // Play sounds when score modal opens
   const prevShowScoreModalRef = useRef(false);
   useEffect(() => {
     if (showScoreModal && !prevShowScoreModalRef.current) {
       const isGameOverNow = checkGameOver(gameState);
-      const bidderTeam = gameState.teams.find(t => 
+      const bidderTeam = gameState.teams.find(t =>
         gameState.players.find(p => p.id === gameState.bidderId)?.teamId === t.id
       );
       const bidderTeamScore = bidderTeam ? gameState.roundScores[bidderTeam.id] || 0 : 0;
@@ -501,14 +511,16 @@ export function GameBoard() {
       const yourTeam = gameState.teams.find(t => t.id === 'team1');
       const yourTeamWins = yourTeam && yourTeam.score >= gameState.targetScore;
 
+      const soundDelay = isDramaticReveal ? 2000 : 300;
+
       if (isGameOverNow) {
-        setTimeout(() => playSound(yourTeamWins ? 'victory' : 'defeat'), 300);
+        setTimeout(() => playSound(yourTeamWins ? 'victory' : 'defeat'), soundDelay);
       } else {
-        setTimeout(() => playSound(isGoodForYou ? 'bidMade' : 'bidSet'), 300);
+        setTimeout(() => playSound(isGoodForYou ? 'bidMade' : 'bidSet'), soundDelay);
       }
     }
     prevShowScoreModalRef.current = showScoreModal;
-  }, [showScoreModal, gameState, playSound]);
+  }, [showScoreModal, gameState, playSound, isDramaticReveal]);
 
   const getTeamForPlayer = (player: typeof humanPlayer) => 
     gameState.teams.find(t => t.id === player.teamId)!;
@@ -794,6 +806,7 @@ export function GameBoard() {
         sleptCards={gameState.sleptCards}
         trumpSuit={gameState.trumpSuit}
         localTeamId={gameState.players[mySeatIndex]?.teamId || 'team1'}
+        isDramaticReveal={isDramaticReveal}
       />
       <SettingsPanel
         open={settingsOpen}
