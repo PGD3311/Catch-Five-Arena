@@ -266,39 +266,7 @@ export function GameBoard() {
     setSettingsOpen(false);
   }, []);
 
-  // DEBUG: Ctrl+Shift+5 — force Catch-5 scenario (single-player only, remove after testing)
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === '%') { // Shift+5 = %
-        if (isMultiplayerMode) return;
-        setGameState(prev => {
-          if (prev.phase !== 'playing' || !prev.trumpSuit) return prev;
-          const trump = prev.trumpSuit;
-          const humanIdx = 0;
-          const partnerIdx = 2;
-          const aceId = `A-${trump}`;
-          const fiveId = `5-${trump}`;
-          const aceCard: CardType = { id: aceId, suit: trump, rank: 'A' };
-          const fiveCard: CardType = { id: fiveId, suit: trump, rank: '5' };
-          const newPlayers = prev.players.map((p, i) => {
-            let hand = p.hand.filter(c => c.id !== aceId && c.id !== fiveId);
-            if (i === humanIdx) hand = [aceCard, ...hand];
-            if (i === partnerIdx) hand = [fiveCard, ...hand];
-            return { ...p, hand };
-          });
-          return {
-            ...prev,
-            players: newPlayers,
-            currentTrick: [],
-            currentPlayerIndex: humanIdx,
-          };
-        });
-        console.log('[DEBUG] Catch-5 scenario forced — play the Ace, partner will play the 5');
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [isMultiplayerMode]);
+
 
   const handleExitGame = useCallback(() => {
     if (isSpectating) {
