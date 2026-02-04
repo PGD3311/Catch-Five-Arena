@@ -490,8 +490,33 @@ export function GameBoard() {
   const amIBidder = !isSpectating && gameState.bidderId === gameState.players[mySeatIndex]?.id;
   const showTrumpSelector = !isSpectating && gameState.phase === 'trump-selection' &&
     (isMultiplayerMode ? amIBidder : gameState.players.find(p => p.id === gameState.bidderId)?.isHuman);
-  // Delay score modal if we're still showing the final trick
-  const showScoreModal = (gameState.phase === 'scoring' || gameState.phase === 'game-over') && displayTrick.length === 0;
+  const isScoringPhase = gameState.phase === 'scoring' || gameState.phase === 'game-over';
+
+  // Gate score modal: require the last trick to be displayed first to prevent
+  // a white flash where the Dialog opens for one frame before displayTrick is set.
+  const [lastTrickDisplayed, setLastTrickDisplayed] = useState(false);
+
+  useEffect(() => {
+    if (!isScoringPhase) {
+      setLastTrickDisplayed(false);
+    }
+  }, [isScoringPhase]);
+
+  useEffect(() => {
+    if (isScoringPhase && displayTrick.length > 0) {
+      setLastTrickDisplayed(true);
+    }
+  }, [isScoringPhase, displayTrick.length]);
+
+  // Fallback: if trick display was somehow skipped, show modal after short delay
+  useEffect(() => {
+    if (isScoringPhase && !lastTrickDisplayed && displayTrick.length === 0) {
+      const timer = setTimeout(() => setLastTrickDisplayed(true), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isScoringPhase, lastTrickDisplayed, displayTrick.length]);
+
+  const showScoreModal = isScoringPhase && displayTrick.length === 0 && lastTrickDisplayed;
   const showBidResults = gameState.phase === 'bidding' || gameState.phase === 'trump-selection' || gameState.phase === 'purge-draw';
 
   // Compute dramatic reveal: bid 8+ AND bidding team captured the Five of trump
@@ -506,7 +531,6 @@ export function GameBoard() {
 
   // Hide header scores during dramatic reveal — from the moment scoring phase
   // starts (even while final trick is still displaying) until after the hold
-  const isScoringPhase = gameState.phase === 'scoring' || gameState.phase === 'game-over';
   const [hideHeaderScores, setHideHeaderScores] = useState(false);
   const dramaticHoldTimerRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
