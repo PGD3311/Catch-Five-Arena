@@ -90,6 +90,8 @@ export function useCpuTurns({
     if (!currentPlayer.isHuman && currentPlayer.hand.length > 0) {
       const baseDelay = 1200 + Math.random() * 600;
       const timer = setTimeout(() => {
+        let trickForDisplay: TrickCard[] | null = null;
+
         setGameState(prev => {
           if (prev.phase !== 'playing') return prev;
           if (prev.players[prev.currentPlayerIndex].isHuman) return prev;
@@ -107,19 +109,22 @@ export function useCpuTurns({
           const newTrick = [...prev.currentTrick, { playerId: currentPlayer.id, card: cardToPlay }];
 
           if (newTrick.length === 4 && prev.trumpSuit) {
-            setDisplayTrick(newTrick);
-
-            if (trickWinnerTimeoutRef.current) {
-              clearTimeout(trickWinnerTimeoutRef.current);
-            }
-            trickWinnerTimeoutRef.current = setTimeout(() => {
-              setDisplayTrick([]);
-            }, 2500);
-            return playCard(prev, cardToPlay);
-          } else {
-            return playCard(prev, cardToPlay);
+            trickForDisplay = newTrick;
           }
+
+          return playCard(prev, cardToPlay);
         });
+
+        if (trickForDisplay) {
+          setDisplayTrick(trickForDisplay);
+
+          if (trickWinnerTimeoutRef.current) {
+            clearTimeout(trickWinnerTimeoutRef.current);
+          }
+          trickWinnerTimeoutRef.current = setTimeout(() => {
+            setDisplayTrick([]);
+          }, 2500);
+        }
       }, baseDelay);
       return () => clearTimeout(timer);
     }
