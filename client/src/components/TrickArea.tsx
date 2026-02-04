@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TrickCard, Player, Suit, Card, determineTrickWinner } from '@shared/gameTypes';
 
 import { PlayingCard } from './PlayingCard';
 import { Catch5Effect, resetShownEffects } from './Catch5Effect';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTension } from '@/hooks/useTension';
+
 
 interface CardConfig {
   spring: { type: 'spring'; stiffness: number; damping: number; mass: number };
@@ -84,27 +84,6 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
   const firedCatch5Ref = useRef<string | null>(null);
   const slamAnimatedRef = useRef<Set<string>>(new Set());
   const prevTrickLenRef = useRef(0);
-  const { tension } = useTension();
-
-  // Tension-driven felt glow: green (150) → gold (42)
-  const feltGlowStyle = useMemo(() => {
-    const hue = 150 - tension * 108;          // 150 → 42
-    const opacity = 0.10 + tension * 0.20;    // 0.10 → 0.30
-    const radius = 60 + tension * 15;         // 60% → 75%
-
-    const style: React.CSSProperties = {
-      background: `radial-gradient(ellipse at center, hsla(${hue}, 50%, 40%, ${opacity}) 0%, transparent ${radius}%)`,
-      transition: 'background 1s ease',
-    };
-
-    // Outer glow shadow on the felt surface when tension > 0.3
-    if (tension > 0.3) {
-      const shadowOpacity = (tension - 0.3) * 0.15; // 0 → ~0.105
-      style.boxShadow = `0 0 40px hsla(${hue}, 50%, 40%, ${shadowOpacity})`;
-    }
-
-    return style;
-  }, [tension]);
 
   // Clear catch5 state when trick resets (new trick starts)
   useEffect(() => {
@@ -205,12 +184,9 @@ export function TrickArea({ currentTrick, players, trumpSuit, mySeatIndex = 0, o
           {/* Inset felt playing surface */}
           <div
             className="absolute inset-[5px] sm:inset-[6px] md:inset-[7px] rounded-[15px] sm:rounded-[18px] felt-surface noise-overlay felt-lamp overflow-hidden"
-            style={tension > 0.3 ? { boxShadow: feltGlowStyle.boxShadow } : undefined}
           >
             {/* Inner felt edge highlight — light catching the near lip */}
             <div className="absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-white/[0.04]" />
-            {/* Tension-driven center glow */}
-            <div className="absolute inset-0 rounded-[inherit]" style={feltGlowStyle} />
           </div>
         </div>
       </div>

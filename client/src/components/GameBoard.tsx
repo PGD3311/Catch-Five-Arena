@@ -26,8 +26,6 @@ import { useMultiplayer } from '@/hooks/useMultiplayer';
 import { useCpuTurns } from '@/hooks/useCpuTurns';
 import { useToast } from '@/hooks/use-toast';
 import { useSound } from '@/hooks/useSoundEffects';
-import { TensionProvider } from '@/hooks/useTension';
-import { computeTension } from '@shared/tensionEngine';
 import { History, Eye } from 'lucide-react';
 import {
   initializeGame,
@@ -203,7 +201,7 @@ export function GameBoard() {
   }, [isMultiplayerMode, multiplayer]);
 
   const handleCardPlay = useCallback((card: CardType) => {
-    playSound('cardPlay', computeTension(gameState));
+    playSound('cardPlay');
     if (isMultiplayerMode) {
       multiplayer.sendAction('play_card', { card });
     } else {
@@ -221,23 +219,21 @@ export function GameBoard() {
       
       if (newTrick.length === 4 && gameState.trumpSuit) {
         setDisplayTrick(newTrick);
+        setGameState(prev => playCard(prev, card));
         // Play trick won sound after a short delay
-        const trickTension = computeTension(gameState);
-        setTimeout(() => playSound('trickWon', trickTension), 300);
-        
+        setTimeout(() => playSound('trickWon'), 300);
+
         if (trickWinnerTimeoutRef.current) {
           clearTimeout(trickWinnerTimeoutRef.current);
         }
-        const trickHold = 2500;
         trickWinnerTimeoutRef.current = setTimeout(() => {
-          setGameState(prev => playCard(prev, card));
           setDisplayTrick([]);
-        }, trickHold);
+        }, 2500);
       } else {
         setGameState(prev => playCard(prev, card));
       }
     }
-  }, [isMultiplayerMode, multiplayer, toast, gameState.players, gameState.currentPlayerIndex, gameState.currentTrick, gameState.trumpSuit, gameState.trickNumber, playSound]);
+  }, [isMultiplayerMode, multiplayer, toast, gameState.players, gameState.currentPlayerIndex, gameState.currentTrick, gameState.trumpSuit, playSound]);
 
   const handleDiscardTrump = useCallback((card: CardType) => {
     if (isMultiplayerMode) {
@@ -557,11 +553,10 @@ export function GameBoard() {
 
       const soundDelay = isDramaticReveal ? 2000 : 300;
 
-      const scoreTension = computeTension(gameState);
       if (isGameOverNow) {
-        setTimeout(() => playSound(yourTeamWins ? 'victory' : 'defeat', scoreTension), soundDelay);
+        setTimeout(() => playSound(yourTeamWins ? 'victory' : 'defeat'), soundDelay);
       } else {
-        setTimeout(() => playSound(isGoodForYou ? 'bidMade' : 'bidSet', scoreTension), soundDelay);
+        setTimeout(() => playSound(isGoodForYou ? 'bidMade' : 'bidSet'), soundDelay);
       }
     }
     prevShowScoreModalRef.current = showScoreModal;
@@ -598,7 +593,6 @@ export function GameBoard() {
       style={gameState.phase !== 'setup' && gameState.phase !== 'dealer-draw' ? { height: '100dvh' } : undefined}
       data-testid="game-board"
     >
-      <TensionProvider gameState={gameState}>
       {isMultiplayerMode && (
         <ConnectionStatus
           connected={multiplayer.connected}
@@ -901,7 +895,6 @@ export function GameBoard() {
           unreadCount={unreadCount}
         />
       )}
-      </TensionProvider>
     </div>
   );
 }

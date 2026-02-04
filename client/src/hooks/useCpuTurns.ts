@@ -113,10 +113,9 @@ export function useCpuTurns({
               clearTimeout(trickWinnerTimeoutRef.current);
             }
             trickWinnerTimeoutRef.current = setTimeout(() => {
-              setGameState(prevInner => playCard(prevInner, cardToPlay));
               setDisplayTrick([]);
             }, 2500);
-            return prev;
+            return playCard(prev, cardToPlay);
           } else {
             return playCard(prev, cardToPlay);
           }
