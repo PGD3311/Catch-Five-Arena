@@ -117,6 +117,10 @@ export function GameBoard() {
     setScreenShake(true);
     setTimeout(() => setScreenShake(false), 400);
   }, [playSound]);
+
+  const handlePahtnahSlam = useCallback(() => {
+    playSound('pahtnahSlam');
+  }, [playSound]);
   
   // Debug logging for trick card positioning
   useEffect(() => {
@@ -744,6 +748,7 @@ export function GameBoard() {
                 trumpSuit={gameState.trumpSuit}
                 mySeatIndex={mySeatIndex}
                 onShake={handleCatch5Shake}
+                onPahtnahSlam={handlePahtnahSlam}
               />
               
               {/* Timer and context line */}

@@ -387,6 +387,22 @@
   animation: screen-shake 0.4s ease-out;
 }
 
+/* Pahtnah slam — localized felt table shake */
+@keyframes table-shake {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  12% { transform: translate(-3px, -1px) rotate(-0.3deg); }
+  24% { transform: translate(2px, 2px) rotate(0.2deg); }
+  36% { transform: translate(-2px, 1px) rotate(-0.2deg); }
+  48% { transform: translate(3px, -1px) rotate(0.3deg); }
+  60% { transform: translate(-1px, 2px) rotate(-0.1deg); }
+  72% { transform: translate(2px, -1px) rotate(0.15deg); }
+  84% { transform: translate(-1px, 1px) rotate(-0.1deg); }
+}
+
+.table-slam-shake {
+  animation: table-shake 0.4s ease-out;
+}
+
 /**
  * Elevation system utilities
  */

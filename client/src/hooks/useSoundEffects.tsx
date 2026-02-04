@@ -1,6 +1,6 @@
 import { useCallback, useRef, createContext, useContext, useState, ReactNode } from 'react';
 
-type SoundType = 'cardPlay' | 'cardDeal' | 'trickWon' | 'bidMade' | 'bidSet' | 'victory' | 'defeat' | 'yourTurn' | 'buttonClick' | 'shuffle' | 'catch5Slam';
+type SoundType = 'cardPlay' | 'cardDeal' | 'trickWon' | 'bidMade' | 'bidSet' | 'victory' | 'defeat' | 'yourTurn' | 'buttonClick' | 'shuffle' | 'catch5Slam' | 'pahtnahSlam';
 
 const STORAGE_KEY = 'catch5-sound-muted';
 
@@ -369,6 +369,23 @@ export function SoundProvider({ children }: { children: ReactNode }) {
         });
         // High shimmer noise — sparkle tail
         playNoise(0.15, { volume: 0.12, filterFreq: 8000, delay: 0.15, attack: 0.01 });
+        break;
+
+      case 'pahtnahSlam':
+        // Heavy slam impact — low sine thump
+        playRichTone(80, 0.18, { type: 'sine', volume: 0.45, attack: 0.001, release: 0.15 });
+        // Card slap noise burst
+        playNoise(0.1, { volume: 0.5, filterFreq: 1000, attack: 0.001, decay: 0.099 });
+        // Quick ascending sting — C5-E5-G5 triumphant chord
+        playChord([523, 659, 784], 0.35, {
+          volume: 0.3,
+          delay: 0.12,
+          stagger: 0.02,
+          attack: 0.01,
+          type: 'sine'
+        });
+        // Bright shimmer tail
+        playNoise(0.18, { volume: 0.14, filterFreq: 9000, delay: 0.18, attack: 0.01 });
         break;
 
     }
